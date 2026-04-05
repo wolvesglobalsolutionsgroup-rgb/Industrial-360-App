@@ -2,10 +2,11 @@ import { useRef, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
 import { HardHat, TrendingUp, DollarSign, AlertCircle, Download, FileText, CloudRain, Loader2 } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { GoogleGenAI } from '@google/genai';
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
 
 // Minimalist 3D Architectural Grid
 function ArchitecturalGrid() {
@@ -80,11 +81,27 @@ export default function Dashboard() {
     if (!dashboardRef.current) return;
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(dashboardRef.current, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
+      const filter = (node: HTMLElement) => {
+        return !node.hasAttribute?.('data-html2canvas-ignore');
+      };
+      
+      const imgData = await toPng(dashboardRef.current, { 
+        cacheBust: true, 
+        pixelRatio: 2,
+        filter: filter as any
+      });
+      
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      // We need to get the actual dimensions of the image
+      const img = new Image();
+      img.src = imgData;
+      await new Promise((resolve) => {
+        img.onload = resolve;
+      });
+      
+      const pdfHeight = (img.height * pdfWidth) / img.width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save('informe-tecnico-obrasync.pdf');
@@ -145,7 +162,7 @@ export default function Dashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <Link to="/progress-details" className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 block">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-500">Avance Físico</h3>
             <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
@@ -156,9 +173,9 @@ export default function Dashboard() {
             <span className="text-3xl font-bold text-gray-900">68%</span>
             <span className="text-sm text-red-500 font-medium">-2% plan</span>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <Link to="/budget-details" className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 block">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-500">Presupuesto Ejecutado</h3>
             <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
@@ -169,9 +186,9 @@ export default function Dashboard() {
             <span className="text-3xl font-bold text-gray-900">$93k</span>
             <span className="text-sm text-gray-500 font-medium">de $100k</span>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <Link to="/personnel-details" className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 block">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-500">Personal Activo</h3>
             <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
@@ -182,9 +199,9 @@ export default function Dashboard() {
             <span className="text-3xl font-bold text-gray-900">42</span>
             <span className="text-sm text-gray-500 font-medium">trabajadores</span>
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <Link to="/alerts-details" className="bg-white/80 backdrop-blur-md p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1 block">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-500">Alertas</h3>
             <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
@@ -195,7 +212,7 @@ export default function Dashboard() {
             <span className="text-3xl font-bold text-gray-900">3</span>
             <span className="text-sm text-gray-500 font-medium">pendientes</span>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Charts */}

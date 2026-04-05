@@ -19,6 +19,14 @@ import BIMViewer from './pages/BIMViewer';
 import EngineeringTools from './pages/EngineeringTools';
 import Settings from './pages/Settings';
 import ModulePlaceholder from './pages/ModulePlaceholder';
+import ProgressDetails from './pages/ProgressDetails';
+import BudgetDetails from './pages/BudgetDetails';
+import PersonnelDetails from './pages/PersonnelDetails';
+import AlertsDetails from './pages/AlertsDetails';
+import FieldReports from './pages/FieldReports';
+import ProjectBrain from './pages/ProjectBrain';
+import Documents from './pages/Documents';
+import Valuations from './pages/Valuations';
 
 export default function App() {
   const [user, loading] = useAuthState(auth);
@@ -41,13 +49,21 @@ export default function App() {
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<Projects />} />
             <Route path="tasks" element={<Tasks />} />
+            <Route path="field-reports" element={<FieldReports />} />
+            <Route path="documents" element={<Documents />} />
+            <Route path="valuations" element={<Valuations />} />
             <Route path="inventory" element={<Inventory />} />
             <Route path="expenses" element={<Expenses />} />
             <Route path="tools" element={<EngineeringTools />} />
+            <Route path="project-brain" element={<ProjectBrain />} />
             <Route path="chat" element={<Chatbot />} />
             <Route path="voice" element={<VoiceChat />} />
             <Route path="bim" element={<BIMViewer />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="progress-details" element={<ProgressDetails />} />
+            <Route path="budget-details" element={<BudgetDetails />} />
+            <Route path="personnel-details" element={<PersonnelDetails />} />
+            <Route path="alerts-details" element={<AlertsDetails />} />
             <Route path="modulos/:id" element={<ModulePlaceholder />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>

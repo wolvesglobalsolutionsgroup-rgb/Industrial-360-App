@@ -13,6 +13,9 @@ const coreItems = [
   { path: '/', label: 'Dashboard Ejecutivo', icon: LayoutDashboard },
   { path: '/projects', label: 'Gestión de Proyectos', icon: HardHat },
   { path: '/tasks', label: 'Control de Partidas', icon: ClipboardList },
+  { path: '/field-reports', label: 'Reportes de Campo', icon: ClipboardList },
+  { path: '/documents', label: 'Gestión Documental', icon: FileArchive },
+  { path: '/valuations', label: 'Valuaciones', icon: Receipt },
   { path: '/inventory', label: 'Inventario Base', icon: Package },
   { path: '/expenses', label: 'Gastos y OCR', icon: Receipt },
 ];
@@ -32,6 +35,7 @@ const enterpriseModules = [
 ];
 
 const toolItems = [
+  { path: '/project-brain', label: 'Cerebro del Proyecto', icon: BrainCircuit },
   { path: '/tools', label: 'Herramientas Ing.', icon: Calculator },
   { path: '/bim', label: 'Visor BIM 3D', icon: Box },
   { path: '/chat', label: 'Asistente IA (RAG)', icon: MessageSquare },

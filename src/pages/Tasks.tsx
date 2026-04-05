@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Plus, CheckCircle2, Circle, Upload, LayoutList, CalendarDays, Edit2, Trash2, Activity, AlertTriangle } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Upload, LayoutList, CalendarDays, Edit2, Trash2, Activity, AlertTriangle, Sparkles, X, Loader2 } from 'lucide-react';
 import { XMLParser } from 'fast-xml-parser';
 import { motion } from 'motion/react';
+import { GoogleGenAI } from '@google/genai';
 
 export default function Tasks() {
   const [tasks, setTasks] = useState<any[]>([]);
@@ -25,6 +26,12 @@ export default function Tasks() {
   const [viewMode, setViewMode] = useState<'list' | 'gantt'>('list');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // AI State
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [isAiLoading, setIsAiLoading] = useState(false);
+
   useEffect(() => {
     const q = query(collection(db, 'tasks'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -43,6 +50,47 @@ export default function Tasks() {
       unsubSettings();
     };
   }, []);
+
+  const handleAskAI = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiQuery.trim()) return;
+    
+    setIsAiLoading(true);
+    setAiResponse('');
+    
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      
+      // Prepare context
+      const tasksContext = tasks.map(t => 
+        `- ${t.name}: Planificado ${t.plannedQuantity} ${t.unit}, Ejecutado ${t.executedQuantity.toFixed(2)} ${t.unit}, Costo Unitario $${t.unitCost}, Inicio: ${t.startDate}, Fin: ${t.endDate}`
+      ).join('\n');
+      
+      const prompt = `Eres un asistente experto en gestión de proyectos de construcción e ingeniería civil. 
+Aquí están los datos actuales de las partidas (tareas) del proyecto:
+${tasksContext}
+
+Responde a la siguiente pregunta del usuario basándote en los datos del proyecto proporcionados. 
+Si la pregunta requiere información técnica especializada, normativas de construcción, o mejores prácticas, utiliza la herramienta de búsqueda en internet, pero asegúrate de basarte solo en fuentes fiables y especializadas.
+
+Pregunta del usuario: ${aiQuery}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-pro-preview',
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }]
+        }
+      });
+      
+      setAiResponse(response.text || 'No se pudo generar una respuesta.');
+    } catch (error) {
+      console.error("Error asking AI:", error);
+      setAiResponse("Hubo un error al consultar al asistente. Por favor, intenta de nuevo.");
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,6 +257,13 @@ export default function Tasks() {
             onChange={handleImportMSProject} 
             className="hidden" 
           />
+          <button 
+            onClick={() => setIsAiModalOpen(true)}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <Sparkles size={20} />
+            Asistente IA
+          </button>
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
@@ -519,6 +574,67 @@ export default function Tasks() {
                 <button type="button" onClick={() => { setIsProgressModalOpen(false); setProgressTask(null); }} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
                 <button type="submit" className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">Validar y Guardar</button>
               </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* AI Assistant Modal */}
+      {isAiModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl shadow-xl flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center">
+                  <Sparkles size={24} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Asistente IA de Partidas</h2>
+                  <p className="text-sm text-gray-500">Consulta sobre el estado, retrasos o prioridades</p>
+                </div>
+              </div>
+              <button onClick={() => setIsAiModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto mb-4 p-4 bg-gray-50 rounded-xl border border-gray-100 min-h-[200px]">
+              {aiResponse ? (
+                <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
+                  {aiResponse}
+                </div>
+              ) : isAiLoading ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-3">
+                  <Loader2 size={32} className="animate-spin text-purple-600" />
+                  <p>Analizando datos del proyecto y buscando información...</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3 text-center">
+                  <Sparkles size={48} className="opacity-20" />
+                  <p>Pregúntame sobre las partidas críticas, retrasos, o recomendaciones técnicas.</p>
+                  <div className="flex flex-wrap gap-2 justify-center mt-4">
+                    <button onClick={() => setAiQuery('¿Cuáles son las partidas críticas para esta semana?')} className="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded-full hover:bg-purple-50 hover:text-purple-700 transition-colors">¿Partidas críticas esta semana?</button>
+                    <button onClick={() => setAiQuery('¿Qué partidas están atrasadas según el plan?')} className="text-xs bg-white border border-gray-200 px-3 py-1.5 rounded-full hover:bg-purple-50 hover:text-purple-700 transition-colors">¿Partidas atrasadas?</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handleAskAI} className="flex gap-3 mt-auto">
+              <input 
+                type="text" 
+                value={aiQuery} 
+                onChange={e => setAiQuery(e.target.value)} 
+                placeholder="Escribe tu pregunta aquí..." 
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none"
+                disabled={isAiLoading}
+              />
+              <button 
+                type="submit" 
+                disabled={isAiLoading || !aiQuery.trim()}
+                className="px-6 py-3 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors disabled:opacity-50 font-medium"
+              >
+                Preguntar
+              </button>
             </form>
           </div>
         </div>
