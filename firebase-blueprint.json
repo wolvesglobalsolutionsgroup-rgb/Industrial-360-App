@@ -1,0 +1,189 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The user's full name"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "engineer", "viewer"],
+          "description": "The user's role"
+        }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "A construction project",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the project"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the project"
+        },
+        "budget": {
+          "type": "number",
+          "description": "Total budget for the project"
+        },
+        "startDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start date of the project"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Estimated end date of the project"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["planning", "active", "completed", "on_hold"],
+          "description": "Current status of the project"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who created the project"
+        }
+      },
+      "required": ["name", "budget", "startDate", "status", "ownerId"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A construction task or 'partida'",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "description": "The ID of the project this task belongs to"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the task"
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit of measurement (e.g., m2, m3, kg)"
+        },
+        "plannedQuantity": {
+          "type": "number",
+          "description": "Planned quantity"
+        },
+        "executedQuantity": {
+          "type": "number",
+          "description": "Actually executed quantity"
+        },
+        "unitCost": {
+          "type": "number",
+          "description": "Cost per unit"
+        }
+      },
+      "required": ["projectId", "name", "unit", "plannedQuantity", "executedQuantity", "unitCost"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "A project expense, often from a scanned receipt",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "description": "The ID of the project this expense belongs to"
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date of the expense"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Total amount of the expense"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the items purchased"
+        },
+        "vendor": {
+          "type": "string",
+          "description": "Name of the vendor or store"
+        },
+        "receiptUrl": {
+          "type": "string",
+          "description": "URL to the scanned receipt image"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category of the expense (e.g., materials, equipment, labor)"
+        },
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the user who recorded the expense"
+        }
+      },
+      "required": ["projectId", "date", "amount", "description", "vendor", "category", "ownerId"]
+    },
+    "InventoryItem": {
+      "title": "Inventory Item",
+      "description": "An item in the project's inventory",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "description": "The ID of the project"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the material/item"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Current quantity in stock"
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit of measurement"
+        },
+        "lastUpdated": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the inventory was last updated"
+        }
+      },
+      "required": ["projectId", "name", "quantity", "unit", "lastUpdated"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Construction projects"
+    },
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Tasks/Partidas for projects"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Expenses and scanned receipts"
+    },
+    "/inventory/{itemId}": {
+      "schema": "InventoryItem",
+      "description": "Inventory items"
+    }
+  }
+}

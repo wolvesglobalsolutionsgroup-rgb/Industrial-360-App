@@ -1,0 +1,130 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "wolvesglobalsolutionsgroup@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+    
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasOnlyAllowedFields(['name', 'email', 'role']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && isValidEmail(data.email) &&
+             data.role in ['admin', 'engineer', 'viewer'];
+    }
+
+    function isValidProject(data) {
+      return hasOnlyAllowedFields(['name', 'description', 'budget', 'startDate', 'endDate', 'status', 'ownerId']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 150 &&
+             data.description is string && data.description.size() < 1000 &&
+             data.budget is number && data.budget >= 0 &&
+             data.startDate is string &&
+             (!('endDate' in data) || data.endDate is string) &&
+             data.status in ['planning', 'active', 'completed', 'on_hold'] &&
+             data.ownerId is string && data.ownerId.size() > 0 && data.ownerId.size() < 50;
+    }
+
+    function isValidTask(data) {
+      return hasOnlyAllowedFields(['projectId', 'name', 'unit', 'plannedQuantity', 'executedQuantity', 'unitCost']) &&
+             data.projectId is string && data.projectId.size() > 0 && data.projectId.size() < 50 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
+             data.unit is string && data.unit.size() > 0 && data.unit.size() < 20 &&
+             data.plannedQuantity is number && data.plannedQuantity >= 0 &&
+             data.executedQuantity is number && data.executedQuantity >= 0 &&
+             data.unitCost is number && data.unitCost >= 0;
+    }
+
+    function isValidExpense(data) {
+      return hasOnlyAllowedFields(['projectId', 'date', 'amount', 'description', 'vendor', 'receiptUrl', 'category', 'ownerId']) &&
+             data.projectId is string && data.projectId.size() > 0 && data.projectId.size() < 50 &&
+             data.date is string &&
+             data.amount is number && data.amount >= 0 &&
+             data.description is string && data.description.size() < 500 &&
+             data.vendor is string && data.vendor.size() < 100 &&
+             (!('receiptUrl' in data) || (data.receiptUrl is string && data.receiptUrl.size() < 500)) &&
+             data.category is string && data.category.size() < 50 &&
+             data.ownerId is string && data.ownerId.size() > 0 && data.ownerId.size() < 50;
+    }
+
+    function isValidInventoryItem(data) {
+      return hasOnlyAllowedFields(['projectId', 'name', 'quantity', 'unit', 'lastUpdated']) &&
+             data.projectId is string && data.projectId.size() > 0 && data.projectId.size() < 50 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 150 &&
+             data.quantity is number && data.quantity >= 0 &&
+             data.unit is string && data.unit.size() > 0 && data.unit.size() < 20 &&
+             data.lastUpdated is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    ((isOwner(userId) && request.resource.data.role == 'viewer') || isAdmin());
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /projects/{projectId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidProject(request.resource.data) && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidProject(request.resource.data) && 
+                    (resource.data.ownerId == request.auth.uid || isAdmin()) &&
+                    request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidTask(request.resource.data);
+      allow update: if isAuthenticated() && isValidTask(request.resource.data) &&
+                    request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isAuthenticated();
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidExpense(request.resource.data) && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isAuthenticated() && isValidExpense(request.resource.data) && 
+                    (resource.data.ownerId == request.auth.uid || isAdmin()) &&
+                    request.resource.data.ownerId == resource.data.ownerId &&
+                    request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /inventory/{itemId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidInventoryItem(request.resource.data);
+      allow update: if isAuthenticated() && isValidInventoryItem(request.resource.data) &&
+                    request.resource.data.projectId == resource.data.projectId;
+      allow delete: if isAuthenticated();
+    }
+  }
+}
