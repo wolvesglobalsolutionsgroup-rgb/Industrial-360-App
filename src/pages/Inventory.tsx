@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { PackagePlus, Package, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 
 export default function Inventory() {
@@ -13,6 +13,8 @@ export default function Inventory() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const inv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setItems(inv);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'inventory');
     });
     return () => unsubscribe();
   }, []);

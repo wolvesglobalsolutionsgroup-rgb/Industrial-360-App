@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, Loader2, Plus, Receipt, Download } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
 import { collection, addDoc, query, onSnapshot } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 
 export default function Expenses() {
   const [isScanning, setIsScanning] = useState(false);
@@ -16,6 +16,8 @@ export default function Expenses() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const exp = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setExpenses(exp);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'expenses');
     });
     return () => unsubscribe();
   }, []);

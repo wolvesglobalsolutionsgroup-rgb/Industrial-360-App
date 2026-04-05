@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, query, onSnapshot, addDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { Plus, Building2, Calendar, DollarSign, FileSpreadsheet, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -16,6 +16,8 @@ export default function Projects() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const projs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setProjects(projs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'projects');
     });
     return () => unsubscribe();
   }, []);

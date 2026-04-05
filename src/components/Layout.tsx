@@ -4,16 +4,18 @@ import {
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
   MessageSquare, Mic, Box, LogOut, Calculator, Settings as SettingsIcon,
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
-  Database, BookOpen, Plug, Network, BrainCircuit, Briefcase, Menu, X
+  Database, BookOpen, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown
 } from 'lucide-react';
 import { auth, logout } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { useProject } from '../ProjectContext';
 
 const coreItems = [
   { path: '/', label: 'Dashboard Ejecutivo', icon: LayoutDashboard },
   { path: '/projects', label: 'Gestión de Proyectos', icon: HardHat },
   { path: '/tasks', label: 'Control de Partidas', icon: ClipboardList },
   { path: '/field-reports', label: 'Reportes de Campo', icon: ClipboardList },
+  { path: '/logistics', label: 'Logística y Mapa', icon: MapPin },
   { path: '/documents', label: 'Gestión Documental', icon: FileArchive },
   { path: '/valuations', label: 'Valuaciones', icon: Receipt },
   { path: '/inventory', label: 'Inventario Base', icon: Package },
@@ -48,6 +50,8 @@ export default function Layout() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const { projects, currentProject, setCurrentProject } = useProject();
+  const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
 
   // Handle window resize to detect mobile view
   useEffect(() => {
@@ -170,14 +174,64 @@ export default function Layout() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 bg-gray-50/50 relative h-full overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 shrink-0 shadow-sm z-10">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            title={isSidebarOpen ? "Ocultar menú" : "Mostrar menú"}
-          >
-            <Menu size={20} />
-          </button>
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              title={isSidebarOpen ? "Ocultar menú" : "Mostrar menú"}
+            >
+              <Menu size={20} />
+            </button>
+            
+            {/* Project Selector */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
+                className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <HardHat size={16} className="text-emerald-600" />
+                <span className="text-sm font-medium text-gray-700 max-w-[150px] sm:max-w-[200px] truncate">
+                  {currentProject ? currentProject.name : 'Seleccionar Proyecto'}
+                </span>
+                <ChevronDown size={16} className="text-gray-500" />
+              </button>
+              
+              {isProjectMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsProjectMenuOpen(false)}></div>
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 max-h-64 overflow-y-auto">
+                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Proyectos Activos</div>
+                    {projects.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-gray-500">No hay proyectos. Crea uno en Gestión de Proyectos.</div>
+                    ) : (
+                      projects.map(project => (
+                        <button
+                          key={project.id}
+                          onClick={() => {
+                            setCurrentProject(project);
+                            setIsProjectMenuOpen(false);
+                          }}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${currentProject?.id === project.id ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
+                        >
+                          {project.name}
+                        </button>
+                      ))
+                    )}
+                    <div className="border-t border-gray-100 mt-2 pt-2">
+                      <Link 
+                        to="/projects" 
+                        onClick={() => setIsProjectMenuOpen(false)}
+                        className="block px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 font-medium"
+                      >
+                        + Gestionar Proyectos
+                      </Link>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </header>
         
         <div className="flex-1 overflow-auto p-4 md:p-8">

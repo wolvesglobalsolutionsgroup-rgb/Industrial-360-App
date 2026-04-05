@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { BrainCircuit, Send, FileText, Loader2, Sparkles, X, Paperclip } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { BrainCircuit, Send, FileText, Loader2, Sparkles, X, Paperclip, Mic, Square, Volume2, Settings2 } from 'lucide-react';
+import { GoogleGenAI, ThinkingLevel, Modality } from '@google/genai';
 
 export default function ProjectBrain() {
   const [query, setQuery] = useState('');
@@ -8,7 +8,14 @@ export default function ProjectBrain() {
     { role: 'ai', content: 'Hola. Soy el Cerebro del Proyecto. Puedo analizar planos, especificaciones técnicas, cuadros de Excel y ayudarte a gestionar el proyecto, crear partidas, hacer estimaciones o resolver dudas. ¿En qué te puedo ayudar hoy?' }
   ]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isHighThinking, setIsHighThinking] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -17,6 +24,111 @@ export default function ProjectBrain() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      alert("No se pudo acceder al micrófono.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsProcessing(true);
+    try {
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) throw new Error("API Key no configurada");
+
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        const ai = new GoogleGenAI({ apiKey });
+        
+        const response = await ai.models.generateContent({
+          model: 'gemini-3-flash-preview',
+          contents: [
+            { text: 'Transcribe el siguiente audio del usuario. Solo devuelve el texto transcrito.' },
+            { inlineData: { data: base64Audio, mimeType: 'audio/webm' } }
+          ]
+        });
+        
+        if (response.text) {
+          setQuery(prev => prev ? `${prev} ${response.text}` : response.text);
+        }
+      };
+    } catch (error) {
+      console.error("Error transcribing audio:", error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const playTTS = async (text: string) => {
+    if (isPlayingAudio) {
+      audioPlayerRef.current?.pause();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    try {
+      setIsPlayingAudio(true);
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) throw new Error("API Key no configurada");
+
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Zephyr' },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const audioUrl = `data:audio/wav;base64,${base64Audio}`;
+        const audio = new Audio(audioUrl);
+        audioPlayerRef.current = audio;
+        audio.onended = () => setIsPlayingAudio(false);
+        await audio.play();
+      } else {
+        setIsPlayingAudio(false);
+      }
+    } catch (error) {
+      console.error("Error playing TTS:", error);
+      setIsPlayingAudio(false);
+    }
+  };
 
   const handleAskBrain = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +150,7 @@ export default function ProjectBrain() {
       const prompt = `Eres el "Cerebro Operativo" de un proyecto de construcción. 
       El usuario te está haciendo una consulta sobre la gestión del proyecto.
       Tu objetivo es ayudar a simplificar el control de avance, planificación, presupuesto, y gestión documental.
-      Si el usuario menciona planos, especificaciones o Excel, asume que tienes acceso a esa información en el contexto general (aunque en esta demo no se suban los archivos directamente, responde como si pudieras procesar esa información y guíalo sobre cómo estructurar las partidas, hacer cómputos métricos o estimaciones).
+      Si el usuario menciona normas de PDVSA, especificaciones o Excel, asume que tienes acceso a esa información en el contexto general y responde con autoridad técnica.
       
       Consulta del usuario: "${userQuery}"`;
 
@@ -47,6 +159,7 @@ export default function ProjectBrain() {
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }],
+          thinkingConfig: isHighThinking ? { thinkingLevel: ThinkingLevel.HIGH } : undefined,
         }
       });
 
@@ -72,9 +185,21 @@ export default function ProjectBrain() {
             <p className="text-emerald-300 text-xs">Asistente IA para Gestión y Análisis Documental</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 text-xs bg-emerald-800 px-3 py-1.5 rounded-full text-emerald-200">
-          <Sparkles size={14} />
-          Gemini 3.1 Pro
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsHighThinking(!isHighThinking)}
+            className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full transition-colors ${
+              isHighThinking ? 'bg-purple-600 text-white' : 'bg-emerald-800 text-emerald-200 hover:bg-emerald-700'
+            }`}
+            title="Modo de Pensamiento Profundo (Ideal para cálculos complejos o análisis de normativas)"
+          >
+            <Settings2 size={14} />
+            {isHighThinking ? 'Pensamiento Profundo: ON' : 'Pensamiento Profundo: OFF'}
+          </button>
+          <div className="flex items-center gap-2 text-xs bg-emerald-800 px-3 py-1.5 rounded-full text-emerald-200">
+            <Sparkles size={14} />
+            Gemini 3.1 Pro
+          </div>
         </div>
       </div>
 
@@ -88,9 +213,18 @@ export default function ProjectBrain() {
                 : 'bg-white border border-gray-200 text-gray-800 shadow-sm rounded-tl-sm'
             }`}>
               {msg.role === 'ai' && (
-                <div className="flex items-center gap-2 mb-2 text-emerald-700 font-semibold text-sm">
-                  <BrainCircuit size={16} />
-                  Cerebro IA
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-emerald-700 font-semibold text-sm">
+                    <BrainCircuit size={16} />
+                    Cerebro IA
+                  </div>
+                  <button
+                    onClick={() => playTTS(msg.content)}
+                    className={`p-1.5 rounded-lg transition-colors ${isPlayingAudio ? 'bg-emerald-100 text-emerald-700' : 'text-gray-400 hover:bg-gray-100 hover:text-emerald-600'}`}
+                    title={isPlayingAudio ? "Detener audio" : "Escuchar respuesta"}
+                  >
+                    {isPlayingAudio ? <Square size={14} /> : <Volume2 size={14} />}
+                  </button>
                 </div>
               )}
               <div className="prose prose-sm max-w-none whitespace-pre-wrap">
@@ -119,6 +253,18 @@ export default function ProjectBrain() {
             title="Adjuntar documento (Plano, Excel, Spec)"
           >
             <Paperclip size={20} />
+          </button>
+          <button
+            type="button"
+            onClick={isRecording ? stopRecording : startRecording}
+            className={`p-3 rounded-xl transition-colors shrink-0 ${
+              isRecording 
+                ? 'bg-red-100 text-red-600 animate-pulse' 
+                : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'
+            }`}
+            title={isRecording ? "Detener grabación" : "Dictar consulta"}
+          >
+            {isRecording ? <Square size={20} /> : <Mic size={20} />}
           </button>
           <div className="flex-1 relative">
             <textarea

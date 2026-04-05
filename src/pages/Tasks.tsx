@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc, where } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Plus, CheckCircle2, Circle, Upload, LayoutList, CalendarDays, Edit2, Trash2, Activity, AlertTriangle, Sparkles, X, Loader2 } from 'lucide-react';
 import { XMLParser } from 'fast-xml-parser';
 import { motion } from 'motion/react';
 import { GoogleGenAI } from '@google/genai';
+import { useProject } from '../ProjectContext';
 
 export default function Tasks() {
+  const { currentProject } = useProject();
   const [tasks, setTasks] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -33,23 +35,35 @@ export default function Tasks() {
   const [isAiLoading, setIsAiLoading] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'tasks'));
+    if (!currentProject) {
+      setTasks([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'tasks'),
+      where('projectId', '==', currentProject.id)
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const tsks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setTasks(tsks);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'tasks');
     });
     
     const unsubSettings = onSnapshot(doc(db, 'settings', 'general'), (docSnap) => {
       if (docSnap.exists() && docSnap.data().budgetThreshold) {
         setBudgetThreshold(docSnap.data().budgetThreshold);
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/general');
     });
 
     return () => {
       unsubscribe();
       unsubSettings();
     };
-  }, []);
+  }, [currentProject]);
 
   const handleAskAI = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,9 +108,13 @@ Pregunta del usuario: ${aiQuery}`;
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentProject) {
+      alert("Por favor, selecciona un proyecto primero.");
+      return;
+    }
     try {
       await addDoc(collection(db, 'tasks'), {
-        projectId: 'default-project',
+        projectId: currentProject.id,
         name: newTask.name,
         unit: newTask.unit,
         plannedQuantity: Number(newTask.plannedQuantity),
@@ -108,7 +126,7 @@ Pregunta del usuario: ${aiQuery}`;
       setIsModalOpen(false);
       setNewTask({ name: '', unit: 'm2', plannedQuantity: '', unitCost: '' });
     } catch (error) {
-      console.error("Error creating task:", error);
+      handleFirestoreError(error, OperationType.CREATE, 'tasks');
     }
   };
 
@@ -125,7 +143,7 @@ Pregunta del usuario: ${aiQuery}`;
       setIsEditModalOpen(false);
       setEditingTask(null);
     } catch (error) {
-      console.error("Error updating task:", error);
+      handleFirestoreError(error, OperationType.UPDATE, `tasks/${editingTask.id}`);
     }
   };
 
@@ -134,7 +152,7 @@ Pregunta del usuario: ${aiQuery}`;
       try {
         await deleteDoc(doc(db, 'tasks', taskId));
       } catch (error) {
-        console.error("Error deleting task:", error);
+        handleFirestoreError(error, OperationType.DELETE, `tasks/${taskId}`);
       }
     }
   };

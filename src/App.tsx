@@ -27,6 +27,8 @@ import FieldReports from './pages/FieldReports';
 import ProjectBrain from './pages/ProjectBrain';
 import Documents from './pages/Documents';
 import Valuations from './pages/Valuations';
+import LogisticsMap from './pages/LogisticsMap';
+import { ProjectProvider } from './ProjectContext';
 
 export default function App() {
   const [user, loading] = useAuthState(auth);
@@ -45,13 +47,18 @@ export default function App() {
         {!user ? (
           <Route path="*" element={<Login />} />
         ) : (
-          <Route path="/" element={<Layout />}>
+          <Route path="/" element={
+            <ProjectProvider>
+              <Layout />
+            </ProjectProvider>
+          }>
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<Projects />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="field-reports" element={<FieldReports />} />
             <Route path="documents" element={<Documents />} />
             <Route path="valuations" element={<Valuations />} />
+            <Route path="logistics" element={<LogisticsMap />} />
             <Route path="inventory" element={<Inventory />} />
             <Route path="expenses" element={<Expenses />} />
             <Route path="tools" element={<EngineeringTools />} />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, query, onSnapshot, addDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
 import { FolderOpen, Upload, FileText, File, Image as ImageIcon, Trash2, Search, Filter } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -16,6 +16,8 @@ export default function Documents() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setDocuments(docs);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'documents');
     });
     return () => unsubscribe();
   }, []);

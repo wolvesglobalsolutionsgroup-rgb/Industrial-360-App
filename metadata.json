@@ -1,5 +1,9 @@
 {
-  "name": "",
-  "description": "",
-  "requestFramePermissions": []
+  "name": "Industrial Control 360",
+  "description": "Sistema integral de gestión de proyectos de construcción con IA, control de avance, valuaciones, reportes de campo geolocalizados y análisis documental.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
 }
