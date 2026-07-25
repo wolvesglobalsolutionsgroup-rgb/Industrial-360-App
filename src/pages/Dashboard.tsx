@@ -7,6 +7,7 @@ import jsPDF from 'jspdf';
 import { GoogleGenAI } from '@google/genai';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
+import { useProject } from '../ProjectContext';
 
 // Minimalist 3D Architectural Grid
 function ArchitecturalGrid() {
@@ -50,6 +51,7 @@ const budgetData = [
 ];
 
 export default function Dashboard() {
+  const { currentProject, projects } = useProject();
   const dashboardRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [weatherContext, setWeatherContext] = useState<string | null>(null);
@@ -129,8 +131,14 @@ export default function Dashboard() {
 
       <header className="mb-8 pt-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Panel de Control</h1>
-          <p className="text-gray-500 mt-1">Resumen del proyecto activo: Torre Esmeralda</p>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+            {currentProject?.id === 'all' ? '🏢 Portafolio Corporativo Consolidado' : 'Panel de Control Ejecutivo'}
+          </h1>
+          <p className="text-gray-500 mt-1 font-medium">
+            {currentProject?.id === 'all'
+              ? `Consolidado multi-tenant de métricas, presupuestos y recursos (${projects.length} proyectos activos)`
+              : `Proyecto activo: ${currentProject?.name || 'Selecciona un Proyecto'}`}
+          </p>
         </div>
         <button 
           onClick={exportToPDF}

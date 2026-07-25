@@ -4,11 +4,11 @@ import {
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
   MessageSquare, Mic, Box, LogOut, Calculator, Settings as SettingsIcon,
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
-  Database, BookOpen, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown, Truck, ArrowLeftRight
+  Database, BookOpen, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown, Truck, ArrowLeftRight, Building
 } from 'lucide-react';
 import { auth, logout } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { useProject } from '../ProjectContext';
+import { useProject, CORPORATE_PORTFOLIO_PROJECT } from '../ProjectContext';
 
 const coreOperativoItems = [
   { path: '/', label: 'Dashboard Ejecutivo', icon: LayoutDashboard },
@@ -209,10 +209,28 @@ export default function Layout() {
               {isProjectMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setIsProjectMenuOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 max-h-64 overflow-y-auto">
-                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Proyectos Activos</div>
+                  <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 max-h-80 overflow-y-auto">
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Modo de Selección</div>
+                    
+                    {/* Default Corporate Portfolio option */}
+                    <button
+                      onClick={() => {
+                        setCurrentProject(CORPORATE_PORTFOLIO_PROJECT);
+                        setIsProjectMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-3.5 py-2.5 text-xs font-bold flex items-center gap-2 border-b border-gray-100 transition-colors ${
+                        currentProject?.id === 'all' 
+                          ? 'bg-emerald-50 text-emerald-800' 
+                          : 'text-gray-800 hover:bg-gray-50'
+                      }`}
+                    >
+                      <Building size={16} className="text-emerald-600 shrink-0" />
+                      <span className="truncate">🏢 PORTAFOLIO CORPORATIVO (TODOS LOS PROYECTOS)</span>
+                    </button>
+
+                    <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Proyectos Activos</div>
                     {projects.length === 0 ? (
-                      <div className="px-4 py-3 text-sm text-gray-500">No hay proyectos. Crea uno en Gestión de Proyectos.</div>
+                      <div className="px-4 py-3 text-xs text-gray-500">No hay proyectos. Crea uno en Gestión de Proyectos.</div>
                     ) : (
                       projects.map(project => (
                         <button
@@ -221,7 +239,7 @@ export default function Layout() {
                             setCurrentProject(project);
                             setIsProjectMenuOpen(false);
                           }}
-                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${currentProject?.id === project.id ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-gray-700'}`}
+                          className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 transition-colors ${currentProject?.id === project.id ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-gray-700'}`}
                         >
                           {project.name}
                         </button>
@@ -231,7 +249,7 @@ export default function Layout() {
                       <Link 
                         to="/projects" 
                         onClick={() => setIsProjectMenuOpen(false)}
-                        className="block px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 font-medium"
+                        className="block px-4 py-2 text-xs text-emerald-600 hover:bg-emerald-50 font-medium"
                       >
                         + Gestionar Proyectos
                       </Link>

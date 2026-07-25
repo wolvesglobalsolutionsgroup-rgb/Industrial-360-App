@@ -101,23 +101,92 @@ const FLANGE_DATA: Record<string, Record<string, FlangeMatrixSpec>> = {
 // 2. VALVE FACE-TO-FACE ASME B16.10
 interface ValveSpec {
   nps: string;
-  gate150Mm: number;
-  ball150Mm: number;
-  globe150Mm: number;
-  check150Mm: number;
+  gateMm: number;
+  ballMm: number;
+  globeMm: number;
+  checkMm: number;
   butterflyMm: number;
-  plug150Mm: number;
+  plugMm: number;
 }
 
-const VALVE_FACE_DATA: Record<string, ValveSpec> = {
-  '2"': { nps: '2"', gate150Mm: 178, ball150Mm: 178, globe150Mm: 203, check150Mm: 203, butterflyMm: 43, plug150Mm: 178 },
-  '3"': { nps: '3"', gate150Mm: 203, ball150Mm: 203, globe150Mm: 241, check150Mm: 241, butterflyMm: 46, plug150Mm: 203 },
-  '4"': { nps: '4"', gate150Mm: 229, ball150Mm: 229, globe150Mm: 292, check150Mm: 292, butterflyMm: 52, plug150Mm: 229 },
-  '6"': { nps: '6"', gate150Mm: 267, ball150Mm: 394, globe150Mm: 406, check150Mm: 356, butterflyMm: 56, plug150Mm: 267 },
-  '8"': { nps: '8"', gate150Mm: 292, ball150Mm: 457, globe150Mm: 495, check150Mm: 495, butterflyMm: 64, plug150Mm: 292 },
-  '10"': { nps: '10"', gate150Mm: 330, ball150Mm: 533, globe150Mm: 622, check150Mm: 622, butterflyMm: 68, plug150Mm: 330 },
-  '12"': { nps: '12"', gate150Mm: 356, ball150Mm: 610, globe150Mm: 698, check150Mm: 698, butterflyMm: 78, plug150Mm: 356 }
+const VALVE_FACE_DATA_BY_CLASS: Record<string, Record<string, ValveSpec>> = {
+  '150#': {
+    '2"': { nps: '2"', gateMm: 178, ballMm: 178, globeMm: 203, checkMm: 203, butterflyMm: 43, plugMm: 178 },
+    '3"': { nps: '3"', gateMm: 203, ballMm: 203, globeMm: 241, checkMm: 241, butterflyMm: 46, plugMm: 203 },
+    '4"': { nps: '4"', gateMm: 229, ballMm: 229, globeMm: 292, checkMm: 292, butterflyMm: 52, plugMm: 229 },
+    '6"': { nps: '6"', gateMm: 267, ballMm: 394, globeMm: 406, checkMm: 356, butterflyMm: 56, plugMm: 267 },
+    '8"': { nps: '8"', gateMm: 292, ballMm: 457, globeMm: 495, checkMm: 495, butterflyMm: 64, plugMm: 292 },
+    '10"': { nps: '10"', gateMm: 330, ballMm: 533, globeMm: 622, checkMm: 622, butterflyMm: 68, plugMm: 330 },
+    '12"': { nps: '12"', gateMm: 356, ballMm: 610, globeMm: 698, checkMm: 698, butterflyMm: 78, plugMm: 356 }
+  },
+  '300#': {
+    '2"': { nps: '2"', gateMm: 216, ballMm: 216, globeMm: 267, checkMm: 267, butterflyMm: 43, plugMm: 216 },
+    '3"': { nps: '3"', gateMm: 283, ballMm: 283, globeMm: 318, checkMm: 318, butterflyMm: 48, plugMm: 283 },
+    '4"': { nps: '4"', gateMm: 305, ballMm: 305, globeMm: 356, checkMm: 356, butterflyMm: 54, plugMm: 305 },
+    '6"': { nps: '6"', gateMm: 403, ballMm: 403, globeMm: 445, checkMm: 445, butterflyMm: 59, plugMm: 403 },
+    '8"': { nps: '8"', gateMm: 419, ballMm: 502, globeMm: 559, checkMm: 533, butterflyMm: 73, plugMm: 419 },
+    '10"': { nps: '10"', gateMm: 457, ballMm: 568, globeMm: 622, checkMm: 622, butterflyMm: 83, plugMm: 457 },
+    '12"': { nps: '12"', gateMm: 502, ballMm: 648, globeMm: 711, checkMm: 711, butterflyMm: 92, plugMm: 502 }
+  },
+  '600#': {
+    '2"': { nps: '2"', gateMm: 292, ballMm: 292, globeMm: 292, checkMm: 292, butterflyMm: 43, plugMm: 292 },
+    '3"': { nps: '3"', gateMm: 356, ballMm: 356, globeMm: 356, checkMm: 356, butterflyMm: 54, plugMm: 356 },
+    '4"': { nps: '4"', gateMm: 432, ballMm: 432, globeMm: 432, checkMm: 432, butterflyMm: 64, plugMm: 432 },
+    '6"': { nps: '6"', gateMm: 559, ballMm: 559, globeMm: 559, checkMm: 559, butterflyMm: 78, plugMm: 559 },
+    '8"': { nps: '8"', gateMm: 660, ballMm: 660, globeMm: 660, checkMm: 660, butterflyMm: 89, plugMm: 660 },
+    '10"': { nps: '10"', gateMm: 787, ballMm: 787, globeMm: 787, checkMm: 787, butterflyMm: 102, plugMm: 787 },
+    '12"': { nps: '12"', gateMm: 838, ballMm: 838, globeMm: 838, checkMm: 838, butterflyMm: 114, plugMm: 838 }
+  },
+  '900#': {
+    '2"': { nps: '2"', gateMm: 368, ballMm: 368, globeMm: 368, checkMm: 368, butterflyMm: 43, plugMm: 368 },
+    '3"': { nps: '3"', gateMm: 381, ballMm: 381, globeMm: 381, checkMm: 381, butterflyMm: 54, plugMm: 381 },
+    '4"': { nps: '4"', gateMm: 457, ballMm: 457, globeMm: 457, checkMm: 457, butterflyMm: 64, plugMm: 457 },
+    '6"': { nps: '6"', gateMm: 610, ballMm: 610, globeMm: 610, checkMm: 610, butterflyMm: 78, plugMm: 610 },
+    '8"': { nps: '8"', gateMm: 737, ballMm: 737, globeMm: 737, checkMm: 737, butterflyMm: 89, plugMm: 737 },
+    '10"': { nps: '10"', gateMm: 838, ballMm: 838, globeMm: 838, checkMm: 838, butterflyMm: 102, plugMm: 838 },
+    '12"': { nps: '12"', gateMm: 965, ballMm: 965, globeMm: 965, checkMm: 965, butterflyMm: 114, plugMm: 965 }
+  },
+  '1500#': {
+    '2"': { nps: '2"', gateMm: 368, ballMm: 368, globeMm: 368, checkMm: 368, butterflyMm: 43, plugMm: 368 },
+    '3"': { nps: '3"', gateMm: 470, ballMm: 470, globeMm: 470, checkMm: 470, butterflyMm: 54, plugMm: 470 },
+    '4"': { nps: '4"', gateMm: 546, ballMm: 546, globeMm: 546, checkMm: 546, butterflyMm: 64, plugMm: 546 },
+    '6"': { nps: '6"', gateMm: 705, ballMm: 705, globeMm: 705, checkMm: 705, butterflyMm: 78, plugMm: 705 },
+    '8"': { nps: '8"', gateMm: 832, ballMm: 832, globeMm: 832, checkMm: 832, butterflyMm: 89, plugMm: 832 },
+    '10"': { nps: '10"', gateMm: 991, ballMm: 991, globeMm: 991, checkMm: 991, butterflyMm: 102, plugMm: 991 },
+    '12"': { nps: '12"', gateMm: 1130, ballMm: 1130, globeMm: 1130, checkMm: 1130, butterflyMm: 114, plugMm: 1130 }
+  }
 };
+
+// Helper for Star Pattern Cross Torquing (ASME PCC-1)
+function getStarPatternSequence(holesCount: number): number[] {
+  switch (holesCount) {
+    case 4:
+      return [1, 3, 2, 4];
+    case 8:
+      return [1, 5, 3, 7, 2, 6, 4, 8];
+    case 12:
+      return [1, 7, 4, 10, 2, 8, 5, 11, 3, 9, 6, 12];
+    case 16:
+      return [1, 9, 5, 13, 3, 11, 7, 15, 2, 10, 6, 14, 4, 12, 8, 16];
+    case 20:
+      return [1, 11, 6, 16, 3, 13, 8, 18, 2, 12, 7, 17, 4, 14, 9, 19, 5, 15, 10, 20];
+    case 24:
+      return [1, 13, 7, 19, 4, 16, 10, 22, 2, 14, 8, 20, 5, 17, 11, 23, 3, 15, 9, 21, 6, 18, 12, 24];
+    case 28:
+      return [1, 15, 8, 22, 4, 18, 11, 25, 2, 16, 9, 23, 5, 19, 12, 26, 3, 17, 10, 24, 6, 20, 13, 27, 7, 21, 14, 28];
+    case 32:
+      return [1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31, 2, 18, 10, 26, 6, 22, 14, 30, 4, 20, 12, 28, 8, 24, 16, 32];
+    default: {
+      const seq: number[] = [];
+      const half = Math.floor(holesCount / 2);
+      for (let i = 1; i <= half; i++) {
+        seq.push(i);
+        seq.push(i + half);
+      }
+      return seq;
+    }
+  }
+}
 
 // 3. REINFORCING BARS (CABILLAS) COVENIN / ASTM
 interface RebarSpec {
@@ -157,6 +226,8 @@ export default function EngineeringTools() {
   // ==========================================
   const [flangeClassSelect, setFlangeClassSelect] = useState<string>('150#');
   const [flangeNpsSelect, setFlangeNpsSelect] = useState<string>('4"');
+  const [valveClassSelect, setValveClassSelect] = useState<string>('150#');
+  const [activeTorquePass, setActiveTorquePass] = useState<number>(1);
   const [assemblyType, setAssemblyType] = useState<'flange_flange' | 'flange_gate_valve' | 'flange_butterfly'>('flange_flange');
 
   // Barlow Pipe thickness calc state
@@ -176,16 +247,22 @@ export default function EngineeringTools() {
   const currentFlangeClassData = FLANGE_DATA[flangeClassSelect] || FLANGE_DATA['150#'];
   const currentFlangeSpec = currentFlangeClassData[flangeNpsSelect] || Object.values(currentFlangeClassData)[0];
 
+  // Selected Valve spec according to flange class or valve class selector
+  const activeValveClassKey = valveClassSelect in VALVE_FACE_DATA_BY_CLASS ? valveClassSelect : (flangeClassSelect in VALVE_FACE_DATA_BY_CLASS ? flangeClassSelect : '150#');
+  const currentValveClassData = VALVE_FACE_DATA_BY_CLASS[activeValveClassKey] || VALVE_FACE_DATA_BY_CLASS['150#'];
+  const currentValveSpecForNps = currentValveClassData[flangeNpsSelect] || currentValveClassData['4"'] || Object.values(currentValveClassData)[0];
+
+  // Star Pattern Cross Sequence for selected flange hole count
+  const starSequence = getStarPatternSequence(currentFlangeSpec.holesCount);
+
   // Stud length estimation
   let studLengthInches = 3.5;
   if (assemblyType === 'flange_flange') {
     studLengthInches = Math.ceil((currentFlangeSpec.thicknessMm * 2) / 25.4 + 1.5);
   } else if (assemblyType === 'flange_gate_valve') {
-    const vSpec = VALVE_FACE_DATA[flangeNpsSelect] || VALVE_FACE_DATA['4"'];
-    studLengthInches = Math.ceil((currentFlangeSpec.thicknessMm * 2 + vSpec.gate150Mm) / 25.4 + 1.5);
+    studLengthInches = Math.ceil((currentFlangeSpec.thicknessMm * 2 + (currentValveSpecForNps?.gateMm || 229)) / 25.4 + 1.5);
   } else {
-    const vSpec = VALVE_FACE_DATA[flangeNpsSelect] || VALVE_FACE_DATA['4"'];
-    studLengthInches = Math.ceil((currentFlangeSpec.thicknessMm * 2 + vSpec.butterflyMm) / 25.4 + 1.5);
+    studLengthInches = Math.ceil((currentFlangeSpec.thicknessMm * 2 + (currentValveSpecForNps?.butterflyMm || 52)) / 25.4 + 1.5);
   }
 
   // ==========================================
@@ -417,6 +494,7 @@ export default function EngineeringTools() {
                     value={flangeClassSelect} 
                     onChange={(e) => {
                       setFlangeClassSelect(e.target.value);
+                      setValveClassSelect(e.target.value);
                       const availableNps = Object.keys(FLANGE_DATA[e.target.value] || {});
                       if (!availableNps.includes(flangeNpsSelect)) setFlangeNpsSelect(availableNps[0]);
                     }}
@@ -570,11 +648,190 @@ export default function EngineeringTools() {
             </div>
           </div>
 
+          {/* Star Pattern Torquing Sequence (ASME PCC-1) */}
+          <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-6 border border-slate-800 shadow-xl">
+            <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+                  <Wrench size={16} /> Guía de Apriete en Estrella (ASME PCC-1 / Star Pattern)
+                </div>
+                <h3 className="text-lg font-black tracking-tight text-white">
+                  Secuencia de Cruzado y Pases Progresivos de Torque
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Brida {currentFlangeSpec.nps} Clase {flangeClassSelect} — {currentFlangeSpec.holesCount} Pernos ({currentFlangeSpec.boltDiamInches}) — Dado: {currentFlangeSpec.socketInches}
+                </p>
+              </div>
+
+              <div className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-right font-mono">
+                <span className="text-[10px] text-slate-400 block uppercase">Torque Objetivo (100%)</span>
+                <span className="text-lg font-black text-emerald-400">{currentFlangeSpec.torqueFtLb} ft-lb</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Left: Star Pattern Sequence & SVG Graphic */}
+              <div className="lg:col-span-6 space-y-4">
+                <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 space-y-3 font-mono text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-amber-400 font-bold uppercase">Patrón Numérico en Estrella ({currentFlangeSpec.holesCount} Agujeros)</span>
+                    <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">Paso Cruzado</span>
+                  </div>
+                  <div className="p-3 bg-slate-950 rounded-lg text-emerald-400 font-black text-sm tracking-wider text-center border border-slate-800 break-words">
+                    {starSequence.join('  ➔  ')}
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Aplica el apriete siguiendo estrictamente el orden numérico opuesto en estrella para asegurar asentamiento uniforme de la empacadura.
+                  </p>
+                </div>
+
+                {/* SVG Flange Diagram */}
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col items-center justify-center relative">
+                  <span className="text-[10px] text-slate-400 font-mono uppercase mb-2">Esquema Gráfico de Disposición de Agujeros</span>
+                  <svg viewBox="0 0 200 200" className="w-48 h-48">
+                    <circle cx="100" cy="100" r="90" fill="none" stroke="#334155" strokeWidth="6" />
+                    <circle cx="100" cy="100" r="70" fill="none" stroke="#475569" strokeDasharray="3 3" strokeWidth="1.5" />
+                    <circle cx="100" cy="100" r="38" fill="#0f172a" stroke="#1e293b" strokeWidth="4" />
+                    <text x="100" y="104" textAnchor="middle" fill="#64748b" fontSize="10" fontFamily="monospace" fontWeight="bold">{currentFlangeSpec.nps}</text>
+
+                    {Array.from({ length: currentFlangeSpec.holesCount }).map((_, idx) => {
+                      const boltNum = idx + 1;
+                      const angleDeg = (360 / currentFlangeSpec.holesCount) * idx - 90;
+                      const angleRad = (angleDeg * Math.PI) / 180;
+                      const cx = 100 + 70 * Math.cos(angleRad);
+                      const cy = 100 + 70 * Math.sin(angleRad);
+
+                      return (
+                        <g key={boltNum} className="transition-all duration-300">
+                          <circle
+                            cx={cx}
+                            cy={cy}
+                            r="11"
+                            fill="#1e293b"
+                            stroke="#10b981"
+                            strokeWidth="2"
+                          />
+                          <text
+                            x={cx}
+                            y={cy + 3.5}
+                            textAnchor="middle"
+                            fill="#f8fafc"
+                            fontSize="9"
+                            fontWeight="bold"
+                            fontFamily="monospace"
+                          >
+                            {boltNum}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                  <span className="text-[10px] text-slate-500 font-mono mt-2">Pernos enumerados de 1 a {currentFlangeSpec.holesCount} en sentido horario</span>
+                </div>
+              </div>
+
+              {/* Right: Progressive Torque Passes Guide */}
+              <div className="lg:col-span-6 space-y-3 font-mono text-xs">
+                <span className="text-slate-400 font-bold uppercase block">Guía de Pases Progresivos de Torque (ASME PCC-1)</span>
+
+                <div className="grid grid-cols-1 gap-2.5">
+                  <div 
+                    onClick={() => setActiveTorquePass(1)}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                      activeTorquePass === 1 
+                        ? 'bg-emerald-950/80 border-emerald-500 ring-1 ring-emerald-500' 
+                        : 'bg-slate-800 border-slate-700 hover:bg-slate-750'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-emerald-400">Pase 1: 30% del Torque Objetivo</span>
+                      <span className="text-base font-black text-white">{Math.round(currentFlangeSpec.torqueFtLb * 0.3)} ft-lb</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      Apriete inicial suave en cruzado siguiendo el patrón numérico para asentar alineadas las caras.
+                    </p>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTorquePass(2)}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                      activeTorquePass === 2 
+                        ? 'bg-emerald-950/80 border-emerald-500 ring-1 ring-emerald-500' 
+                        : 'bg-slate-800 border-slate-700 hover:bg-slate-750'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-amber-400">Pase 2: 60% del Torque Objetivo</span>
+                      <span className="text-base font-black text-white">{Math.round(currentFlangeSpec.torqueFtLb * 0.6)} ft-lb</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      Segundo apriete en cruzado para comprimir progresivamente la empacadura.
+                    </p>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTorquePass(3)}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                      activeTorquePass === 3 
+                        ? 'bg-emerald-950/80 border-emerald-500 ring-1 ring-emerald-500' 
+                        : 'bg-slate-800 border-slate-700 hover:bg-slate-750'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-blue-400">Pase 3: 100% del Torque Objetivo</span>
+                      <span className="text-base font-black text-white">{currentFlangeSpec.torqueFtLb} ft-lb</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      Apriete al valor nominal total de torque en cruzado según especificación.
+                    </p>
+                  </div>
+
+                  <div 
+                    onClick={() => setActiveTorquePass(4)}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                      activeTorquePass === 4 
+                        ? 'bg-emerald-950/80 border-emerald-500 ring-1 ring-emerald-500' 
+                        : 'bg-slate-800 border-slate-700 hover:bg-slate-750'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-purple-400">Pase 4: 100% Circular Continuous (Asentamiento)</span>
+                      <span className="text-base font-black text-white">{currentFlangeSpec.torqueFtLb} ft-lb</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300">
+                      Apriete en sentido horario perno por perno a 100% de torque para verificación final de asentamiento circular.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Table for Face-to-Face Valve Dimensions B16.10 */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4 shadow-sm">
-            <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-              <Flame size={18} className="text-emerald-600" /> Catálogo de Distancias Cara a Cara de Válvulas Clase 150# (ASME B16.10)
-            </h3>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-3">
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                  <Flame size={18} className="text-emerald-600" /> Catálogo de Distancias Cara a Cara de Válvulas (ASME B16.10)
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Longitudes normalizadas en milímetros según la Clase de Presión ANSI seleccionada
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Clase Válvula:</label>
+                <select 
+                  value={valveClassSelect}
+                  onChange={(e) => setValveClassSelect(e.target.value)}
+                  className="px-3 py-1.5 bg-slate-900 text-emerald-400 border border-slate-700 rounded-xl font-mono text-xs font-bold outline-none"
+                >
+                  {Object.keys(VALVE_FACE_DATA_BY_CLASS).map(cls => (
+                    <option key={cls} value={cls}>{cls}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
@@ -590,15 +847,15 @@ export default function EngineeringTools() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 font-mono">
-                  {Object.values(VALVE_FACE_DATA).map(v => (
+                  {Object.values(currentValveClassData).map(v => (
                     <tr key={v.nps} className="hover:bg-slate-50">
                       <td className="p-3 font-bold text-slate-900">{v.nps}</td>
-                      <td className="p-3 text-slate-700">{v.gate150Mm} mm</td>
-                      <td className="p-3 text-slate-700">{v.ball150Mm} mm</td>
-                      <td className="p-3 text-slate-700">{v.globe150Mm} mm</td>
-                      <td className="p-3 text-slate-700">{v.check150Mm} mm</td>
+                      <td className="p-3 text-slate-700">{v.gateMm} mm</td>
+                      <td className="p-3 text-slate-700">{v.ballMm} mm</td>
+                      <td className="p-3 text-slate-700">{v.globeMm} mm</td>
+                      <td className="p-3 text-slate-700">{v.checkMm} mm</td>
                       <td className="p-3 text-emerald-700 font-bold">{v.butterflyMm} mm</td>
-                      <td className="p-3 text-slate-700">{v.plug150Mm} mm</td>
+                      <td className="p-3 text-slate-700">{v.plugMm} mm</td>
                     </tr>
                   ))}
                 </tbody>
@@ -609,7 +866,7 @@ export default function EngineeringTools() {
       )}
 
       {/* ========================================== */}
-      /* TAB 2: INSTRUMENTATION & CONTROL (I&C)      */
+      {/* TAB 2: INSTRUMENTATION & CONTROL (I&C)      */}
       {/* ========================================== */}
       {activeMainTab === 'instrumentation' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -712,7 +969,7 @@ export default function EngineeringTools() {
       )}
 
       {/* ========================================== */}
-      /* TAB 3: PROCESS & STORAGE TANKS (API 650)   */
+      {/* TAB 3: PROCESS & STORAGE TANKS (API 650)   */}
       {/* ========================================== */}
       {activeMainTab === 'process' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -821,7 +1078,7 @@ export default function EngineeringTools() {
       )}
 
       {/* ========================================== */}
-      /* TAB 4: COATINGS, NACE & MATERIALS           */
+      {/* TAB 4: COATINGS, NACE & MATERIALS           */}
       {/* ========================================== */}
       {activeMainTab === 'coatings' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -917,7 +1174,7 @@ export default function EngineeringTools() {
       )}
 
       {/* ========================================== */}
-      /* TAB 5: ELECTRICAL POWER & VOLTAGE DROP      */
+      {/* TAB 5: ELECTRICAL POWER & VOLTAGE DROP      */}
       {/* ========================================== */}
       {activeMainTab === 'electrical' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1010,7 +1267,7 @@ export default function EngineeringTools() {
       )}
 
       {/* ========================================== */}
-      /* TAB 6: CIVIL & EARTHMOVING & REBARS        */
+      {/* TAB 6: CIVIL & EARTHMOVING & REBARS        */}
       {/* ========================================== */}
       {activeMainTab === 'civil' && (
         <div className="space-y-6">
@@ -1181,7 +1438,7 @@ export default function EngineeringTools() {
       )}
 
       {/* ========================================== */}
-      /* TAB 7: SIHO-A FLARE RADIATION & NOISE     */
+      {/* TAB 7: SIHO-A FLARE RADIATION & NOISE     */}
       {/* ========================================== */}
       {activeMainTab === 'siho' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1276,7 +1533,7 @@ export default function EngineeringTools() {
       )}
 
       {/* ========================================== */}
-      /* TAB 8: UNIVERSAL QUICK CONVERTER            */
+      {/* TAB 8: UNIVERSAL QUICK CONVERTER            */}
       {/* ========================================== */}
       {activeMainTab === 'conversions' && (
         <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">

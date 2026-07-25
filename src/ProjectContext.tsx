@@ -36,7 +36,7 @@ const defaultBrandKit: BrandKit = {
   authorizedSignerTitle: 'Gerente General de Operaciones y Proyectos'
 };
 
-interface Project {
+export interface Project {
   id: string;
   name: string;
   description: string;
@@ -44,6 +44,14 @@ interface Project {
   ownerId: string;
   advancePercent?: number;
 }
+
+export const CORPORATE_PORTFOLIO_PROJECT: Project = {
+  id: 'all',
+  name: '🏢 PORTAFOLIO CORPORATIVO (TODOS LOS PROYECTOS)',
+  description: 'Consolidado ejecutivo, operativo y financiero de todos los proyectos de la organización',
+  status: 'Activo',
+  ownerId: 'org'
+};
 
 interface ProjectContextType {
   projects: Project[];
@@ -58,7 +66,7 @@ const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [currentProject, setCurrentProject] = useState<Project | null>(CORPORATE_PORTFOLIO_PROJECT);
   const [isLoading, setIsLoading] = useState(true);
   const [brandKit, setBrandKitState] = useState<BrandKit>(() => {
     const saved = localStorage.getItem('ic360_brandKit');
@@ -72,7 +80,10 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const fetchBrand = async () => {
       try {
-        const snap = await getDoc(doc(db, 'settings', 'brandKit'));
+        let snap = await getDoc(doc(db, 'organizations', 'default'));
+        if (!snap.exists()) {
+          snap = await getDoc(doc(db, 'settings', 'brandKit'));
+        }
         if (snap.exists()) {
           const data = snap.data() as BrandKit;
           const merged = { ...defaultBrandKit, ...data };
@@ -92,18 +103,20 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       const projs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
       setProjects(projs);
       
-      // Set default project if none selected
-      if (projs.length > 0 && !currentProject) {
-        // Try to load from localStorage first
-        const savedProjectId = localStorage.getItem('currentProjectId');
+      // Check saved selection
+      const savedProjectId = localStorage.getItem('currentProjectId');
+      if (savedProjectId === 'all') {
+        setCurrentProject(CORPORATE_PORTFOLIO_PROJECT);
+      } else if (savedProjectId) {
         const savedProject = projs.find(p => p.id === savedProjectId);
         if (savedProject) {
           setCurrentProject(savedProject);
         } else {
-          setCurrentProject(projs[0]);
+          setCurrentProject(CORPORATE_PORTFOLIO_PROJECT);
         }
-      } else if (projs.length === 0) {
-        setCurrentProject(null);
+      } else {
+        // Default to Corporate Portfolio if not specified
+        setCurrentProject(CORPORATE_PORTFOLIO_PROJECT);
       }
       setIsLoading(false);
     }, (error) => {
@@ -129,6 +142,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('ic360_brandKit', JSON.stringify(newKit));
     try {
       await setDoc(doc(db, 'settings', 'brandKit'), newKit, { merge: true });
+      await setDoc(doc(db, 'organizations', 'default'), newKit, { merge: true });
+      await setDoc(doc(db, 'organizations', 'semax_pino'), newKit, { merge: true });
     } catch (err) {
       console.warn('Could not save brandKit to Firestore:', err);
     }
