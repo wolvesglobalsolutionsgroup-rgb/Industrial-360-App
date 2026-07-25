@@ -57,18 +57,35 @@
         "ownerId": {
           "type": "string",
           "description": "The UID of the user who created the project"
+        },
+        "advancePercent": {
+          "type": "number",
+          "description": "Advance payment percentage (PDVSA standard)"
+        },
+        "knowledgeContext": {
+          "type": "object",
+          "description": "NotebookLM or RAG context configuration",
+          "properties": {
+            "notebookId": { "type": "string" },
+            "customInstructions": { "type": "string" },
+            "activeStandard": { "type": "string" }
+          }
         }
       },
       "required": ["name", "budget", "startDate", "status", "ownerId"]
     },
     "Task": {
       "title": "Task",
-      "description": "A construction task or 'partida'",
+      "description": "A construction task or 'partida', following PDVSA L-STC-001",
       "type": "object",
       "properties": {
         "projectId": {
           "type": "string",
           "description": "The ID of the project this task belongs to"
+        },
+        "code": {
+          "type": "string",
+          "description": "PDVSA standard code (L-STC-001)"
         },
         "name": {
           "type": "string",
@@ -92,6 +109,64 @@
         }
       },
       "required": ["projectId", "name", "unit", "plannedQuantity", "executedQuantity", "unitCost"]
+    },
+    "FieldReport": {
+      "title": "Field Report",
+      "description": "Daily field report following PDVSA A-211 standards",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "weather": { "type": "string" },
+        "personnelCount": { "type": "number" },
+        "notes": { "type": "string" },
+        "slumpTest": { "type": "number", "description": "Slump Test result for concrete (A-211)" },
+        "temperature": { "type": "number", "description": "Concrete/Ambient temperature" },
+        "equipmentSerial": { "type": "string", "description": "Serial for Dakota DFX units or other NDT tools" },
+        "aiAnalysis": { "type": "string" },
+        "location": {
+          "type": "object",
+          "properties": {
+            "lat": { "type": "number" },
+            "lng": { "type": "number" }
+          }
+        },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["projectId", "date", "ownerId"]
+    },
+    "Valuation": {
+      "title": "Valuation",
+      "description": "Project valuation with PDVSA legal retentions",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string" },
+        "number": { "type": "string" },
+        "grossAmount": { "type": "number" },
+        "retentionFielCumplimiento": { "type": "number", "description": "10% deduction" },
+        "retentionLaboral": { "type": "number", "description": "5% deduction" },
+        "amortizationAnticipo": { "type": "number" },
+        "netAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["draft", "pending_approval", "approved", "paid"] },
+        "date": { "type": "string", "format": "date" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["projectId", "number", "grossAmount", "netAmount", "ownerId"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Project documents for RAG and library",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["Planos", "Especificaciones", "Presupuestos", "Normas SIHO", "Otros"] },
+        "url": { "type": "string" },
+        "aiSummary": { "type": "string" },
+        "uploadDate": { "type": "string", "format": "date" }
+      },
+      "required": ["projectId", "name", "category"]
     },
     "Expense": {
       "title": "Expense",
@@ -184,6 +259,18 @@
     "/inventory/{itemId}": {
       "schema": "InventoryItem",
       "description": "Inventory items"
+    },
+    "/field_reports/{reportId}": {
+      "schema": "FieldReport",
+      "description": "Daily field reports"
+    },
+    "/valuations/{valuationId}": {
+      "schema": "Valuation",
+      "description": "Project valuations"
+    },
+    "/documents/{documentId}": {
+      "schema": "Document",
+      "description": "Project documents"
     }
   }
 }

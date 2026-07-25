@@ -15,7 +15,7 @@ export default function Tasks() {
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
   const [budgetThreshold, setBudgetThreshold] = useState(90);
   
-  const [newTask, setNewTask] = useState({ name: '', unit: 'm2', plannedQuantity: '', unitCost: '' });
+  const [newTask, setNewTask] = useState({ code: '', name: '', unit: 'm2', plannedQuantity: '', unitCost: '' });
   const [editingTask, setEditingTask] = useState<any>(null);
   const [progressTask, setProgressTask] = useState<any>(null);
   
@@ -115,6 +115,7 @@ Pregunta del usuario: ${aiQuery}`;
     try {
       await addDoc(collection(db, 'tasks'), {
         projectId: currentProject.id,
+        code: newTask.code,
         name: newTask.name,
         unit: newTask.unit,
         plannedQuantity: Number(newTask.plannedQuantity),
@@ -124,7 +125,7 @@ Pregunta del usuario: ${aiQuery}`;
         endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       });
       setIsModalOpen(false);
-      setNewTask({ name: '', unit: 'm2', plannedQuantity: '', unitCost: '' });
+      setNewTask({ code: '', name: '', unit: 'm2', plannedQuantity: '', unitCost: '' });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'tasks');
     }
@@ -135,6 +136,7 @@ Pregunta del usuario: ${aiQuery}`;
     if (!editingTask) return;
     try {
       await updateDoc(doc(db, 'tasks', editingTask.id), {
+        code: editingTask.code,
         name: editingTask.name,
         unit: editingTask.unit,
         plannedQuantity: Number(editingTask.plannedQuantity),
@@ -305,11 +307,12 @@ Pregunta del usuario: ${aiQuery}`;
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-sm">
+                  <th className="p-4 font-medium">Código</th>
                   <th className="p-4 font-medium">Partida</th>
                   <th className="p-4 font-medium">Unidad</th>
-                  <th className="p-4 font-medium">Planificado</th>
-                  <th className="p-4 font-medium">Ejecutado</th>
-                  <th className="p-4 font-medium">Avance</th>
+                  <th className="p-4 font-medium text-center">Planificado</th>
+                  <th className="p-4 font-medium text-center">Ejecutado</th>
+                  <th className="p-4 font-medium text-center">Avance</th>
                   <th className="p-4 font-medium">Costo Unit.</th>
                   <th className="p-4 font-medium text-right">Acciones</th>
                 </tr>
@@ -322,6 +325,7 @@ Pregunta del usuario: ${aiQuery}`;
                   
                   return (
                     <tr key={task.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="p-4 font-mono text-xs text-blue-600 bg-blue-50/30">{task.code || 'N/A'}</td>
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           {isComplete ? (
@@ -438,6 +442,10 @@ Pregunta del usuario: ${aiQuery}`;
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Nueva Partida</h2>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código de Partida (PDVSA L-STC-001)</label>
+                <input required type="text" value={newTask.code} onChange={e => setNewTask({...newTask, code: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ej: 100.1.1" />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Descripción de la Partida</label>
                 <input required type="text" value={newTask.name} onChange={e => setNewTask({...newTask, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
               </div>
@@ -477,6 +485,10 @@ Pregunta del usuario: ${aiQuery}`;
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Editar Partida</h2>
             <form onSubmit={handleUpdate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código de Partida (PDVSA L-STC-001)</label>
+                <input required type="text" value={editingTask.code || ''} onChange={e => setEditingTask({...editingTask, code: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Descripción de la Partida</label>
                 <input required type="text" value={editingTask.name} onChange={e => setEditingTask({...editingTask, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />

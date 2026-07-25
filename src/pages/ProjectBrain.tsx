@@ -1,13 +1,31 @@
 import { useState, useRef, useEffect } from 'react';
-import { BrainCircuit, Send, FileText, Loader2, Sparkles, X, Paperclip, Mic, Square, Volume2, Settings2 } from 'lucide-react';
+import { BrainCircuit, Send, FileText, Loader2, Sparkles, X, Paperclip, Mic, Square, Volume2, Settings2, Link2 } from 'lucide-react';
 import { GoogleGenAI, ThinkingLevel, Modality } from '@google/genai';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { useProject } from '../ProjectContext';
 
 export default function ProjectBrain() {
+  const { currentProject } = useProject();
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', content: string }[]>([
     { role: 'ai', content: 'Hola. Soy el Cerebro del Proyecto. Puedo analizar planos, especificaciones técnicas, cuadros de Excel y ayudarte a gestionar el proyecto, crear partidas, hacer estimaciones o resolver dudas. ¿En qué te puedo ayudar hoy?' }
   ]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [projectConfig, setProjectConfig] = useState<any>(null);
+
+  useEffect(() => {
+    async function loadConfig() {
+      if (currentProject) {
+        const docRef = doc(db, 'projects', currentProject.id);
+        const snap = await getDoc(docRef);
+        if (snap.exists() && snap.data().knowledgeContext) {
+          setProjectConfig(snap.data().knowledgeContext);
+        }
+      }
+    }
+    loadConfig();
+  }, [currentProject]);
   const [isHighThinking, setIsHighThinking] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -147,10 +165,26 @@ export default function ProjectBrain() {
 
       const ai = new GoogleGenAI({ apiKey });
       
-      const prompt = `Eres el "Cerebro Operativo" de un proyecto de construcción. 
-      El usuario te está haciendo una consulta sobre la gestión del proyecto.
+      const prompt = `Eres el "Cerebro Operativo" de "Industrial Control 360", un sistema de gestión de proyectos experto en la industria petrolera (PDVSA). 
       Tu objetivo es ayudar a simplificar el control de avance, planificación, presupuesto, y gestión documental.
-      Si el usuario menciona normas de PDVSA, especificaciones o Excel, asume que tienes acceso a esa información en el contexto general y responde con autoridad técnica.
+      
+      CONTEXTO ESPECÍFICO DEL PROYECTO ACTUAL:
+      - NotebookLM ID Conectado: ${projectConfig?.notebookId || 'Ninguno'}
+      - Normativa Principal: ${projectConfig?.activeStandard || 'PDVSA A-211'}
+      - Instrucciones Especiales: ${projectConfig?.customInstructions || 'Ninguna'}
+      
+      CONOCIMIENTO TÉCNICO Y NORMATIVO:
+      - Norma PDVSA A-211 (Revisión JUL.96): Especificaciones para concreto estructural (dosificación, mezclado, vaciado, Slump Test, temperatura, curado).
+      - Norma PDVSA L-STC-001: Codificación y estructura de partidas.
+      - Equipos NDT: Experto en Dakota Ultrasonics (serie DFX-615/625/635/638). Conoces transductores, bloques de calibración (IIW, DSC, SC) y normas de inspección ultrasonido (ASTM-E-797, ASTM-E-164).
+      - Valuaciones: Aplicas retenciones legales del 10% (Fiel Cumplimiento) y 5% (Laboral), además de la amortización de anticipos.
+      - Activos Críticos: Conoces el Horno Cilíndrico H-2 (DA-1) y la Bomba P-1.
+      - Marco Legal: LOTTT, LOPCYMAT y Ley de Contraloría General (Art. 35/37).
+      
+      IMPORTANTE:
+      - Si hay un Notebook ID conectado, prioriza buscar información en ese cuaderno técnico.
+      - Responde con autoridad técnica, utilizando terminología de PDVSA (HES, SOLPED, Cómputos Métricos, H-H, H-M).
+      - Si la consulta es compleja, utiliza el Modo de Pensamiento Profundo.
       
       Consulta del usuario: "${userQuery}"`;
 
@@ -186,6 +220,12 @@ export default function ProjectBrain() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {projectConfig?.notebookId && (
+            <div className="flex items-center gap-2 text-xs bg-purple-800/50 px-3 py-1.5 rounded-full text-purple-200 border border-purple-700 animate-pulse">
+              <Link2 size={14} />
+              Notebook Conectado
+            </div>
+          )}
           <button
             onClick={() => setIsHighThinking(!isHighThinking)}
             className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full transition-colors ${

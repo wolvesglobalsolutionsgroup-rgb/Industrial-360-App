@@ -25,9 +25,17 @@ import PersonnelDetails from './pages/PersonnelDetails';
 import AlertsDetails from './pages/AlertsDetails';
 import FieldReports from './pages/FieldReports';
 import ProjectBrain from './pages/ProjectBrain';
+import Intelligence from './pages/Intelligence';
 import Documents from './pages/Documents';
 import Valuations from './pages/Valuations';
 import LogisticsMap from './pages/LogisticsMap';
+import SihoPtw from './pages/SihoPtw';
+import QaQcWelding from './pages/QaQcWelding';
+import IntegrityIli from './pages/IntegrityIli';
+import StandbyMoc from './pages/StandbyMoc';
+import FleetEquipment from './pages/FleetEquipment';
+import InteroperabilityEngine from './pages/InteroperabilityEngine';
+import DossierCompiler from './pages/DossierCompiler';
 import { ProjectProvider } from './ProjectContext';
 
 export default function App() {
@@ -61,8 +69,16 @@ export default function App() {
             <Route path="logistics" element={<LogisticsMap />} />
             <Route path="inventory" element={<Inventory />} />
             <Route path="expenses" element={<Expenses />} />
+            <Route path="siho-ptw" element={<SihoPtw />} />
+            <Route path="qa-qc-welding" element={<QaQcWelding />} />
+            <Route path="modulos/ili-pigging" element={<IntegrityIli />} />
+            <Route path="modulos/standby-moc" element={<StandbyMoc />} />
+            <Route path="modulos/flota" element={<FleetEquipment />} />
+            <Route path="modulos/interoperabilidad" element={<InteroperabilityEngine />} />
+            <Route path="modulos/cierre" element={<DossierCompiler />} />
             <Route path="tools" element={<EngineeringTools />} />
             <Route path="project-brain" element={<ProjectBrain />} />
+            <Route path="intelligence" element={<Intelligence />} />
             <Route path="chat" element={<Chatbot />} />
             <Route path="voice" element={<VoiceChat />} />
             <Route path="bim" element={<BIMViewer />} />

@@ -1,34 +1,59 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, addDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
-import { FileSignature, Plus, Download, Eye, CheckCircle, Camera, Image as ImageIcon } from 'lucide-react';
+import { collection, query, onSnapshot, addDoc, where } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType, auth } from '../firebase';
+import { FileSignature, Plus, Download, Eye, CheckCircle, Camera, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useProject } from '../ProjectContext';
 
 export default function Valuations() {
+  const { currentProject } = useProject();
   const [valuations, setValuations] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newValuation, setNewValuation] = useState({
     periodStart: '',
     periodEnd: '',
-    description: ''
+    description: '',
+    grossAmount: ''
   });
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
-  const [availablePhotos, setAvailablePhotos] = useState<string[]>([
-    'https://images.unsplash.com/photo-1541888081622-1b1e6041c305?w=500&q=80',
-    'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=500&q=80',
-    'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=500&q=80'
-  ]); // Simulated photos from field reports
+  const [availablePhotos, setAvailablePhotos] = useState<string[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'valuations'));
+    if (!currentProject) {
+      setValuations([]);
+      setAvailablePhotos([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, 'valuations'),
+      where('projectId', '==', currentProject.id)
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const vals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setValuations(vals);
+      const vals = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as any[];
+      setValuations(vals.sort((a, b) => b.number - a.number));
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'valuations');
     });
-    return () => unsubscribe();
-  }, []);
+
+    // Fetch photos from field reports of this project
+    const qReports = query(
+      collection(db, 'field_reports'),
+      where('projectId', '==', currentProject.id)
+    );
+    const unsubReports = onSnapshot(qReports, (snapshot) => {
+      const allPhotos = snapshot.docs
+        .map(doc => doc.data().imagePreview)
+        .filter(url => !!url);
+      setAvailablePhotos([...new Set(allPhotos)]);
+    });
+
+    return () => {
+      unsubscribe();
+      unsubReports();
+    };
+  }, [currentProject]);
 
   const togglePhotoSelection = (photoUrl: string) => {
     setSelectedPhotos(prev => 
@@ -40,32 +65,46 @@ export default function Valuations() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentProject || !auth.currentUser) return;
+
+    setIsSubmitting(true);
     try {
-      // In a real scenario, this would calculate the amount based on tasks executed in the period
-      const simulatedAmount = Math.floor(Math.random() * 50000) + 10000;
-      const retentionFielCumplimiento = simulatedAmount * 0.10; // 10% retention
-      const retentionLaboral = simulatedAmount * 0.05; // 5% retention
-      const netAmount = simulatedAmount - retentionFielCumplimiento - retentionLaboral;
+      const grossAmount = Number(newValuation.grossAmount);
+      
+      // PDVSA Specific Logic
+      const retentionFielCumplimiento = grossAmount * 0.10; // 10% Fiel Cumplimiento
+      const retentionLaboral = grossAmount * 0.05; // 5% Retención Laboral
+      
+      // Amortización de Anticipo: (Anticipo Total / Valor Total) * Monto de Valuación
+      // Simplified: (advancePercent / 100) * grossAmount
+      const advancePercent = currentProject.advancePercent || 0;
+      const amortizationAnticipo = grossAmount * (advancePercent / 100);
+      
+      const netAmount = grossAmount - retentionFielCumplimiento - retentionLaboral - amortizationAnticipo;
 
       await addDoc(collection(db, 'valuations'), {
+        projectId: currentProject.id,
         number: valuations.length + 1,
         periodStart: newValuation.periodStart,
         periodEnd: newValuation.periodEnd,
         description: newValuation.description,
-        grossAmount: simulatedAmount,
+        grossAmount,
         retentionFielCumplimiento,
         retentionLaboral,
+        amortizationAnticipo,
         netAmount,
         status: 'Borrador',
         photos: selectedPhotos,
+        ownerId: auth.currentUser.uid,
         createdAt: new Date().toISOString()
       });
       setIsModalOpen(false);
-      setNewValuation({ periodStart: '', periodEnd: '', description: '' });
+      setNewValuation({ periodStart: '', periodEnd: '', description: '', grossAmount: '' });
       setSelectedPhotos([]);
     } catch (error) {
-      console.error("Error creating valuation:", error);
-      alert("Error al crear la valuación");
+      handleFirestoreError(error, OperationType.CREATE, 'valuations');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -134,6 +173,10 @@ export default function Valuations() {
                   <span>Retención Laboral (5%):</span>
                   <span>-${val.retentionLaboral?.toLocaleString()}</span>
                 </div>
+                <div className="flex justify-between text-blue-600">
+                  <span>Amortización Anticipo:</span>
+                  <span>-${val.amortizationAnticipo?.toLocaleString()}</span>
+                </div>
                 <div className="pt-2 border-t border-gray-200 flex justify-between font-bold text-lg">
                   <span className="text-gray-900">Neto a Cobrar:</span>
                   <span className="text-emerald-600">${val.netAmount?.toLocaleString()}</span>
@@ -177,6 +220,11 @@ export default function Valuations() {
                 </div>
               </div>
               
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Monto Bruto ($)</label>
+                <input required type="number" step="0.01" value={newValuation.grossAmount} onChange={e => setNewValuation({...newValuation, grossAmount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="0.00" />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Descripción / Concepto</label>
                 <textarea required value={newValuation.description} onChange={e => setNewValuation({...newValuation, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none resize-none h-24" placeholder="Ej: Valuación correspondiente a trabajos de movimiento de tierra y fundaciones..." />

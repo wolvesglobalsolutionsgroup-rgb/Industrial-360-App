@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 export default function Projects() {
   const [projects, setProjects] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', description: '', budget: '', startDate: '' });
+  const [newProject, setNewProject] = useState({ name: '', description: '', budget: '', startDate: '', advancePercent: '0' });
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -32,11 +32,12 @@ export default function Projects() {
         description: newProject.description,
         budget: Number(newProject.budget),
         startDate: newProject.startDate,
+        advancePercent: Number(newProject.advancePercent),
         status: 'planning',
         ownerId: auth.currentUser.uid
       });
       setIsModalOpen(false);
-      setNewProject({ name: '', description: '', budget: '', startDate: '' });
+      setNewProject({ name: '', description: '', budget: '', startDate: '', advancePercent: '0' });
     } catch (error) {
       console.error("Error creating project:", error);
       alert("Error al crear el proyecto");
@@ -171,6 +172,10 @@ export default function Projects() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto Estimado ($)</label>
                 <input required type="number" value={newProject.budget} onChange={e => setNewProject({...newProject, budget: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Porcentaje de Anticipo (%)</label>
+                <input required type="number" min="0" max="100" value={newProject.advancePercent} onChange={e => setNewProject({...newProject, advancePercent: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ej: 30" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Inicio</label>

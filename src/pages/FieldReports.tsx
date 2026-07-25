@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, MapPin, Users, Clock, Save, FileText, CheckCircle2, Mic, Square, Loader2, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { GoogleGenAI } from '@google/genai';
-import { collection, query, onSnapshot, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 
@@ -11,6 +11,9 @@ export default function FieldReports() {
   const [weather, setWeather] = useState('Soleado');
   const [personnelCount, setPersonnelCount] = useState(0);
   const [notes, setNotes] = useState('');
+  const [slumpTest, setSlumpTest] = useState('');
+  const [temperature, setTemperature] = useState('');
+  const [equipmentSerial, setEquipmentSerial] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
@@ -177,12 +180,19 @@ export default function FieldReports() {
         weather,
         personnelCount: Number(personnelCount),
         notes,
+        slumpTest: slumpTest ? Number(slumpTest) : null,
+        temperature: temperature ? Number(temperature) : null,
+        equipmentSerial,
         location,
+        imagePreview, // Ensure image is saved too
         aiAnalysis,
         timestamp: serverTimestamp()
       });
       setSubmitted(true);
       setNotes('');
+      setSlumpTest('');
+      setTemperature('');
+      setEquipmentSerial('');
       setAiAnalysis('');
       setImagePreview(null);
       setTimeout(() => setSubmitted(false), 3000);
@@ -278,6 +288,50 @@ export default function FieldReports() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Quality Control & NDT */}
+        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Sparkles size={20} className="text-emerald-600" />
+            Control de Calidad (Norma A-211 / NDT)
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Slump / Asentamiento (pulg)</label>
+              <input 
+                type="number" 
+                step="0.25"
+                value={slumpTest}
+                onChange={(e) => setSlumpTest(e.target.value)}
+                placeholder="Ej: 4.5"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Temp. Mezcla/Amb (°C)</label>
+              <input 
+                type="number" 
+                step="0.1"
+                value={temperature}
+                onChange={(e) => setTemperature(e.target.value)}
+                placeholder="Ej: 28.5"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Serial Equipo (NDT)</label>
+              <input 
+                type="text" 
+                value={equipmentSerial}
+                onChange={(e) => setEquipmentSerial(e.target.value)}
+                placeholder="Ej: DFX-615-1234"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-gray-400">Datos requeridos para ensayos no destructivos y vaciado de concreto estructural.</p>
         </div>
 
         {/* Activities & Notes */}

@@ -1,15 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ChangeEvent } from 'react';
 import { motion } from 'motion/react';
-import { Settings as SettingsIcon, User, Building, Bell, Shield, Save, Loader2 } from 'lucide-react';
+import { Settings as SettingsIcon, User, Building, Bell, Shield, Save, Loader2, Palette, FileCheck, Upload, Check } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useProject, BrandKit } from '../ProjectContext';
 
 export default function Settings() {
   const [user] = useAuthState(auth);
-  const [activeTab, setActiveTab] = useState('notifications');
+  const { brandKit, updateBrandKit } = useProject();
+  const [activeTab, setActiveTab] = useState('brand');
   const [budgetThreshold, setBudgetThreshold] = useState(90);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingBrand, setIsSavingBrand] = useState(false);
+  const [brandSavedSuccess, setBrandSavedSuccess] = useState(false);
+
+  // Local Brand Form State
+  const [localBrand, setLocalBrand] = useState<BrandKit>(brandKit);
+
+  useEffect(() => {
+    setLocalBrand(brandKit);
+  }, [brandKit]);
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -24,6 +35,34 @@ export default function Settings() {
     };
     fetchSettings();
   }, []);
+
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>, field: 'logoUrl' | 'digitalSignatureUrl') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setLocalBrand(prev => ({ ...prev, [field]: reader.result as string }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveBrandKit = async () => {
+    setIsSavingBrand(true);
+    setBrandSavedSuccess(false);
+    try {
+      await updateBrandKit(localBrand);
+      setBrandSavedSuccess(true);
+      setTimeout(() => setBrandSavedSuccess(false), 3000);
+    } catch (err) {
+      console.error("Error saving Brand Kit:", err);
+      alert('Error al guardar Kit de Marca');
+    } finally {
+      setIsSavingBrand(false);
+    }
+  };
 
   const saveSettings = async () => {
     setIsSaving(true);
@@ -45,16 +84,17 @@ export default function Settings() {
       className="space-y-6"
     >
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Configuración</h1>
-        <p className="text-gray-500 mt-1">Administra tus preferencias y datos de la empresa</p>
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Configuración y Kit de Marca</h1>
+        <p className="text-gray-500 mt-1">Administra tus preferencias, identidad visual y datos fiscales de la contratista</p>
       </header>
 
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar */}
         <div className="w-full md:w-64 space-y-1">
           {[
-            { id: 'profile', label: 'Perfil de Usuario', icon: User },
+            { id: 'brand', label: 'Kit de Marca / Membrete', icon: Palette },
             { id: 'company', label: 'Datos de Empresa', icon: Building },
+            { id: 'profile', label: 'Perfil de Usuario', icon: User },
             { id: 'notifications', label: 'Alertas y Notificaciones', icon: Bell },
             { id: 'security', label: 'Seguridad', icon: Shield },
           ].map((tab) => {
@@ -65,7 +105,7 @@ export default function Settings() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                   activeTab === tab.id 
-                    ? 'bg-emerald-50 text-emerald-700' 
+                    ? 'bg-emerald-50 text-emerald-700 font-bold' 
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
@@ -79,6 +119,259 @@ export default function Settings() {
         {/* Content */}
         <div className="flex-1">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
+            {activeTab === 'brand' && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Kit de Marca & White-Labeling</h2>
+                    <p className="text-xs text-gray-500">
+                      Configura el logo, sello, firma y colores corporativos que se aplicarán automáticamente a todos los entregables.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleSaveBrandKit}
+                    disabled={isSavingBrand}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-all shadow-md disabled:opacity-50 shrink-0"
+                  >
+                    {isSavingBrand ? <Loader2 size={16} className="animate-spin" /> : brandSavedSuccess ? <Check size={16} /> : <Save size={16} />}
+                    {brandSavedSuccess ? '¡Guardado!' : 'Guardar Kit de Marca'}
+                  </button>
+                </div>
+
+                {/* Live Header Preview */}
+                <div className="p-5 rounded-2xl border-2 border-dashed border-gray-200 bg-slate-50 space-y-3">
+                  <span className="text-[10px] font-mono uppercase font-bold text-gray-400 block">Vista Previa de Encabezado Membretado</span>
+                  <div 
+                    className="p-4 rounded-xl text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow"
+                    style={{ backgroundColor: localBrand.primaryColor || '#0B2239' }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {localBrand.logoUrl ? (
+                        <img src={localBrand.logoUrl} alt="Logo" className="h-10 max-w-[120px] object-contain bg-white/10 p-1 rounded" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center font-bold text-white text-xs">
+                          {localBrand.companyName.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <h3 className="font-bold text-sm tracking-wide">{localBrand.companyName || 'NOMBRE DE EMPRESA'}</h3>
+                        <p className="text-[11px] opacity-80">{localBrand.taxId} · {localBrand.phone}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span 
+                        className="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full text-slate-900"
+                        style={{ backgroundColor: localBrand.secondaryColor || '#3CB179' }}
+                      >
+                        DOCUMENTO OFICIAL
+                      </span>
+                      <p className="text-[10px] opacity-75 mt-1">{localBrand.headerText}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Company Name */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre Fiscal / Razón Social de la Contratista</label>
+                    <input 
+                      type="text" 
+                      value={localBrand.companyName}
+                      onChange={(e) => setLocalBrand({ ...localBrand, companyName: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  {/* Tax ID & Phone */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Identificación Tributaria (RIF / NIT / CPT)</label>
+                    <input 
+                      type="text" 
+                      value={localBrand.taxId}
+                      onChange={(e) => setLocalBrand({ ...localBrand, taxId: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Teléfono de Contacto</label>
+                    <input 
+                      type="text" 
+                      value={localBrand.phone}
+                      onChange={(e) => setLocalBrand({ ...localBrand, phone: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  {/* Email & Address */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Correo Electrónico Corporativo</label>
+                    <input 
+                      type="email" 
+                      value={localBrand.email}
+                      onChange={(e) => setLocalBrand({ ...localBrand, email: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Dirección Fiscal / Sede de Operaciones</label>
+                    <input 
+                      type="text" 
+                      value={localBrand.address}
+                      onChange={(e) => setLocalBrand({ ...localBrand, address: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  {/* Logo Upload */}
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                    <label className="block text-xs font-bold text-gray-700 uppercase">Logo Corporativo de la Empresa</label>
+                    <div className="flex items-center gap-4">
+                      {localBrand.logoUrl ? (
+                        <img src={localBrand.logoUrl} alt="Logo preview" className="w-16 h-16 object-contain border p-1 rounded-xl bg-white" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-xs">
+                          Sin Logo
+                        </div>
+                      )}
+                      <div className="flex-1 space-y-2">
+                        <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors">
+                          <Upload size={14} /> Cargar Imagen Logo
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'logoUrl')} />
+                        </label>
+                        <input 
+                          type="text"
+                          placeholder="O pega URL de la imagen..."
+                          value={localBrand.logoUrl}
+                          onChange={(e) => setLocalBrand({ ...localBrand, logoUrl: e.target.value })}
+                          className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Signature / Stamp Upload */}
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                    <label className="block text-xs font-bold text-gray-700 uppercase">Firma Digital & Sello Autorizado</label>
+                    <div className="flex items-center gap-4">
+                      {localBrand.digitalSignatureUrl ? (
+                        <img src={localBrand.digitalSignatureUrl} alt="Firma preview" className="w-16 h-16 object-contain border p-1 rounded-xl bg-white" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-xl border border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-xs">
+                          Sin Sello
+                        </div>
+                      )}
+                      <div className="flex-1 space-y-2">
+                        <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors">
+                          <Upload size={14} /> Cargar Firma / Sello
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileUpload(e, 'digitalSignatureUrl')} />
+                        </label>
+                        <input 
+                          type="text"
+                          placeholder="O pega URL de la firma..."
+                          value={localBrand.digitalSignatureUrl}
+                          onChange={(e) => setLocalBrand({ ...localBrand, digitalSignatureUrl: e.target.value })}
+                          className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-mono outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Primary & Secondary Color Pickers */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Color Primario Corporativo</label>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="color" 
+                        value={localBrand.primaryColor}
+                        onChange={(e) => setLocalBrand({ ...localBrand, primaryColor: e.target.value })}
+                        className="w-10 h-10 rounded-xl border border-gray-300 cursor-pointer"
+                      />
+                      <input 
+                        type="text" 
+                        value={localBrand.primaryColor}
+                        onChange={(e) => setLocalBrand({ ...localBrand, primaryColor: e.target.value })}
+                        className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono font-bold outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Color Secundario / Destacado</label>
+                    <div className="flex items-center gap-3">
+                      <input 
+                        type="color" 
+                        value={localBrand.secondaryColor}
+                        onChange={(e) => setLocalBrand({ ...localBrand, secondaryColor: e.target.value })}
+                        className="w-10 h-10 rounded-xl border border-gray-300 cursor-pointer"
+                      />
+                      <input 
+                        type="text" 
+                        value={localBrand.secondaryColor}
+                        onChange={(e) => setLocalBrand({ ...localBrand, secondaryColor: e.target.value })}
+                        className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-mono font-bold outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Header & Footer Text */}
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Texto de Encabezado Membretado</label>
+                    <input 
+                      type="text" 
+                      value={localBrand.headerText}
+                      onChange={(e) => setLocalBrand({ ...localBrand, headerText: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Pie de Página Legal / Descargo en Documentos</label>
+                    <textarea 
+                      rows={2}
+                      value={localBrand.footerText}
+                      onChange={(e) => setLocalBrand({ ...localBrand, footerText: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  {/* Authorized Signer */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre del Firmante Autorizado</label>
+                    <input 
+                      type="text" 
+                      value={localBrand.authorizedSignerName}
+                      onChange={(e) => setLocalBrand({ ...localBrand, authorizedSignerName: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Cargo del Firmante</label>
+                    <input 
+                      type="text" 
+                      value={localBrand.authorizedSignerTitle}
+                      onChange={(e) => setLocalBrand({ ...localBrand, authorizedSignerTitle: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 flex justify-end">
+                  <button
+                    onClick={handleSaveBrandKit}
+                    disabled={isSavingBrand}
+                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md disabled:opacity-50"
+                  >
+                    {isSavingBrand ? <Loader2 size={18} className="animate-spin" /> : brandSavedSuccess ? <Check size={18} /> : <Save size={18} />}
+                    {brandSavedSuccess ? '¡Guardado Correctamente!' : 'Guardar y Aplicar Kit de Marca'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'profile' && (
               <div className="space-y-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Información Personal</h2>
@@ -106,7 +399,7 @@ export default function Settings() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Cargo / Rol</label>
-                    <input type="text" defaultValue="Ingeniero Residente" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input type="text" defaultValue="Ingeniero Residente de Obra" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
                   </div>
                 </div>
                 <div className="pt-4 flex justify-end">
@@ -119,18 +412,28 @@ export default function Settings() {
 
             {activeTab === 'company' && (
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Datos de la Empresa</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Datos Principales de la Empresa</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Razón Social</label>
-                    <input type="text" defaultValue="Constructora ObraSync C.A." className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input 
+                      type="text" 
+                      value={localBrand.companyName}
+                      onChange={(e) => setLocalBrand({ ...localBrand, companyName: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" 
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">RIF / NIT</label>
-                    <input type="text" defaultValue="J-12345678-9" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
+                    <input 
+                      type="text" 
+                      value={localBrand.taxId}
+                      onChange={(e) => setLocalBrand({ ...localBrand, taxId: e.target.value })}
+                      className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" 
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Moneda Principal</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Moneda Principal de Contrato</label>
                     <select className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none">
                       <option value="USD">Dólar Estadounidense (USD)</option>
                       <option value="EUR">Euro (EUR)</option>
@@ -140,8 +443,11 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="pt-4 flex justify-end">
-                  <button className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors">
-                    Actualizar Empresa
+                  <button 
+                    onClick={handleSaveBrandKit}
+                    className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+                  >
+                    Actualizar Datos
                   </button>
                 </div>
               </div>

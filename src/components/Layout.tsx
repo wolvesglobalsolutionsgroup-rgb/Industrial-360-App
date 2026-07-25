@@ -4,44 +4,52 @@ import {
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
   MessageSquare, Mic, Box, LogOut, Calculator, Settings as SettingsIcon,
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
-  Database, BookOpen, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown
+  Database, BookOpen, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown, Truck, ArrowLeftRight
 } from 'lucide-react';
 import { auth, logout } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useProject } from '../ProjectContext';
 
-const coreItems = [
+const coreOperativoItems = [
   { path: '/', label: 'Dashboard Ejecutivo', icon: LayoutDashboard },
   { path: '/projects', label: 'Gestión de Proyectos', icon: HardHat },
   { path: '/tasks', label: 'Control de Partidas', icon: ClipboardList },
   { path: '/field-reports', label: 'Reportes de Campo', icon: ClipboardList },
+  { path: '/modulos/flota', label: 'Flota & Equipos Críticos', icon: Truck },
   { path: '/logistics', label: 'Logística y Mapa', icon: MapPin },
   { path: '/documents', label: 'Gestión Documental', icon: FileArchive },
-  { path: '/valuations', label: 'Valuaciones', icon: Receipt },
+  { path: '/valuations', label: 'Valuaciones ROE', icon: Receipt },
   { path: '/inventory', label: 'Inventario Base', icon: Package },
-  { path: '/expenses', label: 'Gastos y OCR', icon: Receipt },
 ];
 
-const enterpriseModules = [
-  { path: '/modulos/costos', label: 'Mod 1: Costos y Tesorería', icon: CircleDollarSign },
+const ingenieriaQaqcItems = [
+  { path: '/siho-ptw', label: 'Módulo SIHO-A & PTW', icon: ShieldCheck },
+  { path: '/qa-qc-welding', label: 'QA/QC Juntas & NDT', icon: ShieldCheck },
+  { path: '/modulos/ili-pigging', label: 'Integridad ILI Pigging', icon: Database },
+  { path: '/modulos/interoperabilidad', label: 'Motor Interoperabilidad P6/BC3', icon: ArrowLeftRight },
+  { path: '/bim', label: 'Visor BIM 3D', icon: Box },
+  { path: '/tools', label: 'Herramientas Ing.', icon: Calculator },
   { path: '/modulos/tiempos', label: 'Mod 2: Tiempos y Recursos', icon: Clock },
-  { path: '/modulos/procura', label: 'Mod 3: Procura y Logística', icon: PackageSearch },
-  { path: '/modulos/qa-qc', label: 'Mod 4: QA/QC y Riesgos', icon: ShieldCheck },
-  { path: '/modulos/cierre', label: 'Mod 5: Cierre y Reportes', icon: FileArchive },
+  { path: '/modulos/qa-qc', label: 'Mod 4: QA/QC & Riesgos', icon: ShieldCheck },
+];
+
+const financieroLegalItems = [
+  { path: '/expenses', label: 'Mod 1: Costos y Tesorería', icon: CircleDollarSign },
+  { path: '/modulos/procura', label: 'Mod 3: Procura & Salvamento', icon: PackageSearch },
+  { path: '/modulos/standby-moc', label: 'Stand-by Claims & MOC', icon: Clock },
+  { path: '/modulos/cierre', label: 'Mod 5: Dossier As-Built', icon: FileArchive },
   { path: '/modulos/auditoria', label: 'Mod 6: Auditoría Blockchain', icon: Database },
-  { path: '/modulos/normativa', label: 'Mod 7: Normativa (RAG)', icon: BookOpen },
+];
+
+const inteligenciaConectividadItems = [
+  { path: '/project-brain', label: 'Cerebro del Proyecto (MCP)', icon: BrainCircuit },
+  { path: '/intelligence', label: 'Mod 7: Inteligencia & RAG', icon: BrainCircuit },
+  { path: '/chat', label: 'Asistente IA (RAG)', icon: MessageSquare },
+  { path: '/voice', label: 'Chat de Voz Live', icon: Mic },
   { path: '/modulos/conectores', label: 'Mod 8: Conectores ERP', icon: Plug },
   { path: '/modulos/escalamiento', label: 'Mod 9: Escalamiento SLA', icon: Network },
   { path: '/modulos/benchmarking', label: 'Mod 10: Benchmarking', icon: BrainCircuit },
   { path: '/modulos/bi-ofertas', label: 'Mod 11: BI y Ofertas', icon: Briefcase },
-];
-
-const toolItems = [
-  { path: '/project-brain', label: 'Cerebro del Proyecto', icon: BrainCircuit },
-  { path: '/tools', label: 'Herramientas Ing.', icon: Calculator },
-  { path: '/bim', label: 'Visor BIM 3D', icon: Box },
-  { path: '/chat', label: 'Asistente IA (RAG)', icon: MessageSquare },
-  { path: '/voice', label: 'Chat de Voz (Live)', icon: Mic },
   { path: '/settings', label: 'Configuración', icon: SettingsIcon },
 ];
 
@@ -145,9 +153,10 @@ export default function Layout() {
           </div>
           
           <nav className="flex-1 overflow-y-auto py-4 custom-scrollbar">
-            {renderNavGroup('Core Operativo', coreItems)}
-            {renderNavGroup('Módulos Enterprise', enterpriseModules)}
-            {renderNavGroup('Herramientas & IA', toolItems)}
+            {renderNavGroup('Core Operativo', coreOperativoItems)}
+            {renderNavGroup('Ingeniería & QA/QC', ingenieriaQaqcItems)}
+            {renderNavGroup('Control Financiero & Legal', financieroLegalItems)}
+            {renderNavGroup('Inteligencia & Conectividad', inteligenciaConectividadItems)}
           </nav>
 
           {user && (
