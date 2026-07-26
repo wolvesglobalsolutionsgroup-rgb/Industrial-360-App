@@ -89,7 +89,7 @@ export default function Layout() {
   const renderNavGroup = (title: string, items: any[]) => (
     <div className="mb-5">
       {isSidebarOpen ? (
-        <h3 className="px-4 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 transition-all">
+        <h3 className="px-4 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 transition-all font-display">
           {title}
         </h3>
       ) : (
@@ -149,7 +149,7 @@ export default function Layout() {
               </div>
               {isSidebarOpen && (
                 <div className="overflow-hidden">
-                  <h1 className="text-xs font-bold tracking-tight text-gray-900 dark:text-slate-100 truncate">
+                  <h1 className="text-xs font-bold tracking-tight text-gray-900 dark:text-slate-100 truncate font-display">
                     {currentOrganization.name}
                   </h1>
                   <p className="text-[10px] text-brand-accent font-bold uppercase tracking-widest truncate">
@@ -209,10 +209,12 @@ export default function Layout() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 bg-transparent relative h-full overflow-hidden">
         {/* Top Context Bar */}
-        <TopContextBar 
-          isSidebarOpen={isSidebarOpen} 
-          setIsSidebarOpen={setIsSidebarOpen} 
-        />
+        <header className="glass sticky top-0 z-20 border-b border-line">
+          <TopContextBar 
+            isSidebarOpen={isSidebarOpen} 
+            setIsSidebarOpen={setIsSidebarOpen} 
+          />
+        </header>
         
         {/* Router Outlet Container */}
         <div className="flex-1 overflow-auto p-4 md:p-8">

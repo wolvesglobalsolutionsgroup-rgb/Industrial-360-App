@@ -52,7 +52,7 @@ export default function Documents() {
       else if (nameLower.includes('contrato') || nameLower.includes('fianza') || nameLower.includes('legal')) category = 'Legal';
 
       const fileUuid = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
-      const storagePath = `organizations/${currentOrganization?.id || 'semax-pino'}/projects/${currentProject.id}/docs/${fileUuid}_${file.name}`;
+      const storagePath = `organizations/${currentOrganization?.id || 'org-default'}/projects/${currentProject.id}/docs/${fileUuid}_${file.name}`;
       const storageRef = ref(storage, storagePath);
 
       const uploadTask = uploadBytesResumable(storageRef, file);
@@ -74,7 +74,7 @@ export default function Documents() {
 
           await addDoc(collection(db, 'documents'), {
             projectId: currentProject.id,
-            orgId: currentOrganization?.id || 'semax-pino',
+            orgId: currentOrganization?.id || 'org-default',
             name: file.name,
             size: file.size,
             type: file.type || 'application/octet-stream',

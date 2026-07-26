@@ -155,7 +155,7 @@ export default function DossierCompiler() {
 
     const totalDocsVerified = taskCount + docCount + calcCount + weldCount + ptwCount + valCount;
     const nowIso = new Date().toISOString();
-    const orgId = currentOrganization?.id || 'semax-pino';
+    const orgId = currentOrganization?.id || 'org-default';
     const projId = currentProject.id;
 
     const payload = `DOSSIER|ORG:${orgId}|PROJ:${projId}|TOTAL_DOCS:${totalDocsVerified}|TIMESTAMP:${nowIso}`;
@@ -177,7 +177,7 @@ export default function DossierCompiler() {
           await addDoc(collection(db, 'dossier_compilations'), {
             orgId,
             projectId: projId,
-            projectName: currentProject.name || 'Proyecto SEMAX PINO',
+            projectName: currentProject.name || 'Proyecto Industrial',
             totalDocumentsVerified: totalDocsVerified,
             sha256Hash: sha256,
             compiledAt: nowIso,
@@ -256,7 +256,7 @@ export default function DossierCompiler() {
             </p>
           </div>
           <button
-            onClick={() => alert(`Descargando Libro_Final_de_Obra_SEMAX_${currentProject?.id || 'PROJ'}.pdf (${totalVerifiedCount} Evidencias Verificadas)...`)}
+            onClick={() => alert(`Descargando Libro_Final_de_Obra_${currentProject?.id || 'PROJ'}.pdf (${totalVerifiedCount} Evidencias Verificadas)...`)}
             className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs shrink-0 shadow transition-colors"
           >
             <Download size={16} /> Descargar PDF Unificado

@@ -334,7 +334,7 @@ export default function Dashboard() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Panel A — Partidas en Ejecución */}
-          <Card>
+          <Card hoverEffect>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <h3 className="font-display font-semibold text-ink text-base sm:text-lg">
@@ -404,7 +404,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Curva S — Avance */}
-          <Card>
+          <Card hoverEffect>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <h3 className="font-display font-semibold text-ink text-base sm:text-lg">
@@ -440,7 +440,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Chart de Presupuesto por Rubro */}
-          <Card>
+          <Card hoverEffect>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <h3 className="font-display font-semibold text-ink text-base sm:text-lg">
@@ -481,7 +481,7 @@ export default function Dashboard() {
         <div className="space-y-6">
 
           {/* Panel B — Estado PTW */}
-          <Card>
+          <Card hoverEffect>
             <CardHeader className="flex flex-row items-center justify-between">
               <h3 className="font-display font-semibold text-ink text-base sm:text-lg">
                 Estado PTW
@@ -518,7 +518,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Panel C — SPI */}
-          <Card>
+          <Card hoverEffect>
             <CardContent className="flex flex-col items-center justify-center py-8 text-center">
               <span className="text-[10px] font-extrabold text-ink-faint uppercase tracking-widest mb-1">
                 Índice de Cronograma
@@ -538,7 +538,7 @@ export default function Dashboard() {
           </Card>
 
           {/* Panel D — Clima */}
-          <Card>
+          <Card hoverEffect>
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="flex items-center gap-2 text-ink font-semibold text-sm">
                 <CloudRain size={16} className="text-info" />

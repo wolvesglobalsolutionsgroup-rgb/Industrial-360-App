@@ -24,7 +24,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   
   const variantStyles = {
     primary: 'bg-brand-500 hover:bg-brand-600 text-white shadow-sm hover:shadow-md active:scale-[0.99]',
-    secondary: 'bg-surface-2 hover:bg-elevated text-ink active:scale-[0.99]',
+    secondary: 'bg-surface-2 hover:bg-elevated text-ink border border-line active:scale-[0.99]',
     outline: 'border border-line bg-transparent hover:bg-surface-2 text-ink active:scale-[0.99]',
     ghost: 'bg-transparent hover:bg-surface-2 text-ink-soft hover:text-ink',
     danger: 'bg-error hover:bg-red-700 text-white shadow-sm hover:shadow-md active:scale-[0.99]',
