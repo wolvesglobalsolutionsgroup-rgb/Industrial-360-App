@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { Plus, CheckCircle2, Circle, Upload, LayoutList, CalendarDays, Edit2, Trash2, Activity, AlertTriangle, Sparkles, X, Loader2 } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Upload, LayoutList, CalendarDays, Edit2, Trash2, Activity, AlertTriangle, Sparkles, X, Loader2, FileCode } from 'lucide-react';
 import { XMLParser } from 'fast-xml-parser';
 import { motion } from 'motion/react';
 import { callGeminiProxy } from '../lib/geminiProxy';
 import { useProject } from '../ProjectContext';
+import { parseXerFile } from '../lib/parsers/xerParser';
 
 export default function Tasks() {
   const { currentProject } = useProject();
@@ -27,6 +28,7 @@ export default function Tasks() {
 
   const [viewMode, setViewMode] = useState<'list' | 'gantt'>('list');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const xerFileInputRef = useRef<HTMLInputElement>(null);
 
   // AI State
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -218,28 +220,79 @@ Pregunta del usuario: ${aiQuery}`;
         const projectTasks = result.Project?.Tasks?.Task || [];
         const tasksArray = Array.isArray(projectTasks) ? projectTasks : [projectTasks];
 
+        const targetProjId = currentProject ? currentProject.id : 'default-project';
+
         for (const t of tasksArray) {
           if (t.Name && t.Name !== 'Project Summary Task') {
             await addDoc(collection(db, 'tasks'), {
-              projectId: 'default-project',
+              projectId: targetProjId,
+              code: `MSP-${Math.floor(100 + Math.random() * 900)}`,
               name: t.Name,
               unit: 'glb',
               plannedQuantity: 1,
               executedQuantity: t.PercentComplete ? Number(t.PercentComplete) / 100 : 0,
-              unitCost: 0,
+              unitCost: 1000,
               startDate: t.Start ? t.Start.split('T')[0] : new Date().toISOString().split('T')[0],
               endDate: t.Finish ? t.Finish.split('T')[0] : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
             });
           }
         }
-        alert('Tareas importadas exitosamente');
+        alert('Partidas de MS Project importadas exitosamente.');
       } catch (error) {
         console.error("Error parsing MS Project XML:", error);
-        alert('Error al procesar el archivo. Asegúrate de que sea un XML exportado de MS Project.');
+        alert('Error al procesar el archivo XML de MS Project.');
       }
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleImportXer = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!currentProject) {
+      alert("Por favor selecciona un proyecto primero.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const xerContent = event.target?.result as string;
+        const parsedTasks = parseXerFile(xerContent);
+
+        if (parsedTasks.length === 0) {
+          alert('No se encontraron actividades válidas en el archivo .xer de Primavera P6.');
+          return;
+        }
+
+        let importedCount = 0;
+        for (const task of parsedTasks) {
+          await addDoc(collection(db, 'tasks'), {
+            projectId: currentProject.id,
+            code: task.code,
+            name: task.name,
+            unit: task.unit,
+            plannedQuantity: task.plannedQuantity,
+            executedQuantity: task.executedQuantity,
+            unitCost: task.unitCost,
+            startDate: task.startDate,
+            endDate: task.endDate,
+            importedFrom: 'Primavera P6 (.xer)',
+            importedAt: new Date().toISOString()
+          });
+          importedCount++;
+        }
+
+        alert(`¡Éxito! Se importaron masivamente ${importedCount} actividades desde Primavera P6 (.xer) a la base de datos.`);
+      } catch (error) {
+        console.error("Error parsing XER file:", error);
+        alert('Ocurrió un error al procesar el archivo .xer de Primavera P6.');
+      }
+    };
+    reader.readAsText(file);
+    if (xerFileInputRef.current) xerFileInputRef.current.value = '';
   };
 
   return (
@@ -275,6 +328,13 @@ Pregunta del usuario: ${aiQuery}`;
             onChange={handleImportMSProject} 
             className="hidden" 
           />
+          <input 
+            type="file" 
+            accept=".xer" 
+            ref={xerFileInputRef} 
+            onChange={handleImportXer} 
+            className="hidden" 
+          />
           <button 
             onClick={() => setIsAiModalOpen(true)}
             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
@@ -283,11 +343,19 @@ Pregunta del usuario: ${aiQuery}`;
             Asistente IA
           </button>
           <button 
+            onClick={() => xerFileInputRef.current?.click()}
+            className="bg-blue-900 hover:bg-blue-950 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
+            title="Importar cronograma de actividades Primavera P6 (.xer)"
+          >
+            <FileCode size={20} />
+            Importar Primavera P6 (.xer)
+          </button>
+          <button 
             onClick={() => fileInputRef.current?.click()}
             className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
           >
             <Upload size={20} />
-            Importar MS Project
+            MS Project (.xml)
           </button>
           <button 
             onClick={() => setIsModalOpen(true)}
