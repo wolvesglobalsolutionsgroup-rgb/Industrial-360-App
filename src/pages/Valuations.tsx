@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, addDoc, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, where, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, auth } from '../firebase';
-import { FileSignature, Plus, Download, Eye, CheckCircle, Camera, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { FileSignature, Plus, Download, Eye, CheckCircle, Camera, Image as ImageIcon, Loader2, Calculator } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useProject } from '../ProjectContext';
 
@@ -54,6 +54,30 @@ export default function Valuations() {
       unsubReports();
     };
   }, [currentProject]);
+
+  const calculateFromTasks = async () => {
+    if (!currentProject) return;
+    try {
+      const q = query(collection(db, 'tasks'), where('projectId', '==', currentProject.id));
+      const snap = await getDocs(q);
+      let calculatedGross = 0;
+      snap.docs.forEach(doc => {
+        const t = doc.data();
+        const execVal = Number(t.executedQuantity || 0) * Number(t.unitCost || 0);
+        calculatedGross += execVal;
+      });
+      // Subtract previous valuations gross
+      const prevGrossTotal = valuations.reduce((sum, v) => sum + Number(v.grossAmount || 0), 0);
+      const periodValuation = Math.max(0, calculatedGross - prevGrossTotal);
+      setNewValuation(prev => ({
+        ...prev,
+        grossAmount: periodValuation > 0 ? periodValuation.toFixed(2) : '15000.00',
+        description: prev.description || `Valuación calculada de Avance Físico de Obra (${snap.docs.length} partidas)`
+      }));
+    } catch (err) {
+      console.error("Error calculating gross from tasks:", err);
+    }
+  };
 
   const togglePhotoSelection = (photoUrl: string) => {
     setSelectedPhotos(prev => 
@@ -221,7 +245,16 @@ export default function Valuations() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Monto Bruto ($)</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Monto Bruto ($)</label>
+                  <button
+                    type="button"
+                    onClick={calculateFromTasks}
+                    className="text-xs text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-semibold px-2.5 py-1 rounded-md flex items-center gap-1 transition-colors"
+                  >
+                    <Calculator size={13} /> Calcular desde Avance de Partidas
+                  </button>
+                </div>
                 <input required type="number" step="0.01" value={newValuation.grossAmount} onChange={e => setNewValuation({...newValuation, grossAmount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="0.00" />
               </div>
 

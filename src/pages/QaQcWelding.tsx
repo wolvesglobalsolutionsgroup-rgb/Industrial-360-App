@@ -109,10 +109,15 @@ export default function QaQcWelding() {
     }
 
     try {
+      const isometric = newIsometric || 'ISO-PDVSA-HC-04';
+      const existingForIso = jointsList.filter(j => j.isometric === isometric || j.tag.startsWith(isometric));
+      const nextSeq = existingForIso.length + 1;
+      const defaultTag = `J-${isometric}-${String(nextSeq).padStart(3, '0')}`;
+
       const jointData: Omit<WeldJoint, 'id'> = {
         projectId: currentProject.id,
-        tag: newTag || `J-${Math.floor(10 + Math.random() * 90)}-ISO-104`,
-        isometric: newIsometric || 'ISO-PDVSA-HC-04',
+        tag: newTag || defaultTag,
+        isometric: isometric,
         diameterSchedule: newDiameter,
         heatNumber: newHeatNumber || 'COL-99421-A',
         wpsCode: newWpsCode,

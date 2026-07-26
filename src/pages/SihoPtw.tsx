@@ -32,6 +32,7 @@ interface PTW {
   eppList: string[];
   precautions: string[];
   description: string;
+  digitalSignatureHash?: string;
   createdAt?: any;
 }
 
@@ -151,6 +152,14 @@ export default function SihoPtw() {
     return () => unsubscribe();
   }, [currentProject]);
 
+async function generateSha256Hash(dataString: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(dataString);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
   const handleCreatePTW = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentProject) {
@@ -165,6 +174,9 @@ export default function SihoPtw() {
 
     try {
       const ptwCode = `PTS-${newType.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const signaturePayload = `${ptwCode}|${currentProject.id}|${newSupervisor || 'Ing. Manuel Silva'}|${validFrom}|${validTo}|H2S:${h2s}|LEL:${lel}|O2:${o2}|CO:${co}|${Date.now()}`;
+      const digitalSignatureHash = await generateSha256Hash(signaturePayload);
+
       const ptwData: Omit<PTW, 'id'> = {
         projectId: currentProject.id,
         code: ptwCode,
@@ -176,6 +188,7 @@ export default function SihoPtw() {
         validTo,
         status: isAtmosphereHazardous ? 'bloqueado' : 'aprobado',
         description: newDescription,
+        digitalSignatureHash,
         gasReadings: {
           h2s,
           lel,
