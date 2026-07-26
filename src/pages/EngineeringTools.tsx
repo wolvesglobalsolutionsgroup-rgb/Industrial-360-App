@@ -898,26 +898,26 @@ export default function EngineeringTools() {
       </div>
 
       {/* ========================================== */}
-      {/* TAB 1: PIPING, FLANGES, STUDS & VALVES      */}
+      {/* TAB 1: PIPING, FLANGES, STUDS & VALVES     */}
       {/* ========================================== */}
       {activeMainTab === 'piping' && (
         <div className="space-y-6">
           {/* DECODIFICADOR DE ESPECIFICACIONES DE LÍNEA (PIPE / LINE CLASS DECODER) - PDVSA / ASME */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
               <div>
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <FileText size={20} className="text-[#0B2239]" />
-                  Decodificador de Especificaciones de Línea (Pipe / Line Class Decoder)
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <FileText size={20} className="text-[#0B2239] shrink-0" />
+                  <span>Decodificador de Especificaciones de Línea (Pipe / Line Class Decoder)</span>
                 </h2>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Estándar PDVSA / ASME B31.3 / NACE MR0175. Traduce la nomenclatura de tuberías y auto-rellena herramientas de ingeniería.
                 </p>
               </div>
               {syncAppliedMsg && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold shrink-0">
                   <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                  <span>Sincronizado: {syncAppliedMsg}</span>
+                  <span className="truncate max-w-[220px] sm:max-w-none">{syncAppliedMsg}</span>
                 </div>
               )}
             </div>
@@ -967,12 +967,12 @@ export default function EngineeringTools() {
                       }
                     }}
                     placeholder="Ej: A1A, B1B, D1A"
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                    className="flex-1 min-w-0 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
                   />
                   <button
                     type="button"
                     onClick={() => applyLineClassToCalculators(customLineCode)}
-                    className="px-4 py-2 bg-[#F4C400] text-[#131A22] font-black rounded-xl text-xs hover:bg-[#D9AC00] transition-colors shadow-sm"
+                    className="px-4 py-2 bg-[#F4C400] text-[#131A22] font-black rounded-xl text-xs hover:bg-[#D9AC00] transition-colors shadow-sm shrink-0"
                   >
                     Decodificar
                   </button>
@@ -981,12 +981,12 @@ export default function EngineeringTools() {
             </div>
 
             {/* Translation Output Grid */}
-            <div className="p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs border border-slate-800">
-              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+            <div className="p-4 sm:p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs border border-slate-800">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 border-b border-slate-800 pb-2">
                 <span className="text-xs uppercase font-bold text-emerald-400">
                   Traducción Automática de Especificación: <span className="text-amber-300 text-sm">{currentDecodedLineClass.code}</span>
                 </span>
-                <span className="text-[11px] text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
+                <span className="text-[11px] text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700 self-start sm:self-auto">
                   {currentDecodedLineClass.standardRef}
                 </span>
               </div>
@@ -1020,17 +1020,17 @@ export default function EngineeringTools() {
                 </div>
               </div>
 
-              <div className="p-3 bg-[#0B2239] border border-blue-800/50 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-sans">
-                <div className="flex items-center gap-2">
-                  <Zap size={15} className="text-[#F4C400]" />
-                  <span className="text-slate-200">
+              <div className="p-3 bg-[#0B2239] border border-blue-800/50 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs font-sans">
+                <div className="flex items-start sm:items-center gap-2">
+                  <Zap size={15} className="text-[#F4C400] shrink-0 mt-0.5 sm:mt-0" />
+                  <span className="text-slate-200 leading-normal">
                     Sincronización Automática Activa: Los valores de <strong>Clase ANSI ({currentDecodedLineClass.ratingClass})</strong> y <strong>Margen de Corrosión ({currentDecodedLineClass.corrosionAllowanceMm} mm)</strong> se transfieren automáticamente a la Calculadora Barlow y Buscador de Bridas/Válvulas.
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => applyLineClassToCalculators(currentDecodedLineClass.code)}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition-colors shrink-0"
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition-colors shrink-0 self-end sm:self-auto"
                 >
                   Re-Aplicar Parámetros
                 </button>
@@ -1040,14 +1040,14 @@ export default function EngineeringTools() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Flange & Stud Bolt Matrix */}
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
               <div className="border-b border-gray-100 pb-3 flex justify-between items-center">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <Disc size={20} className="text-emerald-600" />
-                    Matriz Completa de Bridas y Pernería (ASME B16.5 & API 6A)
+                  <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <Disc size={20} className="text-emerald-600 shrink-0" />
+                    <span>Matriz Completa de Bridas y Pernería (ASME B16.5 & API 6A)</span>
                   </h2>
-                  <p className="text-xs text-gray-500">Geometría, agujeros, dados de torque y cálculo de espárragos</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Geometría, agujeros, dados de torque y cálculo de espárragos</p>
                 </div>
               </div>
 
@@ -1098,9 +1098,9 @@ export default function EngineeringTools() {
               </div>
 
               {/* Specs Output Cards */}
-              <div className="p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs">
+              <div className="p-4 sm:p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs border border-slate-800">
                 <span className="text-xs uppercase font-bold text-emerald-400 block">Datos Dimensionales y Pernería Requerida</span>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
                     <span className="text-slate-400 block">Diámetro Ext. (OD)</span>
                     <span className="text-base font-bold text-white">{currentFlangeSpec.odMm} mm</span>
@@ -1119,7 +1119,7 @@ export default function EngineeringTools() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-2">
                   <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
                     <span className="text-slate-400 block">Espárragos Requeridos</span>
                     <span className="text-base font-bold text-amber-400">{currentFlangeSpec.holesCount} Unid. ({currentFlangeSpec.boltDiamInches})</span>
@@ -1138,17 +1138,18 @@ export default function EngineeringTools() {
                   </div>
                 </div>
 
-                <div className="p-3 bg-emerald-950 border border-emerald-800 rounded-xl flex justify-between items-center text-xs">
+                <div className="p-3 bg-emerald-950 border border-emerald-800 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
                   <span className="text-emerald-300 font-bold">Longitud Estimada de Espárragos:</span>
-                  <span className="text-lg font-black text-amber-400">{studLengthInches}" Longitud Total (A193 B7)</span>
+                  <span className="text-base sm:text-lg font-black text-amber-400">{studLengthInches}" Longitud Total (A193 B7)</span>
                 </div>
               </div>
             </div>
 
             {/* Right: Barlow Minimum Pipe Thickness Calc */}
-            <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-4 border border-slate-800">
+            <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-6 space-y-4 border border-slate-800 shadow-sm">
               <h3 className="font-bold text-sm text-emerald-400 flex items-center gap-2">
-                <Ruler size={18} /> Calculadora Barlow / ASME B31.3
+                <Ruler size={18} className="shrink-0" />
+                <span>Calculadora Barlow / ASME B31.3</span>
               </h3>
               <p className="text-xs text-slate-400">
                 Cálculo de espesor mínimo requerido para tuberías presurizadas con tolerancia por corrosión.
@@ -1161,7 +1162,7 @@ export default function EngineeringTools() {
                     type="number" 
                     value={pipePressPsi} 
                     onChange={(e) => setPipePressPsi(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white outline-none"
+                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
 
@@ -1172,7 +1173,7 @@ export default function EngineeringTools() {
                     step="0.1"
                     value={pipeOdInches} 
                     onChange={(e) => setPipeOdInches(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white outline-none"
+                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
 
@@ -1181,7 +1182,7 @@ export default function EngineeringTools() {
                   <select 
                     value={smysPsi}
                     onChange={(e) => setSmysPsi(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white outline-none"
+                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white outline-none focus:ring-1 focus:ring-emerald-500"
                   >
                     <option value={35000}>API 5L Gr. B (35.000 psi)</option>
                     <option value={42000}>API 5L X42 (42.000 psi)</option>
@@ -1198,7 +1199,7 @@ export default function EngineeringTools() {
                     step="0.5"
                     value={corrosionAllowanceMm} 
                     onChange={(e) => setCorrosionAllowanceMm(Number(e.target.value))}
-                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white outline-none"
+                    className="w-full px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-white outline-none focus:ring-1 focus:ring-emerald-500"
                   />
                 </div>
 
@@ -1213,21 +1214,21 @@ export default function EngineeringTools() {
           </div>
 
           {/* Star Pattern Torquing Sequence (ASME PCC-1) */}
-          <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-6 border border-slate-800 shadow-xl">
-            <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-6 space-y-6 border border-slate-800 shadow-xl">
+            <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
                 <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
-                  <Wrench size={16} /> Guía de Apriete en Estrella (ASME PCC-1 / Star Pattern)
+                  <Wrench size={16} className="shrink-0" /> Guía de Apriete en Estrella (ASME PCC-1 / Star Pattern)
                 </div>
-                <h3 className="text-lg font-black tracking-tight text-white">
+                <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
                   Secuencia de Cruzado y Pases Progresivos de Torque
                 </h3>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-400 mt-0.5">
                   Brida {currentFlangeSpec.nps} Clase {flangeClassSelect} — {currentFlangeSpec.holesCount} Pernos ({currentFlangeSpec.boltDiamInches}) — Dado: {currentFlangeSpec.socketInches}
                 </p>
               </div>
 
-              <div className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-right font-mono">
+              <div className="bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-700 text-left sm:text-right font-mono self-start sm:self-auto shrink-0">
                 <span className="text-[10px] text-slate-400 block uppercase">Torque Objetivo (100%)</span>
                 <span className="text-lg font-black text-emerald-400">{currentFlangeSpec.torqueFtLb} ft-lb</span>
               </div>
@@ -1237,60 +1238,62 @@ export default function EngineeringTools() {
               {/* Left: Star Pattern Sequence & SVG Graphic */}
               <div className="lg:col-span-6 space-y-4">
                 <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 space-y-3 font-mono text-xs">
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1">
                     <span className="text-amber-400 font-bold uppercase">Patrón Numérico en Estrella ({currentFlangeSpec.holesCount} Agujeros)</span>
                     <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">Paso Cruzado</span>
                   </div>
-                  <div className="p-3 bg-slate-950 rounded-lg text-emerald-400 font-black text-sm tracking-wider text-center border border-slate-800 break-words">
+                  <div className="p-3 bg-slate-950 rounded-lg text-emerald-400 font-black text-xs sm:text-sm tracking-wider text-center border border-slate-800 break-words overflow-x-auto">
                     {starSequence.join('  ➔  ')}
                   </div>
-                  <p className="text-[11px] text-slate-400">
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
                     Aplica el apriete siguiendo estrictamente el orden numérico opuesto en estrella para asegurar asentamiento uniforme de la empacadura.
                   </p>
                 </div>
 
                 {/* SVG Flange Diagram */}
-                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col items-center justify-center relative">
-                  <span className="text-[10px] text-slate-400 font-mono uppercase mb-2">Esquema Gráfico de Disposición de Agujeros</span>
-                  <svg viewBox="0 0 200 200" className="w-48 h-48">
-                    <circle cx="100" cy="100" r="90" fill="none" stroke="#334155" strokeWidth="6" />
-                    <circle cx="100" cy="100" r="70" fill="none" stroke="#475569" strokeDasharray="3 3" strokeWidth="1.5" />
-                    <circle cx="100" cy="100" r="38" fill="#0f172a" stroke="#1e293b" strokeWidth="4" />
-                    <text x="100" y="104" textAnchor="middle" fill="#64748b" fontSize="10" fontFamily="monospace" fontWeight="bold">{currentFlangeSpec.nps}</text>
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex flex-col items-center justify-center relative min-h-[220px]">
+                  <span className="text-[10px] text-slate-400 font-mono uppercase mb-2 text-center">Esquema Gráfico de Disposición de Agujeros</span>
+                  <div className="w-full max-w-[200px] aspect-square flex items-center justify-center">
+                    <svg viewBox="0 0 200 200" className="w-full h-full">
+                      <circle cx="100" cy="100" r="90" fill="none" stroke="#334155" strokeWidth="6" />
+                      <circle cx="100" cy="100" r="70" fill="none" stroke="#475569" strokeDasharray="3 3" strokeWidth="1.5" />
+                      <circle cx="100" cy="100" r="38" fill="#0f172a" stroke="#1e293b" strokeWidth="4" />
+                      <text x="100" y="104" textAnchor="middle" fill="#64748b" fontSize="10" fontFamily="monospace" fontWeight="bold">{currentFlangeSpec.nps}</text>
 
-                    {Array.from({ length: currentFlangeSpec.holesCount }).map((_, idx) => {
-                      const boltNum = idx + 1;
-                      const angleDeg = (360 / currentFlangeSpec.holesCount) * idx - 90;
-                      const angleRad = (angleDeg * Math.PI) / 180;
-                      const cx = 100 + 70 * Math.cos(angleRad);
-                      const cy = 100 + 70 * Math.sin(angleRad);
+                      {Array.from({ length: currentFlangeSpec.holesCount }).map((_, idx) => {
+                        const boltNum = idx + 1;
+                        const angleDeg = (360 / currentFlangeSpec.holesCount) * idx - 90;
+                        const angleRad = (angleDeg * Math.PI) / 180;
+                        const cx = 100 + 70 * Math.cos(angleRad);
+                        const cy = 100 + 70 * Math.sin(angleRad);
 
-                      return (
-                        <g key={boltNum} className="transition-all duration-300">
-                          <circle
-                            cx={cx}
-                            cy={cy}
-                            r="11"
-                            fill="#1e293b"
-                            stroke="#10b981"
-                            strokeWidth="2"
-                          />
-                          <text
-                            x={cx}
-                            y={cy + 3.5}
-                            textAnchor="middle"
-                            fill="#f8fafc"
-                            fontSize="9"
-                            fontWeight="bold"
-                            fontFamily="monospace"
-                          >
-                            {boltNum}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                  <span className="text-[10px] text-slate-500 font-mono mt-2">Pernos enumerados de 1 a {currentFlangeSpec.holesCount} en sentido horario</span>
+                        return (
+                          <g key={boltNum} className="transition-all duration-300">
+                            <circle
+                              cx={cx}
+                              cy={cy}
+                              r="11"
+                              fill="#1e293b"
+                              stroke="#10b981"
+                              strokeWidth="2"
+                            />
+                            <text
+                              x={cx}
+                              y={cy + 3.5}
+                              textAnchor="middle"
+                              fill="#f8fafc"
+                              fontSize="9"
+                              fontWeight="bold"
+                              fontFamily="monospace"
+                            >
+                              {boltNum}
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                  <span className="text-[10px] text-slate-500 font-mono mt-2 text-center">Pernos enumerados de 1 a {currentFlangeSpec.holesCount} en sentido horario</span>
                 </div>
               </div>
 
@@ -1372,18 +1375,19 @@ export default function EngineeringTools() {
           </div>
 
           {/* Table for Face-to-Face Valve Dimensions B16.10 */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4 shadow-sm">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-4 shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 pb-3">
               <div>
                 <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-                  <Flame size={18} className="text-emerald-600" /> Catálogo de Distancias Cara a Cara de Válvulas (ASME B16.10)
+                  <Flame size={18} className="text-emerald-600 shrink-0" />
+                  <span>Catálogo de Distancias Cara a Cara de Válvulas (ASME B16.10)</span>
                 </h3>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Longitudes normalizadas en milímetros según la Clase de Presión ANSI seleccionada
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 shrink-0">
                 <label className="text-xs font-bold text-gray-700 uppercase whitespace-nowrap">Clase Válvula:</label>
                 <select 
                   value={valveClassSelect}
@@ -1397,9 +1401,9 @@ export default function EngineeringTools() {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-900 text-white font-mono uppercase">
+            <div className="overflow-x-auto rounded-xl border border-gray-200">
+              <table className="w-full text-xs text-left min-w-[600px]">
+                <thead className="bg-slate-900 text-white font-mono uppercase whitespace-nowrap">
                   <tr>
                     <th className="p-3">NPS</th>
                     <th className="p-3">Compuerta (Gate)</th>
@@ -1410,7 +1414,7 @@ export default function EngineeringTools() {
                     <th className="p-3">Macho (Plug)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 font-mono">
+                <tbody className="divide-y divide-gray-200 font-mono whitespace-nowrap">
                   {Object.values(currentValveClassData).map(v => (
                     <tr key={v.nps} className="hover:bg-slate-50">
                       <td className="p-3 font-bold text-slate-900">{v.nps}</td>
@@ -1435,13 +1439,13 @@ export default function EngineeringTools() {
       {activeMainTab === 'instrumentation' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* PSV Relief Valve Dimensioning */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
             <div className="border-b border-gray-100 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Cpu size={20} className="text-emerald-600" />
-                Dimensionamiento de Válvulas de Seguridad / Alivio PSV (API 520 / 526)
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Cpu size={20} className="text-emerald-600 shrink-0" />
+                <span>Dimensionamiento de Válvulas de Seguridad / Alivio PSV (API 520 / 526)</span>
               </h2>
-              <p className="text-xs text-gray-500">Estimación de área de orificio efectiva para líquidos y fluidos limpios</p>
+              <p className="text-xs text-gray-500 mt-0.5">Estimación de área de orificio efectiva para líquidos y fluidos limpios</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -1487,44 +1491,45 @@ export default function EngineeringTools() {
               </div>
             </div>
 
-            <div className="p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs">
+            <div className="p-4 sm:p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs border border-slate-800">
               <span className="text-xs uppercase font-bold text-emerald-400 block">Resultado de Selección de Orificio API 526</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
                   <span className="text-slate-400 block">Área Mínima Requerida</span>
-                  <span className="text-2xl font-black text-white mt-1 block">{reqOrificeAreaSqIn.toFixed(3)} in²</span>
+                  <span className="text-xl sm:text-2xl font-black text-white mt-1 block">{reqOrificeAreaSqIn.toFixed(3)} in²</span>
                   <span className="text-slate-400 text-[10px] block">{(reqOrificeAreaSqIn * 645.16).toFixed(1)} mm²</span>
                 </div>
 
                 <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
                   <span className="text-slate-400 block">Orificio Normalizado API</span>
-                  <span className="text-2xl font-black text-amber-400 mt-1 block">Letra "{recommendedOrificeLetter}"</span>
+                  <span className="text-xl sm:text-2xl font-black text-amber-400 mt-1 block">Letra "{recommendedOrificeLetter}"</span>
                   <span className="text-slate-400 text-[10px] block">Según API Standard 526</span>
                 </div>
 
                 <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
                   <span className="text-slate-400 block">Coeficiente de Flujo (Cv)</span>
-                  <span className="text-2xl font-black text-emerald-400 mt-1 block">{calculatedCv.toFixed(1)}</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1 block">{calculatedCv.toFixed(1)}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Hazardous Area Classifier */}
-          <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-4 border border-slate-800 font-mono text-xs">
+          <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-6 space-y-4 border border-slate-800 font-mono text-xs shadow-sm">
             <h3 className="font-bold text-sm text-emerald-400 flex items-center gap-2">
-              <ShieldAlert size={18} /> Clasificación de Áreas Peligrosas (PDVSA IR-S-02 / NFPA 497)
+              <ShieldAlert size={18} className="shrink-0" />
+              <span>Clasificación de Áreas Peligrosas (PDVSA IR-S-02 / NFPA 497)</span>
             </h3>
             <div className="space-y-3 text-slate-300">
               <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
                 <span className="text-amber-400 font-bold block">Clase I, Div 1 (Zona 0 / 1):</span>
-                <p className="text-[11px] text-slate-400 mt-1">Presencia continua o frecuente de gases inflamables (ej. venteos, purgas, bombas de crudo).</p>
+                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">Presencia continua o frecuente de gases inflamables (ej. venteos, purgas, bombas de crudo).</p>
                 <span className="text-emerald-400 font-bold text-[10px] block mt-1">Requerimiento: Encerramientos NEMA 7 / Explosion Proof.</span>
               </div>
 
               <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
                 <span className="text-blue-400 font-bold block">Clase I, Div 2 (Zona 2):</span>
-                <p className="text-[11px] text-slate-400 mt-1">Presencia accidental o por falla de tuberías de gases inflamables.</p>
+                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">Presencia accidental o por falla de tuberías de gases inflamables.</p>
                 <span className="text-emerald-400 font-bold text-[10px] block mt-1">Requerimiento: Equipos no producentes de chispas / Intrínsecamente seguros.</span>
               </div>
             </div>
@@ -1537,13 +1542,13 @@ export default function EngineeringTools() {
       {/* ========================================== */}
       {activeMainTab === 'process' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
             <div className="border-b border-gray-100 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Database size={20} className="text-emerald-600" />
-                Volumetría y Aforo de Tanques de Almacenamiento (API 650 / 653)
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Database size={20} className="text-emerald-600 shrink-0" />
+                <span>Volumetría y Aforo de Tanques de Almacenamiento (API 650 / 653)</span>
               </h2>
-              <p className="text-xs text-gray-500">Cálculo de volumen bruto, capacidad útil, bbls y porcentaje de llenado</p>
+              <p className="text-xs text-gray-500 mt-0.5">Cálculo de volumen bruto, capacidad útil, bbls y porcentaje de llenado</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -1592,9 +1597,9 @@ export default function EngineeringTools() {
             </div>
 
             {/* Results Grid */}
-            <div className="p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs">
+            <div className="p-4 sm:p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs border border-slate-800">
               <span className="text-xs uppercase font-bold text-emerald-400 block">Resultados de Aforo y Llenado</span>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
                   <span className="text-slate-400 block">Volumen Total Bruto</span>
                   <span className="text-lg font-bold text-white">{totalTankM3.toFixed(1)} m³</span>
@@ -1614,7 +1619,7 @@ export default function EngineeringTools() {
               </div>
 
               <div className="p-4 bg-slate-800 rounded-xl border border-slate-700 space-y-2">
-                <div className="flex justify-between items-center text-xs">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center text-xs gap-1">
                   <span className="text-slate-300 font-bold">Porcentaje de Llenado del Tanque:</span>
                   <span className="text-amber-400 font-black">{fillPercent.toFixed(1)}% Capacidad</span>
                 </div>
@@ -1625,9 +1630,10 @@ export default function EngineeringTools() {
             </div>
           </div>
 
-          <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-3 font-mono text-xs border border-slate-800">
+          <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-6 space-y-3 font-mono text-xs border border-slate-800 shadow-sm">
             <h3 className="font-bold text-emerald-400 flex items-center gap-2">
-              <Info size={16} /> Criterios API 12J / Separadores
+              <Info size={16} className="shrink-0" />
+              <span>Criterios API 12J / Separadores</span>
             </h3>
             <p className="text-slate-300">
               Tiempo de residencia mínimo para separación trifásica agua-crudo-gas:
@@ -1646,13 +1652,13 @@ export default function EngineeringTools() {
       {/* ========================================== */}
       {activeMainTab === 'coatings' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
             <div className="border-b border-gray-100 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Paintbrush size={20} className="text-emerald-600" />
-                Calculadora de Espesor de Película DFT / WFT (NACE / SSPC / PDVSA O-201)
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Paintbrush size={20} className="text-emerald-600 shrink-0" />
+                <span>Calculadora de Espesor de Película DFT / WFT (NACE / SSPC / PDVSA O-201)</span>
               </h2>
-              <p className="text-xs text-gray-500">Determinación de galga húmeda (peine) y galones requeridos</p>
+              <p className="text-xs text-gray-500 mt-0.5">Determinación de galga húmeda (peine) y galones requeridos</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -1697,30 +1703,30 @@ export default function EngineeringTools() {
               </div>
             </div>
 
-            <div className="p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs">
+            <div className="p-4 sm:p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs border border-slate-800">
               <span className="text-xs uppercase font-bold text-emerald-400 block">Especificaciones de Aplicación en Campo</span>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
                   <span className="text-slate-400 block">Lectura Galga Peine (WFT)</span>
-                  <span className="text-2xl font-black text-emerald-400 mt-1 block">{reqWftMils.toFixed(1)} mils</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1 block">{reqWftMils.toFixed(1)} mils</span>
                   <span className="text-slate-400 text-[10px] block">{Math.round(reqWftMicrons)} micras (µm)</span>
                 </div>
 
                 <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
                   <span className="text-slate-400 block">Rendimiento Práctico</span>
-                  <span className="text-xl font-bold text-amber-400 mt-1 block">{practicalCoverageM2PerGal.toFixed(1)} m²/galón</span>
+                  <span className="text-lg sm:text-xl font-bold text-amber-400 mt-1 block">{practicalCoverageM2PerGal.toFixed(1)} m²/galón</span>
                 </div>
 
                 <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
                   <span className="text-slate-400 block">Volumen Pintura Requerido</span>
-                  <span className="text-2xl font-black text-blue-400 mt-1 block">{paintGallonsReq.toFixed(1)} Galones</span>
+                  <span className="text-xl sm:text-2xl font-black text-blue-400 mt-1 block">{paintGallonsReq.toFixed(1)} Galones</span>
                   <span className="text-slate-400 text-[10px] block">{(paintGallonsReq / 5).toFixed(1)} Cuñetes (5 gal)</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-3 font-mono text-xs border border-slate-800">
+          <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-6 space-y-3 font-mono text-xs border border-slate-800 shadow-sm">
             <h3 className="font-bold text-emerald-400">Tabla de Consumibles de Soldadura</h3>
             <div className="space-y-2 text-slate-300">
               <div className="p-2.5 bg-slate-800 rounded-lg border border-slate-700">
@@ -1742,13 +1748,13 @@ export default function EngineeringTools() {
       {/* ========================================== */}
       {activeMainTab === 'electrical' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
             <div className="border-b border-gray-100 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Zap size={20} className="text-emerald-600" />
-                Calculadora de Caída de Tensión en Cables de Potencia (PDVSA N-201 / IEEE)
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Zap size={20} className="text-emerald-600 shrink-0" />
+                <span>Calculadora de Caída de Tensión en Cables de Potencia (PDVSA N-201 / IEEE)</span>
               </h2>
-              <p className="text-xs text-gray-500">Cálculo de caída de voltaje en voltios y porcentaje para motores y alimentadores</p>
+              <p className="text-xs text-gray-500 mt-0.5">Cálculo de caída de voltaje en voltios y porcentaje para motores y alimentadores</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -1795,17 +1801,17 @@ export default function EngineeringTools() {
               </div>
             </div>
 
-            <div className="p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs">
+            <div className="p-4 sm:p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs border border-slate-800">
               <span className="text-xs uppercase font-bold text-emerald-400 block">Resultado de Caída de Tensión</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-4 bg-slate-800 rounded-xl border border-slate-700">
                   <span className="text-slate-400 block">Caída de Tensión (Volts)</span>
-                  <span className="text-2xl font-black text-white mt-1 block">{voltageDropVolts.toFixed(2)} Volts</span>
+                  <span className="text-xl sm:text-2xl font-black text-white mt-1 block">{voltageDropVolts.toFixed(2)} Volts</span>
                 </div>
 
                 <div className={`p-4 rounded-xl border ${percentVoltDrop > 3.0 ? 'bg-red-950/60 border-red-700' : 'bg-slate-800 border-slate-700'}`}>
                   <span className="text-slate-400 block">Porcentaje Caída de Tensión</span>
-                  <span className={`text-2xl font-black mt-1 block ${percentVoltDrop > 3.0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                  <span className={`text-xl sm:text-2xl font-black mt-1 block ${percentVoltDrop > 3.0 ? 'text-red-400' : 'text-emerald-400'}`}>
                     {percentVoltDrop.toFixed(2)}%
                   </span>
                   <span className="text-[10px] text-slate-400 block mt-1">
@@ -1816,7 +1822,7 @@ export default function EngineeringTools() {
             </div>
           </div>
 
-          <div className="bg-slate-900 text-white rounded-2xl p-6 space-y-3 font-mono text-xs border border-slate-800">
+          <div className="bg-slate-900 text-white rounded-2xl p-4 sm:p-6 space-y-3 font-mono text-xs border border-slate-800 shadow-sm">
             <h3 className="font-bold text-emerald-400">Límites Normativos PDVSA</h3>
             <p className="text-slate-300">
               Criterios de diseño para instalaciones eléctricas industriales:
@@ -1837,23 +1843,23 @@ export default function EngineeringTools() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Earthmoving trench calc */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
               <div className="border-b border-gray-100 pb-3">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Truck size={20} className="text-emerald-600" />
-                  Calculadora de Excavación de Zanjas y Camiones Volteo
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Truck size={20} className="text-emerald-600 shrink-0" />
+                  <span>Calculadora de Excavación de Zanjas y Camiones Volteo</span>
                 </h2>
-                <p className="text-xs text-gray-500">Volumen en banco, suelto por esponjamiento y viajes de volteo (12m³)</p>
+                <p className="text-xs text-gray-500 mt-0.5">Volumen en banco, suelto por esponjamiento y viajes de volteo (12m³)</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Longitud Zanja (m)</label>
                   <input 
                     type="number" 
                     value={trenchLengthM} 
                     onChange={(e) => setTrenchLengthM(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -1863,7 +1869,7 @@ export default function EngineeringTools() {
                     step="0.1"
                     value={trenchWidthM} 
                     onChange={(e) => setTrenchWidthM(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -1873,7 +1879,7 @@ export default function EngineeringTools() {
                     step="0.1"
                     value={trenchDepthM} 
                     onChange={(e) => setTrenchDepthM(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -1882,12 +1888,12 @@ export default function EngineeringTools() {
                     type="number" 
                     value={swellFactorPercent} 
                     onChange={(e) => setSwellFactorPercent(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-2">
+              <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-2 border border-slate-800">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Volumen en Banco:</span>
                   <span className="font-bold text-white">{bankVolumeM3.toFixed(1)} m³</span>
@@ -1904,23 +1910,23 @@ export default function EngineeringTools() {
             </div>
 
             {/* Concrete pour calc */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
               <div className="border-b border-gray-100 pb-3">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <Box size={20} className="text-emerald-600" />
-                  Calculadora de Vaciado de Concreto & Camiones Trompo
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Box size={20} className="text-emerald-600 shrink-0" />
+                  <span>Calculadora de Vaciado de Concreto & Camiones Trompo</span>
                 </h2>
-                <p className="text-xs text-gray-500">Cómputo métrico de fundaciones y número de mixer trucks (8m³)</p>
+                <p className="text-xs text-gray-500 mt-0.5">Cómputo métrico de fundaciones y número de mixer trucks (8m³)</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 uppercase mb-1">N° de Zapatas/Fundaciones</label>
                   <input 
                     type="number" 
                     value={concFootingCount} 
                     onChange={(e) => setConcFootingCount(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -1930,7 +1936,7 @@ export default function EngineeringTools() {
                     step="0.1"
                     value={footingDimX} 
                     onChange={(e) => setFootingDimX(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -1940,7 +1946,7 @@ export default function EngineeringTools() {
                     step="0.1"
                     value={footingDimY} 
                     onChange={(e) => setFootingDimY(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
@@ -1950,12 +1956,12 @@ export default function EngineeringTools() {
                     step="0.1"
                     value={footingDimZ} 
                     onChange={(e) => setFootingDimZ(Number(e.target.value))}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-2">
+              <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-2 border border-slate-800">
                 <div className="flex justify-between">
                   <span className="text-slate-400">Volumen Total Concreto:</span>
                   <span className="font-bold text-emerald-400">{totalConcM3.toFixed(2)} m³</span>
@@ -1969,13 +1975,14 @@ export default function EngineeringTools() {
           </div>
 
           {/* Rebar table */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4 shadow-sm">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 sm:p-6 space-y-4 shadow-sm">
             <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-              <Building2 size={18} className="text-emerald-600" /> Tabla de Cuantías y Pesos de Cabillas (COVENIN / ASTM)
+              <Building2 size={18} className="text-emerald-600 shrink-0" />
+              <span>Tabla de Cuantías y Pesos de Cabillas (COVENIN / ASTM)</span>
             </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs text-left">
-                <thead className="bg-slate-900 text-white font-mono uppercase">
+            <div className="overflow-x-auto rounded-xl border border-gray-200">
+              <table className="w-full text-xs text-left min-w-[500px]">
+                <thead className="bg-slate-900 text-white font-mono uppercase whitespace-nowrap">
                   <tr>
                     <th className="p-3">Designación</th>
                     <th className="p-3">Diámetro (pulg)</th>
@@ -1984,7 +1991,7 @@ export default function EngineeringTools() {
                     <th className="p-3">Longitud Solape (40d)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 font-mono">
+                <tbody className="divide-y divide-gray-200 font-mono whitespace-nowrap">
                   {REBAR_DATA.map(r => (
                     <tr key={r.designation} className="hover:bg-slate-50">
                       <td className="p-3 font-bold text-slate-900">{r.designation}</td>
@@ -2007,23 +2014,23 @@ export default function EngineeringTools() {
       {activeMainTab === 'siho' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Flare Thermal Radiation Calc */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
             <div className="border-b border-gray-100 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <ShieldAlert size={20} className="text-emerald-600" />
-                Calculadora de Radiación Térmica de Antorchas (API 521 / PDVSA SI-S-04)
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <ShieldAlert size={20} className="text-emerald-600 shrink-0" />
+                <span>Calculadora de Radiación Térmica de Antorchas (API 521 / PDVSA SI-S-04)</span>
               </h2>
-              <p className="text-xs text-gray-500">Cálculo de intensidad térmica K (kW/m²) a distancia del mechurrio</p>
+              <p className="text-xs text-gray-500 mt-0.5">Cálculo de intensidad térmica K (kW/m²) a distancia del mechurrio</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Calor Liberado (MW)</label>
                 <input 
                   type="number" 
                   value={flareHeatMw} 
                   onChange={(e) => setFlareHeatMw(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -2033,42 +2040,42 @@ export default function EngineeringTools() {
                   type="number" 
                   value={distFromFlareM} 
                   onChange={(e) => setDistFromFlareM(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
 
-            <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-3">
+            <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-3 border border-slate-800">
               <div>
                 <span className="text-slate-400 block">Radiación Térmica Calculada (K):</span>
-                <span className="text-2xl font-black text-amber-400 mt-1 block">{flareRadiationKwM2.toFixed(2)} kW/m²</span>
+                <span className="text-xl sm:text-2xl font-black text-amber-400 mt-1 block">{flareRadiationKwM2.toFixed(2)} kW/m²</span>
               </div>
-              <div className="p-3 bg-slate-800 rounded-xl border border-slate-700 text-[11px] text-slate-300">
-                {flareRadiationKwM2 < 1.57 && '✓ Nivel Seguro (&lt; 1.57 kW/m²): Operación continua sin equipo especial.'}
+              <div className="p-3 bg-slate-800 rounded-xl border border-slate-700 text-[11px] text-slate-300 leading-relaxed">
+                {flareRadiationKwM2 < 1.57 && '✓ Nivel Seguro (< 1.57 kW/m²): Operación continua sin equipo especial.'}
                 {flareRadiationKwM2 >= 1.57 && flareRadiationKwM2 < 4.73 && '⚠️ Nivel de Alerta (1.57 - 4.73 kW/m²): Requiere ropa de protección térmica.'}
-                {flareRadiationKwM2 >= 4.73 && '🚨 Zona Peligrosa (&gt; 4.73 kW/m²): Exposición máxima 30 segundos sin EPP especializado.'}
+                {flareRadiationKwM2 >= 4.73 && '🚨 Zona Peligrosa (> 4.73 kW/m²): Exposición máxima 30 segundos sin EPP especializado.'}
               </div>
             </div>
           </div>
 
           {/* Noise Attenuation Calc */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
             <div className="border-b border-gray-100 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Volume2 size={20} className="text-emerald-600" />
-                Atenuación de Ruido Industrial y Exposición (PDVSA HO-H-16)
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Volume2 size={20} className="text-emerald-600 shrink-0" />
+                <span>Atenuación de Ruido Industrial y Exposición (PDVSA HO-H-16)</span>
               </h2>
-              <p className="text-xs text-gray-500">Atenuación por distancia inversa al cuadrado</p>
+              <p className="text-xs text-gray-500 mt-0.5">Atenuación por distancia inversa al cuadrado</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Ruido en Fuente (dBA @ 1m)</label>
                 <input 
                   type="number" 
                   value={noiseSourceDb} 
                   onChange={(e) => setNoiseSourceDb(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
@@ -2078,18 +2085,18 @@ export default function EngineeringTools() {
                   type="number" 
                   value={distNoiseM} 
                   onChange={(e) => setDistNoiseM(Number(e.target.value))}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
             </div>
 
-            <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-3">
+            <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-3 border border-slate-800">
               <div>
                 <span className="text-slate-400 block">Nivel de Ruido a {distNoiseM} metros:</span>
-                <span className="text-2xl font-black text-emerald-400 mt-1 block">{noiseAtDistDb.toFixed(1)} dBA</span>
+                <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1 block">{noiseAtDistDb.toFixed(1)} dBA</span>
               </div>
-              <div className="p-3 bg-slate-800 rounded-xl border border-slate-700 text-[11px] text-slate-300">
-                {noiseAtDistDb > 85 ? '🚨 Obligatorio uso de Protectores Auditivos de Copa / Inserción (&gt; 85 dBA).' : '✓ Nivel Seguro (&lt; 85 dBA según COVENIN 871).'}
+              <div className="p-3 bg-slate-800 rounded-xl border border-slate-700 text-[11px] text-slate-300 leading-relaxed">
+                {noiseAtDistDb > 85 ? '🚨 Obligatorio uso de Protectores Auditivos de Copa / Inserción (> 85 dBA).' : '✓ Nivel Seguro (< 85 dBA según COVENIN 871).'}
               </div>
             </div>
           </div>
@@ -2100,13 +2107,13 @@ export default function EngineeringTools() {
       {/* TAB 8: UNIVERSAL QUICK CONVERTER            */}
       {/* ========================================== */}
       {activeMainTab === 'conversions' && (
-        <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
+        <div className="max-w-3xl mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-6">
           <div className="border-b border-gray-100 pb-3">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <ArrowRightLeft size={20} className="text-emerald-600" />
-              Conversor Universal Rápido de Unidades de Campo
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+              <ArrowRightLeft size={20} className="text-emerald-600 shrink-0" />
+              <span>Conversor Universal Rápido de Unidades de Campo</span>
             </h2>
-            <p className="text-xs text-gray-500">Presión, Caudal, Volumen, Masa, Longitud y Temperatura</p>
+            <p className="text-xs text-gray-500 mt-0.5">Presión, Caudal, Volumen, Masa, Longitud y Temperatura</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -2124,7 +2131,7 @@ export default function EngineeringTools() {
                   if (cat === 'length') { setConvFromUnit('in'); setConvToUnit('mm'); }
                   if (cat === 'temp') { setConvFromUnit('F'); setConvToUnit('C'); }
                 }}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 <option value="pressure">Presión</option>
                 <option value="flow">Caudal / Volumétrico</option>
@@ -2140,7 +2147,7 @@ export default function EngineeringTools() {
               <select 
                 value={convFromUnit} 
                 onChange={(e) => setConvFromUnit(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {Object.keys(unitRates[convCategory] || {}).map(u => (
                   <option key={u} value={u}>{u}</option>
@@ -2153,7 +2160,7 @@ export default function EngineeringTools() {
               <select 
                 value={convToUnit} 
                 onChange={(e) => setConvToUnit(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none"
+                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {Object.keys(unitRates[convCategory] || {}).map(u => (
                   <option key={u} value={u}>{u}</option>
@@ -2169,13 +2176,13 @@ export default function EngineeringTools() {
                 type="number" 
                 value={convValue} 
                 onChange={(e) => setConvValue(Number(e.target.value))}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-black text-xl outline-none"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl font-black text-xl outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
-            <div className="p-4 bg-slate-900 text-white rounded-2xl flex flex-col justify-center items-center font-mono">
+            <div className="p-4 bg-slate-900 text-white rounded-2xl flex flex-col justify-center items-center font-mono border border-slate-800">
               <span className="text-[10px] text-slate-400 uppercase font-bold">Resultado Convertido:</span>
-              <span className="text-2xl font-black text-emerald-400 mt-1">{getConversionResult()}</span>
+              <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">{getConversionResult()}</span>
             </div>
           </div>
         </div>

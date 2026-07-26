@@ -213,7 +213,7 @@ export default function Dashboard() {
       const pdfHeight = (img.height * pdfWidth) / img.width;
       
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`informe-tecnico-ic360-${currentProject?.id || 'general'}.pdf`);
+      pdf.save(`informe-tecnico-semax-${currentProject?.id || 'general'}.pdf`);
     } catch (error) {
       console.error("Error exporting PDF", error);
     } finally {
@@ -239,7 +239,7 @@ export default function Dashboard() {
       <header className="mb-8 pt-8 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-            {currentProject?.id === 'all' ? '🏢 Portafolio Corporativo Consolidado' : 'Panel de Control Ejecutivo'}
+            {currentProject?.id === 'all' ? '🏢 Portafolio Corporativo Consolidado' : 'Panel de Control Ejecutivo SEMAX PINO'}
           </h1>
           <p className="text-gray-500 mt-1 font-medium">
             {currentProject?.id === 'all'

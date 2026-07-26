@@ -60,18 +60,18 @@ export interface Project {
 
 export const CORPORATE_PORTFOLIO_PROJECT: Project = {
   id: 'all',
-  name: '🏢 PORTAFOLIO CORPORATIVO (CONTRATISTA)',
+  name: '🏢 PORTAFOLIO CORPORATIVO (SEMAX PINO C.A.)',
   description: 'Consolidado ejecutivo, operativo y financiero de todos los proyectos de la organización',
   status: 'Activo',
   ownerId: 'org',
-  orgId: 'default_org'
+  orgId: 'semax_pino'
 };
 
 export const DEFAULT_ORGANIZATION: Organization = {
-  id: 'default_org',
-  name: 'CONTRATISTA OPERATIVA C.A.',
-  taxId: 'RIF J-00000000-0',
-  description: 'Servicios de Ingeniería Industrial, Obras y Proyectos'
+  id: 'semax_pino',
+  name: 'SEMAX PINO C.A.',
+  taxId: 'RIF J-30489210-4',
+  description: 'Servicios Petroleros, BCP, VFD e Ingeniería Industrial'
 };
 
 interface ProjectContextType {
