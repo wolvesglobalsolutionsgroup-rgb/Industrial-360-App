@@ -16,7 +16,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   AlertTriangle,
-  Menu
+  Menu,
+  Grid3x3
 } from 'lucide-react';
 import { useProject, CORPORATE_PORTFOLIO_PROJECT, UserRole } from '../../ProjectContext';
 import { ROLE_LABELS } from '../ProtectedRoute';
@@ -26,10 +27,11 @@ import { logout, useAppAuthState } from '../../firebase';
 
 export interface TopbarProps {
   onToggleMobileMenu?: () => void;
+  onToggleModules?: () => void;
   className?: string;
 }
 
-export const Topbar: React.FC<TopbarProps> = ({ onToggleMobileMenu, className = '' }) => {
+export const Topbar: React.FC<TopbarProps> = ({ onToggleMobileMenu, onToggleModules, className = '' }) => {
   const [user] = useAppAuthState();
   const navigate = useNavigate();
   const { projects, currentProject, setCurrentProject, currentOrganization, userRole, setUserRole } = useProject();
@@ -164,6 +166,19 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleMobileMenu, className = 
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Catálogo Módulos Button */}
+        {onToggleModules && (
+          <button
+            onClick={onToggleModules}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 text-brand-500 border border-brand-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            title="Ver catálogo con todos los módulos (31)"
+          >
+            <Grid3x3 size={15} />
+            <span className="hidden sm:inline font-display">Módulos</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-brand-500 text-white font-extrabold">31</span>
+          </button>
+        )}
+
         {/* User Role Simulator Badge */}
         <div className="relative hidden xl:block">
           <button

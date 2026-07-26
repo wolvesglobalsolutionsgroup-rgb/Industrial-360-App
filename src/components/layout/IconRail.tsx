@@ -9,11 +9,13 @@ import {
   Receipt,
   FileArchive,
   Settings, 
+  Grid3x3,
   LogOut 
 } from 'lucide-react';
 import { logout } from '../../firebase';
 
 export interface IconRailProps {
+  onToggleModules?: () => void;
   className?: string;
 }
 
@@ -27,7 +29,7 @@ const railItems = [
   { path: '/project-brain', label: 'Cerebro de Proyecto (AI)', icon: BrainCircuit },
 ];
 
-export const IconRail: React.FC<IconRailProps> = ({ className = '' }) => {
+export const IconRail: React.FC<IconRailProps> = ({ onToggleModules, className = '' }) => {
   return (
     <aside className={`w-[68px] bg-surface border-r border-line flex flex-col justify-between items-center py-4 h-full shrink-0 z-30 transition-all ${className}`}>
       {/* Brand Icon Header */}
@@ -68,6 +70,20 @@ export const IconRail: React.FC<IconRailProps> = ({ className = '' }) => {
             </NavLink>
           );
         })}
+
+        {/* All Modules Button (Grid3x3) */}
+        {onToggleModules && (
+          <button
+            onClick={onToggleModules}
+            title="Ver todos los módulos (31)"
+            className="group relative w-11 h-11 rounded-2xl flex items-center justify-center text-brand-500 hover:bg-brand-500/10 transition-all cursor-pointer border border-brand-500/20 my-1"
+          >
+            <Grid3x3 size={20} className="shrink-0 transition-transform group-hover:scale-110" />
+            <span className="absolute left-full ml-3 px-2.5 py-1.5 bg-ink text-surface text-[11px] font-bold rounded-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-xl">
+              Catálogo Módulos (31)
+            </span>
+          </button>
+        )}
       </nav>
 
       {/* Bottom Actions: Settings & Logout */}

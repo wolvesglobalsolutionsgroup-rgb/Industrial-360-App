@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import IconRail from './IconRail';
 import Topbar from './Topbar';
+import ModulePanel from './ModulePanel';
 
 export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isModulePanelOpen, setIsModulePanelOpen] = useState(false);
+
+  const toggleModules = () => setIsModulePanelOpen(prev => !prev);
 
   return (
     <div className="flex h-screen bg-bg text-ink font-sans overflow-hidden transition-colors duration-200">
@@ -20,13 +24,16 @@ export const AppLayout: React.FC = () => {
       <div className={`fixed md:static inset-y-0 left-0 z-50 md:z-30 transition-transform duration-300 ${
         mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
-        <IconRail />
+        <IconRail onToggleModules={toggleModules} />
       </div>
 
       {/* Main Container */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Topbar */}
-        <Topbar onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)} />
+        <Topbar 
+          onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
+          onToggleModules={toggleModules}
+        />
 
         {/* Scrollable Page Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
@@ -35,6 +42,12 @@ export const AppLayout: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Module Catalog Slide-Over Panel */}
+      <ModulePanel 
+        isOpen={isModulePanelOpen} 
+        onClose={() => setIsModulePanelOpen(false)} 
+      />
     </div>
   );
 };
