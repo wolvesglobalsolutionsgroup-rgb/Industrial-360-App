@@ -1,52 +1,167 @@
-import { useState, useEffect, useRef } from 'react';
-import { collection, query, onSnapshot, addDoc } from 'firebase/firestore';
-import { db, auth, handleFirestoreError, OperationType } from '../firebase';
-import { Plus, Building2, Calendar, DollarSign, FileSpreadsheet, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc 
+} from 'firebase/firestore';
+import { db, getAuthUser, handleFirestoreError, OperationType } from '../firebase';
+import { 
+  Plus, Search, Building2, DollarSign, TrendingUp, Edit2, Trash2, CheckCircle2, FileSpreadsheet, Loader2, Calendar 
+} from 'lucide-react';
 import * as XLSX from 'xlsx';
+import {
+  MetricCard, 
+  Card, 
+  Button,
+  StatusBadge, 
+  Table, 
+  TableHeader, 
+  TableBody, 
+  TableRow, 
+  TableHead, 
+  TableCell, 
+  Dialog, 
+  Input, 
+  Skeleton, 
+  EmptyState
+} from '../components/ui';
+
+export interface ProjectItem {
+  id: string;
+  name: string;
+  description?: string;
+  budget?: number;
+  advancePercent?: number;
+  startDate?: string;
+  status?: string;
+  ownerId?: string;
+}
 
 export default function Projects() {
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', description: '', budget: '', startDate: '', advancePercent: '0' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
+
+  const [form, setForm] = useState({
+    name: '',
+    description: '',
+    budget: '',
+    advancePercent: '0',
+    startDate: '',
+    status: 'en_campo'
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Subscribe to Firestore Projects
   useEffect(() => {
+    setIsLoading(true);
     const q = query(collection(db, 'projects'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const projs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const projs = snapshot.docs.map(docSnap => ({
+        id: docSnap.id,
+        ...docSnap.data()
+      })) as ProjectItem[];
       setProjects(projs);
+      setIsLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'projects');
+      setIsLoading(false);
     });
+
     return () => unsubscribe();
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  // Filter projects by search
+  const filteredProjects = projects.filter(p => 
+    p.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Metrics
+  const totalProjects = projects.length;
+  const totalBudget = projects.reduce((sum, p) => sum + Number(p.budget || 0), 0);
+  const activeProjects = projects.filter(p => p.status === 'en_campo' || p.status === 'active' || p.status === 'planificada' || !p.status).length;
+  const completedProjects = projects.filter(p => p.status === 'terminada' || p.status === 'completed').length;
+
+  // Modal Control
+  const handleOpenCreate = () => {
+    setEditingProject(null);
+    setForm({
+      name: '',
+      description: '',
+      budget: '',
+      advancePercent: '0',
+      startDate: new Date().toISOString().split('T')[0],
+      status: 'planificada'
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (project: ProjectItem) => {
+    setEditingProject(project);
+    setForm({
+      name: project.name || '',
+      description: project.description || '',
+      budget: project.budget !== undefined ? String(project.budget) : '',
+      advancePercent: project.advancePercent !== undefined ? String(project.advancePercent) : '0',
+      startDate: project.startDate || '',
+      status: project.status || 'planificada'
+    });
+    setIsModalOpen(true);
+  };
+
+  // CRUD Actions
+  const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth.currentUser) return;
+    const user = getAuthUser();
+    setIsSubmitting(true);
+
+    const projectData = {
+      name: form.name,
+      description: form.description,
+      budget: Number(form.budget || 0),
+      advancePercent: Number(form.advancePercent || 0),
+      startDate: form.startDate,
+      status: form.status,
+      updatedAt: new Date().toISOString()
+    };
 
     try {
-      await addDoc(collection(db, 'projects'), {
-        name: newProject.name,
-        description: newProject.description,
-        budget: Number(newProject.budget),
-        startDate: newProject.startDate,
-        advancePercent: Number(newProject.advancePercent),
-        status: 'planning',
-        ownerId: auth.currentUser.uid
-      });
+      if (editingProject) {
+        await updateDoc(doc(db, 'projects', editingProject.id), projectData);
+      } else {
+        await addDoc(collection(db, 'projects'), {
+          ...projectData,
+          ownerId: user?.uid || 'anonymous',
+          createdAt: new Date().toISOString()
+        });
+      }
       setIsModalOpen(false);
-      setNewProject({ name: '', description: '', budget: '', startDate: '', advancePercent: '0' });
     } catch (error) {
-      console.error("Error creating project:", error);
-      alert("Error al crear el proyecto");
+      handleFirestoreError(error, editingProject ? OperationType.UPDATE : OperationType.CREATE, 'projects');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const handleDeleteProject = async (id: string, name: string) => {
+    if (window.confirm(`¿Estás seguro de eliminar el proyecto "${name}"?`)) {
+      try {
+        await deleteDoc(doc(db, 'projects', id));
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `projects/${id}`);
+      }
+    }
+  };
+
+  // Excel Import
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !auth.currentUser) return;
+    const user = getAuthUser();
+    if (!file) return;
 
     setIsImporting(true);
     try {
@@ -59,31 +174,31 @@ export default function Projects() {
       let importedCount = 0;
 
       for (const row of jsonData as any[]) {
-        // Map Excel columns to project fields. Adjust keys based on expected Excel format.
         const name = row['Nombre'] || row['name'] || row['Proyecto'] || 'Proyecto Importado';
         const description = row['Descripción'] || row['description'] || row['Detalle'] || '';
         const budget = Number(row['Presupuesto'] || row['budget'] || row['Monto'] || 0);
-        
-        // Handle date parsing if needed, or default to today
+        const advancePercent = Number(row['Avance'] || row['advancePercent'] || 0);
+
         let startDate = new Date().toISOString().split('T')[0];
         if (row['Fecha de Inicio'] || row['startDate'] || row['Fecha']) {
-           const rawDate = row['Fecha de Inicio'] || row['startDate'] || row['Fecha'];
-           if (typeof rawDate === 'number') {
-              // Excel date serial number
-              const date = new Date(Math.round((rawDate - 25569) * 86400 * 1000));
-              startDate = date.toISOString().split('T')[0];
-           } else if (typeof rawDate === 'string') {
-              startDate = rawDate;
-           }
+          const rawDate = row['Fecha de Inicio'] || row['startDate'] || row['Fecha'];
+          if (typeof rawDate === 'number') {
+            const date = new Date(Math.round((rawDate - 25569) * 86400 * 1000));
+            startDate = date.toISOString().split('T')[0];
+          } else if (typeof rawDate === 'string') {
+            startDate = rawDate;
+          }
         }
 
         await addDoc(collection(db, 'projects'), {
           name,
           description,
           budget,
+          advancePercent,
           startDate,
-          status: 'planning',
-          ownerId: auth.currentUser.uid
+          status: 'planificada',
+          ownerId: user?.uid || 'anonymous',
+          createdAt: new Date().toISOString()
         });
         importedCount++;
       }
@@ -94,101 +209,306 @@ export default function Projects() {
       alert("Hubo un error al importar el archivo Excel. Verifica el formato.");
     } finally {
       setIsImporting(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ''; // Reset input
-      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Proyectos</h1>
-          <p className="text-gray-500 mt-1">Gestiona tus obras activas</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-          <input 
-            type="file" 
-            accept=".xlsx, .xls, .csv" 
-            className="hidden" 
-            ref={fileInputRef}
-            onChange={handleImportExcel}
-          />
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isImporting}
-            className="flex-1 sm:flex-none bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-          >
-            {isImporting ? <Loader2 size={20} className="animate-spin" /> : <FileSpreadsheet size={20} className="text-emerald-600" />}
-            {isImporting ? 'Importando...' : 'Importar Excel'}
-          </button>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
-          >
-            <Plus size={20} />
-            Nuevo Proyecto
-          </button>
-        </div>
-      </header>
+  // Map database status string to StatusBadge status
+  const getBadgeStatus = (statusStr?: string) => {
+    if (!statusStr) return 'planificada';
+    const lower = statusStr.toLowerCase();
+    if (lower === 'active' || lower === 'en_ejecucion' || lower === 'en_campo') return 'en_campo';
+    if (lower === 'completed' || lower === 'terminada') return 'terminada';
+    if (lower === 'blocked' || lower === 'bloqueada') return 'bloqueada';
+    return 'planificada';
+  };
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map(project => (
-          <div key={project.id} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-            <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 mb-4 group-hover:scale-110 transition-transform">
-              <Building2 size={24} />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">{project.name}</h3>
-            <p className="text-gray-500 text-sm mb-4 line-clamp-2">{project.description}</p>
-            
-            <div className="space-y-2 pt-4 border-t border-gray-50">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <DollarSign size={16} className="text-gray-400" />
-                <span>Presupuesto: <strong className="text-gray-900">${project.budget?.toLocaleString()}</strong></span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Calendar size={16} className="text-gray-400" />
-                <span>Inicio: <strong className="text-gray-900">{project.startDate}</strong></span>
-              </div>
-            </div>
-          </div>
-        ))}
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        accept=".xlsx, .xls, .csv" 
+        className="hidden" 
+        ref={fileInputRef}
+        onChange={handleImportExcel}
+      />
+
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-line">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-ink tracking-tight font-display">
+            Proyectos & Obras
+          </h1>
+          <p className="text-xs sm:text-sm text-ink-soft mt-1">
+            Gestión del portafolio contractual, presupuestos y control de frentes
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => fileInputRef.current?.click()} 
+            isLoading={isImporting}
+            leftIcon={<FileSpreadsheet size={16} className="text-emerald-500" />}
+          >
+            {isImporting ? 'Importando...' : 'Importar Excel'}
+          </Button>
+
+          <Button 
+            variant="primary" 
+            size="sm"
+            onClick={handleOpenCreate}
+            leftIcon={<Plus size={18} />}
+          >
+            Nuevo Proyecto
+          </Button>
+        </div>
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Nuevo Proyecto</h2>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Obra</label>
-                <input required type="text" value={newProject.name} onChange={e => setNewProject({...newProject, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                <textarea required value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none resize-none h-24" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Presupuesto Estimado ($)</label>
-                <input required type="number" value={newProject.budget} onChange={e => setNewProject({...newProject, budget: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Porcentaje de Anticipo (%)</label>
-                <input required type="number" min="0" max="100" value={newProject.advancePercent} onChange={e => setNewProject({...newProject, advancePercent: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="Ej: 30" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Inicio</label>
-                <input required type="date" value={newProject.startDate} onChange={e => setNewProject({...newProject, startDate: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none" />
-              </div>
-              <div className="flex gap-3 mt-6">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">Crear Proyecto</button>
-              </div>
-            </form>
-          </div>
+      {/* Metric Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          title="Total Proyectos"
+          value={totalProjects}
+          sublabel="Obras en catálogo"
+          icon={<Building2 size={22} />}
+          accentColor="indigo"
+        />
+        <MetricCard
+          title="Presupuesto Total"
+          value={`$${totalBudget.toLocaleString('en-US')}`}
+          sublabel="Monto acumulado"
+          icon={<DollarSign size={22} />}
+          accentColor="amber"
+        />
+        <MetricCard
+          title="En Ejecución"
+          value={activeProjects}
+          sublabel="Obras activas / planificadas"
+          icon={<TrendingUp size={22} />}
+          accentColor="emerald"
+        />
+        <MetricCard
+          title="Completados"
+          value={completedProjects}
+          sublabel="Obras entregadas"
+          icon={<CheckCircle2 size={22} />}
+          accentColor="cyan"
+        />
+      </div>
+
+      {/* Toolbar & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-surface p-3 rounded-2xl border border-line">
+        <div className="relative flex-1 max-w-md">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre o descripción de obra..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-surface-2 border border-line rounded-xl text-xs font-medium text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-brand-500 transition-all"
+          />
         </div>
+        <div className="text-xs font-bold text-ink-soft self-end sm:self-center">
+          Mostrando {filteredProjects.length} de {projects.length} proyectos
+        </div>
+      </div>
+
+      {/* Projects Display */}
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Skeleton className="h-44 rounded-2xl" />
+          <Skeleton className="h-44 rounded-2xl" />
+          <Skeleton className="h-44 rounded-2xl" />
+          <Skeleton className="h-44 rounded-2xl" />
+        </div>
+      ) : filteredProjects.length === 0 ? (
+        <EmptyState
+          icon={<Building2 size={40} className="text-brand-500" />}
+          title={searchQuery ? "No se encontraron proyectos" : "No hay proyectos registrados"}
+          description={searchQuery ? `No hay resultados que coincidan con "${searchQuery}".` : "Crea tu primer proyecto para comenzar a registrar obras, WBS y valuaciones."}
+          actionLabel="Crear Primer Proyecto"
+          onAction={handleOpenCreate}
+        />
+      ) : (
+        <Card className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableHead>Nombre del Proyecto</TableHead>
+              <TableHead className="text-right">Presupuesto ($)</TableHead>
+              <TableHead className="w-48">Avance Físico</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Fecha Inicio</TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
+            </TableHeader>
+            <TableBody>
+              {filteredProjects.map((project) => {
+                const advance = project.advancePercent || 0;
+                return (
+                  <TableRow key={project.id}>
+                    <TableCell>
+                      <div>
+                        <span className="font-bold text-ink block text-sm">{project.name}</span>
+                        {project.description && (
+                          <span className="text-xs text-ink-soft line-clamp-1 mt-0.5">{project.description}</span>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="text-right font-mono font-bold text-ink tabular">
+                      ${(project.budget || 0).toLocaleString('en-US')}
+                    </TableCell>
+
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs font-mono font-bold">
+                          <span>{advance}%</span>
+                        </div>
+                        <div className="w-full bg-surface-2 rounded-full h-2 overflow-hidden border border-line">
+                          <div 
+                            className="bg-brand-500 h-full rounded-full transition-all duration-300"
+                            style={{ width: `${Math.min(100, Math.max(0, advance))}%` }}
+                          />
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    <TableCell>
+                      <StatusBadge status={getBadgeStatus(project.status)} size="sm" />
+                    </TableCell>
+
+                    <TableCell className="font-mono text-xs text-ink-soft">
+                      {project.startDate || 'Sin fecha'}
+                    </TableCell>
+
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleOpenEdit(project)}
+                          className="p-1.5 text-ink-soft hover:text-ink hover:bg-surface-2 rounded-lg cursor-pointer transition-colors"
+                          title="Editar Proyecto"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProject(project.id, project.name)}
+                          className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg cursor-pointer transition-colors"
+                          title="Eliminar Proyecto"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Card>
       )}
+
+      {/* CREATE & EDIT MODAL */}
+      <Dialog
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={editingProject ? "Editar Proyecto" : "Nuevo Proyecto de Obra"}
+        description={editingProject ? "Modifica la información contractual del proyecto" : "Registra un nuevo proyecto contractual en el sistema"}
+        maxWidth="md"
+      >
+        <form onSubmit={handleSaveProject} className="space-y-4">
+          <Input
+            label="Nombre de la Obra"
+            required
+            placeholder="Ej: Ampliación Estación de Gas - Frente Norte"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              Descripción del Alcance
+            </label>
+            <textarea
+              required
+              rows={3}
+              placeholder="Descripción general del alcance técnico y contractual..."
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              className="w-full p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500 transition-all resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Presupuesto Estimado ($)"
+              type="number"
+              required
+              min="0"
+              placeholder="0.00"
+              value={form.budget}
+              onChange={(e) => setForm({ ...form, budget: e.target.value })}
+              leftIcon={<DollarSign size={16} />}
+            />
+
+            <Input
+              label="Porcentaje de Avance (%)"
+              type="number"
+              min="0"
+              max="100"
+              placeholder="0"
+              value={form.advancePercent}
+              onChange={(e) => setForm({ ...form, advancePercent: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Fecha de Inicio"
+              type="date"
+              required
+              value={form.startDate}
+              onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+              leftIcon={<Calendar size={16} />}
+            />
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Estado Contractual
+              </label>
+              <select
+                value={form.status}
+                onChange={(e) => setForm({ ...form, status: e.target.value })}
+                className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500 transition-all"
+              >
+                <option value="planificada">Planificada</option>
+                <option value="en_campo">En Campo / Activa</option>
+                <option value="bloqueada">Bloqueada</option>
+                <option value="terminada">Terminada / Entregada</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-line mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={isSubmitting}
+            >
+              {editingProject ? 'Guardar Cambios' : 'Crear Proyecto'}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </div>
   );
 }
+
