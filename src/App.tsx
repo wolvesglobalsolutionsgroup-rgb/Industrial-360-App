@@ -37,6 +37,8 @@ import StandbyMoc from './pages/StandbyMoc';
 import FleetEquipment from './pages/FleetEquipment';
 import InteroperabilityEngine from './pages/InteroperabilityEngine';
 import DossierCompiler from './pages/DossierCompiler';
+import ClientPortalBuilder from './pages/ClientPortalBuilder';
+import ClientPortalView from './pages/ClientPortalView';
 import { ProjectProvider } from './ProjectContext';
 import { ThemeProvider } from './theme/ThemeContext';
 
@@ -54,6 +56,7 @@ export default function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/portal/:portalId" element={<ClientPortalView />} />
         {!user ? (
           <Route path="*" element={<Login />} />
         ) : (
@@ -109,6 +112,8 @@ export default function App() {
             <Route path="modulos/flota" element={<FleetEquipment />} />
             <Route path="modulos/interoperabilidad" element={<InteroperabilityEngine />} />
             <Route path="modulos/cierre" element={<DossierCompiler />} />
+            <Route path="client-portal-builder" element={<ClientPortalBuilder />} />
+            <Route path="portal/:portalId" element={<ClientPortalView />} />
             <Route path="tools" element={<EngineeringTools />} />
             <Route path="project-brain" element={<ProjectBrain />} />
             <Route path="intelligence" element={<Intelligence />} />

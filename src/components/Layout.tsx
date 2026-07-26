@@ -4,7 +4,7 @@ import {
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
   MessageSquare, Mic, Box, LogOut, Calculator, Settings as SettingsIcon,
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
-  Database, Plug, Network, BrainCircuit, Briefcase, X, MapPin, Truck, ArrowLeftRight
+  Database, Plug, Network, BrainCircuit, Briefcase, X, MapPin, Truck, ArrowLeftRight, Globe
 } from 'lucide-react';
 import { auth, logout } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -37,6 +37,7 @@ const ingenieriaQaqcItems = [
 
 const financieroLegalItems = [
   { path: '/expenses', label: 'Mod 1: Costos y Tesorería', icon: CircleDollarSign },
+  { path: '/client-portal-builder', label: 'Portales Cliente B2B', icon: Globe },
   { path: '/modulos/procura', label: 'Mod 3: Procura & Salvamento', icon: PackageSearch },
   { path: '/modulos/standby-moc', label: 'Stand-by Claims & MOC', icon: Clock },
   { path: '/modulos/cierre', label: 'Mod 5: Dossier As-Built', icon: FileArchive },

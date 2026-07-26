@@ -129,6 +129,15 @@ service cloud.firestore {
           allow read: if isAuthenticated();
           allow write: if isGerente();
         }
+
+        match /client_portals/{portalId} {
+          allow read: if true;
+          allow write: if isGerente();
+        }
+
+        match /engineering_calcs/{calcId} {
+          allow read, write: if isAuthenticated();
+        }
       }
     }
 
@@ -227,6 +236,15 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if isAuthenticated();
       allow write: if isGerente();
+    }
+
+    match /client_portals/{portalId} {
+      allow read: if true;
+      allow write: if isGerente();
+    }
+
+    match /engineering_calcs/{calcId} {
+      allow read, write: if isAuthenticated();
     }
   }
 }

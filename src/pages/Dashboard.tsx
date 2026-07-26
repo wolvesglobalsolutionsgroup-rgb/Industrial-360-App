@@ -116,7 +116,7 @@ export default function Dashboard() {
         });
         setWeatherContext(response.text);
       } catch (error) {
-        console.error("Error fetching weather context:", error);
+        console.warn("Información de clima generada por contingencia local:", error);
         setWeatherContext("Clima estable en faja petrolífera. Temperatura promedio 33°C, sin lluvias significativas.");
       } finally {
         setIsLoadingWeather(false);
