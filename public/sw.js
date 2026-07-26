@@ -1,5 +1,5 @@
-// IC360 - Service Worker for Field Operations & Background Sync
-const CACHE_NAME = 'ic360-pwa-v1';
+// SEMAX PINO C.A. - Service Worker for Field Operations & Background Sync
+const CACHE_NAME = 'semax-pwa-v1';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -80,7 +80,7 @@ self.addEventListener('sync', (event) => {
       self.clients.matchAll({ type: 'window' }).then((clientList) => {
         for (const client of clientList) {
           client.postMessage({
-            type: 'IC360_TRIGGER_SYNC',
+            type: 'SEMAX_TRIGGER_SYNC',
             tag: event.tag,
             timestamp: Date.now()
           });

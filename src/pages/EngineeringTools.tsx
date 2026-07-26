@@ -794,9 +794,65 @@ export default function EngineeringTools() {
   const [footingDimX, setFootingDimX] = useState<number>(2.0);
   const [footingDimY, setFootingDimY] = useState<number>(2.0);
   const [footingDimZ, setFootingDimZ] = useState<number>(0.8);
+  const [concWastagePct, setConcWastagePct] = useState<number>(5); // Merma de concreto 0-30%, default 5%
 
-  const totalConcM3 = concFootingCount * footingDimX * footingDimY * footingDimZ;
+  const baseConcM3 = concFootingCount * footingDimX * footingDimY * footingDimZ;
+  const totalConcM3 = baseConcM3 * (1 + concWastagePct / 100);
   const truckMixers8m3 = Math.ceil(totalConcM3 / 8);
+
+  // Welding Consumables State (ASME B31.3)
+  const [weldNpsInches, setWeldNpsInches] = useState<number>(6);
+  const [weldWallThicknessMm, setWeldWallThicknessMm] = useState<number>(7.11); // Sch 40 for 6"
+  const [weldJointCount, setWeldJointCount] = useState<number>(20);
+  const [weldProcess, setWeldProcess] = useState<'SMAW' | 'GTAW' | 'GMAW' | 'FCAW'>('SMAW');
+  const [weldEfficiencyPct, setWeldEfficiencyPct] = useState<number>(60);
+
+  const weldOdMm = weldNpsInches <= 12 ? (weldNpsInches === 6 ? 168.3 : weldNpsInches === 4 ? 114.3 : weldNpsInches === 8 ? 219.1 : weldNpsInches === 10 ? 273.1 : weldNpsInches * 25.4) : weldNpsInches * 25.4;
+  const weldMeanCircumferenceMm = Math.PI * Math.max(10, weldOdMm - weldWallThicknessMm);
+  const weldBevelAngleRad = (37.5 * Math.PI) / 180;
+  const weldAreaMm2 = (2.0 * weldWallThicknessMm) + (Math.pow(weldWallThicknessMm, 2) * Math.tan(weldBevelAngleRad));
+  const weldVolPerJointMm3 = weldMeanCircumferenceMm * weldAreaMm2;
+  const weldNetKgPerJoint = weldVolPerJointMm3 * 0.00000785; // 7850 kg/m3
+  const weldTotalNetKg = weldNetKgPerJoint * weldJointCount;
+  const weldTotalGrossKg = weldTotalNetKg / (Math.max(1, weldEfficiencyPct) / 100);
+  const weldBoxes5kg = Math.ceil(weldTotalGrossKg / 5);
+
+  // Hydrostatic Test & Pipe Filling State (ASME B31.3)
+  const [hydroDesignPressPsi, setHydroDesignPressPsi] = useState<number>(300);
+  const [hydroAllowableStressDesign, setHydroAllowableStressDesign] = useState<number>(20000); // S (psi)
+  const [hydroAllowableStressTest, setHydroAllowableStressTest] = useState<number>(20000); // St (psi)
+  const [hydroPipeLengthM, setHydroPipeLengthM] = useState<number>(250);
+  const [hydroPipeNps, setHydroPipeNps] = useState<number>(8); // 8"
+  const [hydroWallMm, setHydroWallMm] = useState<number>(8.18); // Sch 40 for 8"
+
+  const hydroRatioStS = Math.min(6.5, hydroAllowableStressTest / Math.max(1, hydroAllowableStressDesign));
+  const hydroTestPressurePsi = 1.5 * hydroDesignPressPsi * hydroRatioStS;
+  const hydroOdMm = hydroPipeNps === 8 ? 219.1 : hydroPipeNps === 6 ? 168.3 : hydroPipeNps === 4 ? 114.3 : hydroPipeNps * 25.4;
+  const hydroIdMm = Math.max(1, hydroOdMm - 2 * hydroWallMm);
+  const hydroRadiusM = (hydroIdMm / 2) / 1000;
+  const hydroVolumeM3 = Math.PI * Math.pow(hydroRadiusM, 2) * hydroPipeLengthM;
+  const hydroWaterLiters = hydroVolumeM3 * 1000;
+  const hydroCisterns10kL = Math.ceil(hydroWaterLiters / 10000);
+
+  // Support Span Estimator State (MSS SP-69 / ASME B31.3)
+  const [spanNps, setSpanNps] = useState<number>(6); // 6"
+  const [spanFluid, setSpanFluid] = useState<'gas' | 'water' | 'heavy_oil'>('water');
+  const [spanInsulation, setSpanInsulation] = useState<'none' | 'light' | 'heavy'>('none');
+
+  const baseSupportSpanM: Record<number, number> = {
+    1: 2.1, 2: 3.0, 3: 3.7, 4: 4.3, 6: 5.2, 8: 5.8, 10: 6.7, 12: 7.0, 16: 8.2, 20: 9.1, 24: 9.8
+  };
+  const rawBaseSpan = baseSupportSpanM[spanNps] || (spanNps < 4 ? 3.0 : spanNps < 10 ? 5.5 : 7.5);
+  let spanFluidFactor = 1.0;
+  if (spanFluid === 'gas') spanFluidFactor = 1.12;
+  if (spanFluid === 'heavy_oil') spanFluidFactor = 0.95;
+
+  let spanInsulationFactor = 1.0;
+  if (spanInsulation === 'light') spanInsulationFactor = 0.95;
+  if (spanInsulation === 'heavy') spanInsulationFactor = 0.88;
+
+  const calculatedMaxSpanM = rawBaseSpan * spanFluidFactor * spanInsulationFactor;
+  const calculatedMaxSpanFt = calculatedMaxSpanM * 3.28084;
 
   // ==========================================
   // STATE FOR TAB 7: SIHO-A FLARE & NOISE
@@ -1430,6 +1486,187 @@ export default function EngineeringTools() {
               </table>
             </div>
           </div>
+
+          {/* Calculadoras Avanzadas de Mecánica: Soldadura & Soportes */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Calculadora de Consumibles de Soldadura (ASME B31.3) */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-5">
+              <div className="border-b border-gray-100 pb-3">
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Flame size={20} className="text-[#0B2239] shrink-0" />
+                  <span>Calculadora de Consumibles de Soldadura (ASME B31.3)</span>
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">Cálculo de kg netos/brutos de electrodo o alambre por juntas de tubería</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Diámetro Nominal (NPS)</label>
+                  <select 
+                    value={weldNpsInches}
+                    onChange={(e) => {
+                      const nps = Number(e.target.value);
+                      setWeldNpsInches(nps);
+                      if (nps === 2) setWeldWallThicknessMm(3.91);
+                      else if (nps === 4) setWeldWallThicknessMm(6.02);
+                      else if (nps === 6) setWeldWallThicknessMm(7.11);
+                      else if (nps === 8) setWeldWallThicknessMm(8.18);
+                      else if (nps === 10) setWeldWallThicknessMm(9.27);
+                      else if (nps === 12) setWeldWallThicknessMm(9.53);
+                      else setWeldWallThicknessMm(12.7);
+                    }}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  >
+                    <option value={2}>2" NPS</option>
+                    <option value={3}>3" NPS</option>
+                    <option value={4}>4" NPS</option>
+                    <option value={6}>6" NPS</option>
+                    <option value={8}>8" NPS</option>
+                    <option value={10}>10" NPS</option>
+                    <option value={12}>12" NPS</option>
+                    <option value={16}>16" NPS</option>
+                    <option value={20}>20" NPS</option>
+                    <option value={24}>24" NPS</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Espesor de Pared (mm)</label>
+                  <input 
+                    type="number"
+                    step="0.1"
+                    value={weldWallThicknessMm}
+                    onChange={(e) => setWeldWallThicknessMm(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Proceso de Soldadura</label>
+                  <select 
+                    value={weldProcess}
+                    onChange={(e) => {
+                      const p = e.target.value as any;
+                      setWeldProcess(p);
+                      if (p === 'SMAW') setWeldEfficiencyPct(60);
+                      else if (p === 'GTAW') setWeldEfficiencyPct(90);
+                      else if (p === 'GMAW') setWeldEfficiencyPct(92);
+                      else if (p === 'FCAW') setWeldEfficiencyPct(85);
+                    }}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  >
+                    <option value="SMAW">SMAW (Electrodo Revestido ~60% Efic.)</option>
+                    <option value="GTAW">GTAW / TIG (Varilla Desnuda ~90% Efic.)</option>
+                    <option value="GMAW">GMAW / MIG (MIG Sólido ~92% Efic.)</option>
+                    <option value="FCAW">FCAW (Alambre Tubular ~85% Efic.)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Cantidad de Juntas</label>
+                  <input 
+                    type="number"
+                    value={weldJointCount}
+                    onChange={(e) => setWeldJointCount(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-2 border border-slate-800">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Masa Neta de Metal Depositado:</span>
+                  <span className="font-bold text-white">{weldTotalNetKg.toFixed(2)} kg</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Eficiencia de Depósito ({weldProcess}):</span>
+                  <span className="font-bold text-slate-300">{weldEfficiencyPct}%</span>
+                </div>
+                <div className="flex justify-between text-amber-400 font-bold pt-1.5 border-t border-slate-800 text-sm">
+                  <span>Masa Bruta Requerida de Soldadura:</span>
+                  <span>{weldTotalGrossKg.toFixed(2)} kg</span>
+                </div>
+                <div className="flex justify-between text-emerald-400 font-bold">
+                  <span>Cajas / Cuñetes Estimados (5 kg):</span>
+                  <span>{weldBoxes5kg} Cajas</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Espaciamiento Máximo entre Soportes (Support Span MSS SP-69 / ASME B31.3) */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-5">
+              <div className="border-b border-gray-100 pb-3">
+                <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Ruler size={20} className="text-[#0B2239] shrink-0" />
+                  <span>Espaciamiento Máximo entre Soportes (MSS SP-69 / ASME B31.3)</span>
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5">Límite de luz libre horizontal para evitar deflexión &gt; 2.5 mm en tuberías</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Diámetro Nominal (NPS)</label>
+                  <select 
+                    value={spanNps}
+                    onChange={(e) => setSpanNps(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  >
+                    <option value={1}>1" NPS</option>
+                    <option value={2}>2" NPS</option>
+                    <option value={3}>3" NPS</option>
+                    <option value={4}>4" NPS</option>
+                    <option value={6}>6" NPS</option>
+                    <option value={8}>8" NPS</option>
+                    <option value={10}>10" NPS</option>
+                    <option value={12}>12" NPS</option>
+                    <option value={16}>16" NPS</option>
+                    <option value={20}>20" NPS</option>
+                    <option value={24}>24" NPS</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Tipo de Fluido</label>
+                  <select 
+                    value={spanFluid}
+                    onChange={(e) => setSpanFluid(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  >
+                    <option value="water">Agua / Líquido Estándar</option>
+                    <option value="gas">Gas / Vapor (Línea Ligera)</option>
+                    <option value="heavy_oil">Crudo Pesado / Alta Densidad</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Aislamiento Térmico</label>
+                  <select 
+                    value={spanInsulation}
+                    onChange={(e) => setSpanInsulation(e.target.value as any)}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  >
+                    <option value="none">Sin Aislamiento (Tubería Desnuda)</option>
+                    <option value="light">Aislamiento Ligero (Lana de Vidrio / Silicato)</option>
+                    <option value="heavy">Aislamiento Pesado + Chaqueta</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-2 border border-slate-800">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400">Luz Libre Máxima Recomendada:</span>
+                  <span className="text-xl font-black text-emerald-400">{calculatedMaxSpanM.toFixed(2)} metros</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Equivalente en Pies:</span>
+                  <span className="font-bold text-amber-300">{calculatedMaxSpanFt.toFixed(1)} pies</span>
+                </div>
+                <p className="text-[10px] text-slate-400 pt-1 border-t border-slate-800 leading-relaxed">
+                  ✓ Garantiza deflexión máxima &le; 2.5 mm en tramos rectos según norma MSS SP-69.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1643,6 +1880,95 @@ export default function EngineeringTools() {
               <li>• Crudos medianos (22-30° API): 5 a 10 Minutos</li>
               <li>• Crudos pesados (&lt; 22° API - Faja): 15 a 30 Minutos + Calentamiento</li>
             </ul>
+          </div>
+
+          {/* Calculadora de Prueba Hidrostática & Llenado de Tuberías (ASME B31.3) */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-6 space-y-5 lg:col-span-3">
+            <div className="border-b border-gray-100 pb-3">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+                <Droplets size={20} className="text-[#0B2239] shrink-0" />
+                <span>Calculadora de Presión de Prueba Hidrostática & Volumetría de Agua (ASME B31.3)</span>
+              </h2>
+              <p className="text-xs text-gray-500 mt-0.5">Determina Ptest = 1.5 * Pdes * (St/S), volumen en litros y cisternas requeridas de 10,000L</p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Presión de Diseño (psi)</label>
+                <input 
+                  type="number"
+                  value={hydroDesignPressPsi}
+                  onChange={(e) => setHydroDesignPressPsi(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Diámetro Nominal (NPS)</label>
+                <select 
+                  value={hydroPipeNps}
+                  onChange={(e) => {
+                    const nps = Number(e.target.value);
+                    setHydroPipeNps(nps);
+                    if (nps === 4) setHydroWallMm(6.02);
+                    else if (nps === 6) setHydroWallMm(7.11);
+                    else if (nps === 8) setHydroWallMm(8.18);
+                    else setHydroWallMm(9.53);
+                  }}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                >
+                  <option value={4}>4" NPS</option>
+                  <option value={6}>6" NPS</option>
+                  <option value={8}>8" NPS</option>
+                  <option value={10}>10" NPS</option>
+                  <option value={12}>12" NPS</option>
+                  <option value={16}>16" NPS</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Longitud de Línea (m)</label>
+                <input 
+                  type="number"
+                  value={hydroPipeLengthM}
+                  onChange={(e) => setHydroPipeLengthM(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Espesor de Pared (mm)</label>
+                <input 
+                  type="number"
+                  step="0.1"
+                  value={hydroWallMm}
+                  onChange={(e) => setHydroWallMm(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                />
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-3 border border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
+                  <span className="text-slate-400 block text-[11px]">Presión de Prueba Hidrostática (ASME B31.3)</span>
+                  <span className="text-xl sm:text-2xl font-black text-amber-400 mt-1 block">{hydroTestPressurePsi.toFixed(1)} psi</span>
+                  <span className="text-slate-400 text-[10px]">Factor 1.5x aplicable</span>
+                </div>
+
+                <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
+                  <span className="text-slate-400 block text-[11px]">Volumen Interno de Agua</span>
+                  <span className="text-xl sm:text-2xl font-black text-emerald-400 mt-1 block">{Math.round(hydroWaterLiters).toLocaleString()} Litros</span>
+                  <span className="text-slate-400 text-[10px]">{hydroVolumeM3.toFixed(2)} m³ requeridos</span>
+                </div>
+
+                <div className="p-3 bg-slate-800 rounded-xl border border-slate-700">
+                  <span className="text-slate-400 block text-[11px]">Camiones Cisterna (10,000 Litros)</span>
+                  <span className="text-xl sm:text-2xl font-black text-blue-400 mt-1 block">{hydroCisterns10kL} Cisternas</span>
+                  <span className="text-slate-400 text-[10px]">Suministro mínimo estimado</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1959,12 +2285,31 @@ export default function EngineeringTools() {
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">% Merma / Desperdicio (0-30%)</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max="30"
+                    value={concWastagePct} 
+                    onChange={(e) => setConcWastagePct(Math.min(30, Math.max(0, Number(e.target.value))))}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
               </div>
 
               <div className="p-4 bg-slate-900 text-white rounded-2xl font-mono text-xs space-y-2 border border-slate-800">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Volumen Total Concreto:</span>
-                  <span className="font-bold text-emerald-400">{totalConcM3.toFixed(2)} m³</span>
+                  <span className="text-slate-400">Volumen Neto Teórico:</span>
+                  <span className="font-bold text-slate-300">{baseConcM3.toFixed(2)} m³</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Merma Aplicada ({concWastagePct}%):</span>
+                  <span className="font-bold text-amber-300">{(totalConcM3 - baseConcM3).toFixed(2)} m³</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-slate-800 text-sm">
+                  <span className="text-slate-300 font-bold">Volumen Total Requerido:</span>
+                  <span className="font-black text-emerald-400">{totalConcM3.toFixed(2)} m³</span>
                 </div>
                 <div className="flex justify-between text-amber-400 font-bold pt-1 border-t border-slate-800">
                   <span>Camiones Trompo (8m³):</span>
