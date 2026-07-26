@@ -5,7 +5,7 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAppAuthState } from './firebase';
-import Layout from './components/Layout';
+import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -62,7 +62,7 @@ export default function App() {
           <Route path="/" element={
             <ProjectProvider>
               <ThemeProvider>
-                <Layout />
+                <AppLayout />
               </ThemeProvider>
             </ProjectProvider>
           }>
