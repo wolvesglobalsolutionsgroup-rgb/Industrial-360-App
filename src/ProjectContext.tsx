@@ -91,6 +91,8 @@ interface ProjectContextType {
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
+import { seedDemoData } from './lib/seedDemoData';
+
 export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const [currentOrganization, setCurrentOrganization] = useState<Organization>(() => {
     const saved = localStorage.getItem('ic360_organization');
@@ -164,6 +166,14 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     // Escuchar proyectos planos y de la organización actual
     const q = query(collection(db, 'projects'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (snapshot.empty) {
+        // Auto-seed demo data if collection is completely empty
+        seedDemoData(false).then(() => {
+          setIsLoading(false);
+        });
+        return;
+      }
+
       const projs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Project));
       setProjects(projs);
       

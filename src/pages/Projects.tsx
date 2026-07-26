@@ -4,9 +4,10 @@ import {
 } from 'firebase/firestore';
 import { db, getAuthUser, handleFirestoreError, OperationType } from '../firebase';
 import { 
-  Plus, Search, Building2, DollarSign, TrendingUp, Edit2, Trash2, CheckCircle2, FileSpreadsheet, Loader2, Calendar 
+  Plus, Search, Building2, DollarSign, TrendingUp, Edit2, Trash2, CheckCircle2, FileSpreadsheet, Loader2, Calendar, Sparkles 
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import { seedDemoData } from '../lib/seedDemoData';
 import {
   MetricCard, 
   Card, 
@@ -43,6 +44,14 @@ export default function Projects() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  const handleSeedDemo = async () => {
+    setIsSeeding(true);
+    const res = await seedDemoData(true);
+    setIsSeeding(false);
+    alert(res.message);
+  };
 
   const [form, setForm] = useState({
     name: '',
@@ -258,6 +267,16 @@ export default function Projects() {
           <Button 
             variant="outline" 
             size="sm" 
+            onClick={handleSeedDemo}
+            isLoading={isSeeding}
+            leftIcon={<Sparkles size={16} className="text-amber-500" />}
+          >
+            {isSeeding ? 'Sembrando...' : 'Cargar Obras Demo'}
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
             onClick={() => fileInputRef.current?.click()} 
             isLoading={isImporting}
             leftIcon={<FileSpreadsheet size={16} className="text-emerald-500" />}
@@ -337,9 +356,14 @@ export default function Projects() {
         <EmptyState
           icon={<Building2 size={40} className="text-brand-500" />}
           title={searchQuery ? "No se encontraron proyectos" : "No hay proyectos registrados"}
-          description={searchQuery ? `No hay resultados que coincidan con "${searchQuery}".` : "Crea tu primer proyecto para comenzar a registrar obras, WBS y valuaciones."}
+          description={searchQuery ? `No hay resultados que coincidan con "${searchQuery}".` : "Crea tu primer proyecto para comenzar a registrar obras, WBS y valuaciones o carga la estructura de prueba."}
           actionLabel="Crear Primer Proyecto"
           onAction={handleOpenCreate}
+          secondaryAction={
+            <Button variant="outline" onClick={handleSeedDemo} isLoading={isSeeding}>
+              ⚡ Cargar Obras & Datos Demo
+            </Button>
+          }
         />
       ) : (
         <Card className="overflow-hidden">

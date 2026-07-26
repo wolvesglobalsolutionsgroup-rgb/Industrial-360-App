@@ -75,10 +75,13 @@ const COLUMN_CONFIGS = [
   { id: 'terminada', title: 'Terminadas / NDT', colorAccent: 'emerald' as const },
 ];
 
+import { seedDemoData } from '../lib/seedDemoData';
+
 export default function Tasks() {
   const { currentProject } = useProject();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
   const [view, setView] = useState<'kanban' | 'table' | 'calendar'>('kanban');
 
   // Search & Filter State
@@ -112,6 +115,13 @@ export default function Tasks() {
   const xerFileInputRef = useRef<HTMLInputElement>(null);
   const bc3FileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleSeedDemo = async () => {
+    setIsSeeding(true);
+    const res = await seedDemoData(true);
+    setIsSeeding(false);
+    alert(res.message);
+  };
+
   // Subscribe to Firestore Tasks
   useEffect(() => {
     if (!currentProject) {
@@ -121,6 +131,10 @@ export default function Tasks() {
     }
 
     setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
     const q = currentProject.id === 'all'
       ? query(collection(db, 'tasks'))
       : query(collection(db, 'tasks'), where('projectId', '==', currentProject.id));
@@ -153,12 +167,17 @@ export default function Tasks() {
 
       setTasks(tsks);
       setLoading(false);
+      clearTimeout(timer);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'tasks');
       setLoading(false);
+      clearTimeout(timer);
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, [currentProject]);
 
   // Drag Handlers
@@ -408,6 +427,9 @@ export default function Tasks() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleSeedDemo} disabled={isSeeding} leftIcon={<Sparkles size={16} className="text-amber-500" />}>
+            {isSeeding ? 'Sembrando...' : 'Cargar Datos Demo'}
+          </Button>
           <Button variant="outline" size="sm" onClick={() => xerFileInputRef.current?.click()} leftIcon={<FileCode size={16} />}>
             P6 (.xer)
           </Button>
@@ -533,13 +555,18 @@ export default function Tasks() {
         <EmptyState
           icon={<ClipboardList size={40} className="text-brand-500" />}
           title="No hay partidas registradas"
-          description="Crea tu primera partida WBS o importa la estructura directamente desde Primavera P6 (.xer) o Presupuesto BC3."
+          description="Crea tu primera partida WBS o carga la estructura de datos demo industrial con proyectos, partidas WBS y valuaciones."
           actionLabel="Crear Partida WBS"
           onAction={() => {
             setEditingTask(null);
             setDefaultColumnForModal('planificada');
             setIsTaskModalOpen(true);
           }}
+          secondaryAction={
+            <Button variant="outline" onClick={handleSeedDemo} disabled={isSeeding}>
+              ⚡ Cargar Partidas & Obras Demo
+            </Button>
+          }
         />
       ) : view === 'kanban' ? (
         <DndContext
