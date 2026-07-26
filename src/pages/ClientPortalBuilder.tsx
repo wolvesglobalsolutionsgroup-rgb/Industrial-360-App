@@ -18,11 +18,23 @@ import {
   Layers, 
   Plus, 
   Globe,
-  Sparkles
+  Sparkles,
+  Key,
+  Calendar,
+  Lock,
+  Send,
+  DollarSign
 } from 'lucide-react';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { sendNotificationEmail, buildPortalInviteHtml } from '../lib/emailService';
+
+function generate64CharToken(): string {
+  const array = new Uint8Array(32);
+  window.crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}
 
 export interface ClientPortalConfig {
   id: string;
@@ -30,6 +42,9 @@ export interface ClientPortalConfig {
   clientName: string;
   orgId: string;
   linkedProjectIds: string[];
+  accessToken?: string;
+  expiresAt?: string | null;
+  isRevoked?: boolean;
   branding: {
     logoUrl: string;
     accentColor: string;
@@ -43,6 +58,7 @@ export interface ClientPortalConfig {
     showSihoPtw: boolean;
     showNdtWeld: boolean;
     showDossier: boolean;
+    showValuations: boolean; // Desactivado por defecto según SPRINT 4.1
   };
   createdAt: string;
   updatedAt: string;
@@ -66,8 +82,18 @@ export default function ClientPortalBuilder() {
   const [customLogoUrl, setCustomLogoUrl] = useState(brandKit?.logoUrl || '');
   const [accentColor, setAccentColor] = useState('#0B2239');
   const [themePreset, setThemePreset] = useState<'mineral' | 'petroleum' | 'corporate_clean' | 'high_contrast'>('mineral');
+  
+  // Security Token & Expiration State
+  const [accessToken, setAccessToken] = useState<string>(generate64CharToken());
+  const [expiresAtOption, setExpiresAtOption] = useState<'permanent' | '30days' | '90days'>('90days');
+  const [isRevoked, setIsRevoked] = useState<boolean>(false);
 
-  // Visibility Matrix
+  // Email Invitation State
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailStatusMsg, setEmailStatusMsg] = useState<string | null>(null);
+
+  // Visibility Matrix (showValuations is false by default according to SPRINT 4.1)
   const [visibilityMatrix, setVisibilityMatrix] = useState({
     showKpis: true,
     showScurve: true,
@@ -76,6 +102,7 @@ export default function ClientPortalBuilder() {
     showSihoPtw: true,
     showNdtWeld: true,
     showDossier: true,
+    showValuations: false,
   });
 
   // Subscribe to organization portals
@@ -115,8 +142,13 @@ export default function ClientPortalBuilder() {
     setCustomLogoUrl(portal.branding?.logoUrl || '');
     setAccentColor(portal.branding?.accentColor || '#0B2239');
     setThemePreset(portal.branding?.themePreset || 'mineral');
+    setAccessToken(portal.accessToken || generate64CharToken());
+    setIsRevoked(!!portal.isRevoked);
     if (portal.visibilityMatrix) {
-      setVisibilityMatrix(portal.visibilityMatrix);
+      setVisibilityMatrix({
+        ...portal.visibilityMatrix,
+        showValuations: portal.visibilityMatrix.showValuations ?? false
+      });
     }
   };
 
@@ -128,6 +160,9 @@ export default function ClientPortalBuilder() {
     setCustomLogoUrl(brandKit?.logoUrl || '');
     setAccentColor('#0B2239');
     setThemePreset('mineral');
+    setAccessToken(generate64CharToken());
+    setExpiresAtOption('90days');
+    setIsRevoked(false);
     setVisibilityMatrix({
       showKpis: true,
       showScurve: true,
@@ -136,7 +171,37 @@ export default function ClientPortalBuilder() {
       showSihoPtw: true,
       showNdtWeld: true,
       showDossier: true,
+      showValuations: false,
     });
+  };
+
+  const handleSendInviteEmail = async () => {
+    if (!inviteEmail || !inviteEmail.includes('@')) {
+      setEmailStatusMsg('Por favor ingresa un correo electrónico válido.');
+      return;
+    }
+    setIsSendingEmail(true);
+    setEmailStatusMsg(null);
+
+    const portalId = selectedPortalId || `portal_${Date.now()}`;
+    const portalUrl = `${window.location.origin}/portal/${portalId}?token=${accessToken}`;
+    const htmlContent = buildPortalInviteHtml(portalName, clientName, portalUrl);
+
+    const res = await sendNotificationEmail({
+      to: inviteEmail,
+      subject: `[Acceso Seguro] Portal Cliente de Avance: ${portalName}`,
+      html: htmlContent,
+      event: 'portal_invite',
+      portalLink: portalUrl
+    });
+
+    setIsSendingEmail(false);
+    if (res.success) {
+      setEmailStatusMsg(`Invitación enviada a ${inviteEmail}.`);
+      setInviteEmail('');
+    } else {
+      setEmailStatusMsg(`Error: ${res.message}`);
+    }
   };
 
   const handleSavePortal = async () => {
@@ -152,13 +217,29 @@ export default function ClientPortalBuilder() {
     setIsSaving(true);
     setStatusMessage(null);
 
+    let calculatedExpiresAt: string | null = null;
+    if (expiresAtOption === '30days') {
+      const d = new Date();
+      d.setDate(d.getDate() + 30);
+      calculatedExpiresAt = d.toISOString();
+    } else if (expiresAtOption === '90days') {
+      const d = new Date();
+      d.setDate(d.getDate() + 90);
+      calculatedExpiresAt = d.toISOString();
+    }
+
     const portalId = selectedPortalId || `portal_${Date.now()}`;
+    const tokenToSave = accessToken || generate64CharToken();
+
     const payload: ClientPortalConfig = {
       id: portalId,
       name: portalName,
       clientName,
       orgId,
       linkedProjectIds,
+      accessToken: tokenToSave,
+      expiresAt: calculatedExpiresAt,
+      isRevoked,
       branding: {
         logoUrl: customLogoUrl,
         accentColor,
@@ -359,11 +440,69 @@ export default function ClientPortalBuilder() {
             </div>
           </div>
 
+          {/* Security & Token Config */}
+          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
+              <ShieldCheck size={20} className="text-[#0B2239]" />
+              <span>3. Seguridad, Token de 64 Caracteres y Expiración</span>
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Token Cifrado de Acceso (64 Hex)</label>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={accessToken} 
+                    className="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-xl font-mono text-[11px] text-slate-700"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setAccessToken(generate64CharToken())}
+                    className="px-3 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 whitespace-nowrap"
+                  >
+                    Regenerar Token
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Caducidad del Enlace</label>
+                <select 
+                  value={expiresAtOption} 
+                  onChange={e => setExpiresAtOption(e.target.value as any)}
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-xs text-gray-800 outline-none"
+                >
+                  <option value="90days">Validez 90 Días (Recomendado)</option>
+                  <option value="30days">Validez 30 Días</option>
+                  <option value="permanent">Sin Expiración (Permanente)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-between p-3 bg-red-50/60 border border-red-200 rounded-xl">
+              <div>
+                <p className="text-xs font-bold text-red-900">Estado de Revocación de Acceso</p>
+                <p className="text-[11px] text-red-700">Si se activa, la URL compartida quedará deshabilitada inmediatamente.</p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setIsRevoked(!isRevoked)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  isRevoked ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {isRevoked ? 'Acceso Revocado' : 'Acceso Activo'}
+              </button>
+            </div>
+          </div>
+
           {/* Visibility Matrix */}
           <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-5">
             <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
               <CheckSquare size={20} className="text-[#0B2239]" />
-              <span>3. Matriz de Visibilidad para Cliente Final</span>
+              <span>4. Matriz de Visibilidad para Cliente Final</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -375,6 +514,7 @@ export default function ClientPortalBuilder() {
                 { key: 'showSihoPtw', label: 'Módulo SIHO PTS (Permisos)', icon: ShieldCheck, desc: 'Permisos de trabajo seguro y HSE' },
                 { key: 'showNdtWeld', label: 'Juntas y Soldaduras NDT', icon: Sparkles, desc: 'Ensayos no destructivos y trazabilidad' },
                 { key: 'showDossier', label: 'Descarga Dossier de Calidad', icon: FileText, desc: 'Planos As-Built y certificados PDF' },
+                { key: 'showValuations', label: 'Valuaciones Financieras ROE', icon: DollarSign, desc: 'Monto y certificados de pago (Desactivado por defecto)' },
               ].map((item) => {
                 const IconComponent = item.icon;
                 const enabled = (visibilityMatrix as any)[item.key];
@@ -402,6 +542,40 @@ export default function ClientPortalBuilder() {
                 );
               })}
             </div>
+          </div>
+
+          {/* Email Invitation Box */}
+          <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-sm space-y-3">
+            <h3 className="text-sm font-bold flex items-center gap-2 text-emerald-400">
+              <Send size={16} />
+              <span>Enviar Invitación Directa por Correo (Resend SDK)</span>
+            </h3>
+            <p className="text-xs text-slate-300">
+              Envía un correo electrónico formal con el enlace cifrado y credenciales de acceso al cliente o fiscal.
+            </p>
+            <div className="flex items-center gap-2">
+              <input 
+                type="email" 
+                value={inviteEmail}
+                onChange={e => setInviteEmail(e.target.value)}
+                placeholder="cliente.inspector@empresa.com"
+                className="flex-1 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none focus:border-emerald-500"
+              />
+              <button 
+                type="button"
+                onClick={handleSendInviteEmail}
+                disabled={isSendingEmail}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5"
+              >
+                <Send size={14} />
+                <span>{isSendingEmail ? 'Enviando...' : 'Enviar Email'}</span>
+              </button>
+            </div>
+            {emailStatusMsg && (
+              <p className="text-xs text-emerald-300 bg-emerald-950/60 p-2.5 rounded-xl border border-emerald-800/80">
+                {emailStatusMsg}
+              </p>
+            )}
           </div>
 
           {/* Action Bar */}

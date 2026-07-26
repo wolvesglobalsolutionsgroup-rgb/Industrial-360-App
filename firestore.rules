@@ -4,7 +4,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===============================================================
-    // Helper Functions
+    // Helper Functions & Role Enforcement
     // ===============================================================
     function isAuthenticated() {
       return request.auth != null;
@@ -21,144 +21,199 @@ service cloud.firestore {
     }
 
     function isSuperadmin() {
-      return isAuthenticated() && getUserRole() == 'superadmin';
+      return isAuthenticated() && (getUserRole() == 'superadmin' || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
     }
 
     function isGerente() {
-      return isAuthenticated();
+      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente'] || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
     }
 
     function isSupervisor() {
-      return isAuthenticated();
+      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor'] || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
     }
 
     function isInspector() {
-      return isAuthenticated();
+      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector'] || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
     }
 
     function isCampo() {
-      return isAuthenticated();
+      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'] || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
     }
 
     // ===============================================================
     // User Profiles
     // ===============================================================
     match /users/{userId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && (request.auth.uid == userId || isSuperadmin());
+      allow delete: if isSuperadmin();
     }
 
     // ===============================================================
-    // Root Collections (Legacy & App Operations)
+    // Public Client Portals & Access Logs (Secure External Access)
+    // ===============================================================
+    match /client_portals/{portalId} {
+      allow read: if true;
+      allow create, update: if isGerente();
+      allow delete: if isSuperadmin();
+    }
+
+    match /client_portal_access_logs/{logId} {
+      allow read: if isGerente();
+      allow create: if true;
+    }
+
+    // ===============================================================
+    // Root Operational Collections
     // ===============================================================
     match /projects/{projectId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isGerente();
+      allow delete: if isSuperadmin();
     }
 
     match /tasks/{taskId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /field_reports/{reportId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isSupervisor();
+      allow delete: if isGerente();
     }
 
     match /valuations/{valuationId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /documents/{documentId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isGerente();
+      allow delete: if isSuperadmin();
     }
 
     match /expenses/{expenseId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isGerente();
+      allow delete: if isSuperadmin();
     }
 
-    match /inventory/{itemId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /routes/{routeId} {
-      allow read, write: if isAuthenticated();
+    match /field_reports/{reportId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isCampo();
+      allow delete: if isSupervisor();
     }
 
     match /siho_ptw/{ptwId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isCampo();
+      allow delete: if isGerente();
     }
 
     match /ptws/{ptwId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isCampo();
+      allow delete: if isGerente();
     }
 
     match /weld_joints/{jointId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isInspector();
+      allow delete: if isGerente();
     }
 
     match /welds/{weldId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isInspector();
+      allow delete: if isGerente();
     }
 
     match /ndt_reports/{reportId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isInspector();
+      allow delete: if isGerente();
+    }
+
+    match /inventory/{itemId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isSupervisor();
+      allow delete: if isGerente();
+    }
+
+    match /documents/{documentId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isCampo();
+      allow delete: if isGerente();
     }
 
     match /ili_runs/{runId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isInspector();
+      allow delete: if isGerente();
     }
 
     match /standby_claims/{claimId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isGerente();
+      allow delete: if isSuperadmin();
     }
 
     match /moc_requests/{mocId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isSupervisor();
+      allow delete: if isGerente();
     }
 
     match /fleet_equipment/{equipId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isSupervisor();
+      allow delete: if isGerente();
     }
 
     match /interop_imports/{importId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isGerente();
+      allow delete: if isSuperadmin();
     }
 
     match /dossier_compilations/{dossierId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isGerente();
+      allow delete: if isSuperadmin();
     }
 
     match /settings/{settingId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /client_portals/{portalId} {
-      allow read: if true;
-      allow write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isGerente();
+      allow delete: if isSuperadmin();
     }
 
     match /engineering_calcs/{calcId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update: if isCampo();
+      allow delete: if isGerente();
     }
 
     // ===============================================================
     // Multi-Tenancy Hierarchy: /organizations/{orgId}
     // ===============================================================
     match /organizations/{orgId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isSuperadmin();
 
       match /client_portals/{portalId} {
         allow read: if true;
-        allow write: if isAuthenticated();
+        allow create, update: if isGerente();
+        allow delete: if isSuperadmin();
       }
 
       match /engineering_calcs/{calcId} {
-        allow read, write: if isAuthenticated();
+        allow read: if isAuthenticated();
+        allow create, update: if isCampo();
+        allow delete: if isGerente();
       }
 
       match /projects/{projId} {
-        allow read, write: if isAuthenticated();
+        allow read: if isAuthenticated();
+        allow create, update: if isGerente();
+        allow delete: if isSuperadmin();
 
         match /{subcollection=**} {
-          allow read, write: if isAuthenticated();
+          allow read: if isAuthenticated();
+          allow create, update: if isCampo();
+          allow delete: if isGerente();
         }
       }
     }

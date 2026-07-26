@@ -45,6 +45,41 @@ async function startServer() {
   app.post('/api/gemini/proxy', proxyHandler);
   app.post('/api/callGeminiProxy', proxyHandler);
 
+  // Resend Email API Endpoint
+  app.post('/api/send-email', async (req, res) => {
+    try {
+      const { to, subject, html, event, portalLink } = req.body || {};
+      const resendApiKey = process.env.RESEND_API_KEY;
+
+      if (!to || (!html && !subject)) {
+        return res.status(400).json({ error: 'Faltan parámetros requeridos: to, subject, html' });
+      }
+
+      if (resendApiKey) {
+        const { Resend } = await import('resend');
+        const resend = new Resend(resendApiKey);
+        const emailResult = await resend.emails.send({
+          from: process.env.RESEND_FROM_EMAIL || 'Industrial Control 360 <notificaciones@industrialcontrol360.com>',
+          to: Array.isArray(to) ? to : [to],
+          subject: subject || 'Notificación Operativa Industrial Control 360',
+          html: html || `<p>Tiene una nueva actualización de su proyecto.</p><p><a href="${portalLink || '#'}">Acceder al Portal Cliente</a></p>`
+        });
+        return res.json({ success: true, data: emailResult });
+      } else {
+        console.log(`[EMAIL SIMULADO] Evento: ${event || 'notificacion'} | Para: ${to} | Asunto: ${subject}`);
+        return res.json({
+          success: true,
+          simulated: true,
+          message: 'Notificación registrada (configura RESEND_API_KEY en .env para entrega directa vía Resend)',
+          details: { to, subject, event }
+        });
+      }
+    } catch (err: any) {
+      console.error('Error enviando email vía Resend:', err);
+      return res.status(500).json({ error: err?.message || 'Error al procesar envío de correo' });
+    }
+  });
+
   // Vite middleware in development mode
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

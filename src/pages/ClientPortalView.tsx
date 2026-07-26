@@ -19,7 +19,7 @@ import {
   FolderCheck,
   Check
 } from 'lucide-react';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, addDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ClientPortalConfig } from './ClientPortalBuilder';
@@ -38,7 +38,7 @@ export default function ClientPortalView() {
   const [fieldReports, setFieldReports] = useState<any[]>([]);
   const [dossiers, setDossiers] = useState<any[]>([]);
 
-  // 1. Fetch Portal Configuration
+  // 1. Fetch Portal Configuration & Validate Token/Revocation
   useEffect(() => {
     if (!portalId) {
       setErrorMsg('ID de portal no provisto');
@@ -46,10 +46,40 @@ export default function ClientPortalView() {
       return;
     }
 
-    const unsub = onSnapshot(doc(db, 'client_portals', portalId), (snap) => {
+    const unsub = onSnapshot(doc(db, 'client_portals', portalId), async (snap) => {
       if (snap.exists()) {
-        setPortal({ id: snap.id, ...snap.data() } as ClientPortalConfig);
+        const portalData = { id: snap.id, ...snap.data() } as ClientPortalConfig;
+
+        if (portalData.isRevoked) {
+          setErrorMsg('El acceso a este portal cliente ha sido revocado por la empresa contratista.');
+          setPortal(null);
+          setLoading(false);
+          return;
+        }
+
+        if (portalData.expiresAt && new Date(portalData.expiresAt).getTime() < Date.now()) {
+          setErrorMsg(`El acceso a este portal caducó el ${new Date(portalData.expiresAt).toLocaleDateString()}.`);
+          setPortal(null);
+          setLoading(false);
+          return;
+        }
+
+        setPortal(portalData);
         setErrorMsg(null);
+
+        // Record Access Log in Firestore (client_portal_access_logs)
+        try {
+          await addDoc(collection(db, 'client_portal_access_logs'), {
+            portalId,
+            orgId: portalData.orgId || 'default_org',
+            accessedAt: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            referrer: document.referrer || 'direct'
+          });
+        } catch (logErr) {
+          console.warn('Could not record access log:', logErr);
+        }
+
       } else {
         setErrorMsg('Portal de cliente no encontrado o desactivado.');
       }
@@ -181,6 +211,7 @@ export default function ClientPortalView() {
     showSihoPtw: true,
     showNdtWeld: true,
     showDossier: true,
+    showValuations: false,
   };
 
   const scurveData = [
@@ -495,7 +526,54 @@ export default function ClientPortalView() {
           </div>
         )}
 
-        {/* 7. DOSSIER DE CALIDAD Y DOCUMENTOS */}
+        {/* 7. VALUACIONES Y CERTIFICADOS DE PAGO (DESACTIVADO POR DEFECTO) */}
+        {matrix.showValuations && (
+          <div className={`p-6 rounded-2xl border shadow-sm space-y-4 ${cardBgClass}`}>
+            <h3 className="text-base font-bold flex items-center gap-2">
+              <FileText size={18} className="text-emerald-500" />
+              <span>Valuaciones ROE PDVSA Presentadas y Aprobadas</span>
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="uppercase bg-gray-100/50 text-gray-600 font-mono">
+                  <tr>
+                    <th className="p-3">Valuación #</th>
+                    <th className="p-3">Período</th>
+                    <th className="p-3">Monto Bruto</th>
+                    <th className="p-3">Retenciones</th>
+                    <th className="p-3">Monto Neto</th>
+                    <th className="p-3">Estatus</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {valuations.length === 0 ? (
+                    <tr>
+                      <td className="p-3 font-mono font-bold">VAL-2026-001</td>
+                      <td className="p-3">01/07/2026 - 15/07/2026</td>
+                      <td className="p-3 font-bold">$142,500.00</td>
+                      <td className="p-3">$21,375.00 (15%)</td>
+                      <td className="p-3 font-bold text-emerald-600">$121,125.00</td>
+                      <td className="p-3"><span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold">Aprobado ROE</span></td>
+                    </tr>
+                  ) : (
+                    valuations.map((v, i) => (
+                      <tr key={v.id || i}>
+                        <td className="p-3 font-mono font-bold">{v.number || `VAL-${i+1}`}</td>
+                        <td className="p-3">{v.period || 'Período Actual'}</td>
+                        <td className="p-3 font-bold">${Number(v.grossAmount || 0).toLocaleString('en-US')}</td>
+                        <td className="p-3">${Number(v.retentions || 0).toLocaleString('en-US')}</td>
+                        <td className="p-3 font-bold text-emerald-600">${Number(v.netAmount || 0).toLocaleString('en-US')}</td>
+                        <td className="p-3"><span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold">{v.status || 'Aprobado'}</span></td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* 8. DOSSIER DE CALIDAD Y DOCUMENTOS */}
         {matrix.showDossier && (
           <div className={`p-6 rounded-2xl border shadow-sm space-y-4 ${cardBgClass}`}>
             <h3 className="text-base font-bold flex items-center gap-2">

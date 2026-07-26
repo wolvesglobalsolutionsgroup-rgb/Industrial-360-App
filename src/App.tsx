@@ -38,6 +38,7 @@ import InteroperabilityEngine from './pages/InteroperabilityEngine';
 import DossierCompiler from './pages/DossierCompiler';
 import ClientPortalBuilder from './pages/ClientPortalBuilder';
 import ClientPortalView from './pages/ClientPortalView';
+import Landing from './pages/Landing';
 import { ProjectProvider } from './ProjectContext';
 import { ThemeProvider } from './theme/ThemeContext';
 
@@ -56,8 +57,13 @@ export default function App() {
     <Router>
       <Routes>
         <Route path="/portal/:portalId" element={<ClientPortalView />} />
+        <Route path="/landing" element={<Landing />} />
         {!user ? (
-          <Route path="*" element={<Login />} />
+          <>
+            <Route path="/" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
         ) : (
           <Route path="/" element={
             <ProjectProvider>
