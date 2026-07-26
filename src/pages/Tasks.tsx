@@ -6,7 +6,7 @@ import { XMLParser } from 'fast-xml-parser';
 import { motion } from 'motion/react';
 import { callGeminiProxy } from '../lib/geminiProxy';
 import { useProject } from '../ProjectContext';
-import { parseXerFile } from '../lib/parsers/xerParser';
+import { parseXerFile, parseBc3File, syncImportedTasksToFirestore } from '../lib/parsers';
 
 export default function Tasks() {
   const { currentProject } = useProject();
@@ -29,6 +29,7 @@ export default function Tasks() {
   const [viewMode, setViewMode] = useState<'list' | 'gantt'>('list');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const xerFileInputRef = useRef<HTMLInputElement>(null);
+  const bc3FileInputRef = useRef<HTMLInputElement>(null);
 
   // AI State
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -267,25 +268,14 @@ Pregunta del usuario: ${aiQuery}`;
           return;
         }
 
-        let importedCount = 0;
-        for (const task of parsedTasks) {
-          await addDoc(collection(db, 'tasks'), {
-            projectId: currentProject.id,
-            code: task.code,
-            name: task.name,
-            unit: task.unit,
-            plannedQuantity: task.plannedQuantity,
-            executedQuantity: task.executedQuantity,
-            unitCost: task.unitCost,
-            startDate: task.startDate,
-            endDate: task.endDate,
-            importedFrom: 'Primavera P6 (.xer)',
-            importedAt: new Date().toISOString()
-          });
-          importedCount++;
-        }
+        const { successCount } = await syncImportedTasksToFirestore(
+          parsedTasks,
+          currentProject.id,
+          'default_org',
+          'Primavera P6 (.xer)'
+        );
 
-        alert(`¡Éxito! Se importaron masivamente ${importedCount} actividades desde Primavera P6 (.xer) a la base de datos.`);
+        alert(`¡Éxito! Se sincronizaron automáticamente ${successCount} actividades desde Primavera P6 (.xer) a la base de datos de tareas y presupuestos.`);
       } catch (error) {
         console.error("Error parsing XER file:", error);
         alert('Ocurrió un error al procesar el archivo .xer de Primavera P6.');
@@ -293,6 +283,43 @@ Pregunta del usuario: ${aiQuery}`;
     };
     reader.readAsText(file);
     if (xerFileInputRef.current) xerFileInputRef.current.value = '';
+  };
+
+  const handleImportBc3 = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!currentProject) {
+      alert("Por favor selecciona un proyecto primero.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const bc3Content = event.target?.result as string;
+        const parsedTasks = parseBc3File(bc3Content);
+
+        if (parsedTasks.length === 0) {
+          alert('No se encontraron partidas válidas en el archivo .bc3 FIEBDC-3.');
+          return;
+        }
+
+        const { successCount } = await syncImportedTasksToFirestore(
+          parsedTasks,
+          currentProject.id,
+          'default_org',
+          'Presupuesto BC3 (FIEBDC-3)'
+        );
+
+        alert(`¡Éxito! Se sincronizaron automáticamente ${successCount} partidas de presupuesto desde FIEBDC-3 (.bc3) con el cronograma del proyecto.`);
+      } catch (error) {
+        console.error("Error parsing BC3 file:", error);
+        alert('Ocurrió un error al procesar el archivo .bc3.');
+      }
+    };
+    reader.readAsText(file);
+    if (bc3FileInputRef.current) bc3FileInputRef.current.value = '';
   };
 
   return (
@@ -335,6 +362,13 @@ Pregunta del usuario: ${aiQuery}`;
             onChange={handleImportXer} 
             className="hidden" 
           />
+          <input 
+            type="file" 
+            accept=".bc3" 
+            ref={bc3FileInputRef} 
+            onChange={handleImportBc3} 
+            className="hidden" 
+          />
           <button 
             onClick={() => setIsAiModalOpen(true)}
             className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
@@ -348,7 +382,15 @@ Pregunta del usuario: ${aiQuery}`;
             title="Importar cronograma de actividades Primavera P6 (.xer)"
           >
             <FileCode size={20} />
-            Importar Primavera P6 (.xer)
+            Primavera P6 (.xer)
+          </button>
+          <button 
+            onClick={() => bc3FileInputRef.current?.click()}
+            className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
+            title="Importar presupuesto FIEBDC-3 (.bc3)"
+          >
+            <FileCode size={20} />
+            Presupuesto (.bc3)
           </button>
           <button 
             onClick={() => fileInputRef.current?.click()}

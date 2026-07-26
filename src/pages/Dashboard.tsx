@@ -229,16 +229,21 @@ export default function Dashboard() {
         </Canvas>
       </div>
 
-      {/* Header Banner */}
-      <header className="mb-6 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+      {/* Header Banner with Industrial Control 360 Branding */}
+      <header className="mb-6 pt-2 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800">
-            {currentOrganization.name}
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-slate-100 tracking-tight mt-2">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-3 py-1 rounded-full shadow-xs">
+              Industrial Control 360
+            </span>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              • {currentOrganization?.name || 'Organización Corporativa'}
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
             {currentProject?.id === 'all' ? '🏢 Portafolio Corporativo Consolidado' : 'Panel de Control Ejecutivo'}
           </h1>
-          <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400 font-medium mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
             {currentProject?.id === 'all'
               ? `Consolidado multi-tenant de métricas, presupuestos y recursos (${projects.length} proyectos activos)`
               : `Proyecto Activo: ${currentProject?.name || 'Selecciona un Proyecto'}`}
@@ -248,10 +253,10 @@ export default function Dashboard() {
           onClick={exportToPDF}
           disabled={isExporting}
           data-html2canvas-ignore
-          className="w-full sm:w-auto bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-slate-200 px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs"
+          className="w-full sm:w-auto bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/80 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm hover:shadow-md"
         >
-          {isExporting ? <FileText size={16} className="animate-pulse" /> : <Download size={16} />}
-          {isExporting ? 'Generando PDF...' : 'Exportar Informe Ejecutivo'}
+          {isExporting ? <FileText size={16} className="animate-pulse text-emerald-600" /> : <Download size={16} />}
+          {isExporting ? 'Generando Informe...' : 'Exportar Informe Ejecutivo'}
         </button>
       </header>
 

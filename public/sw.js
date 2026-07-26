@@ -1,5 +1,5 @@
-// SEMAX PINO C.A. - Service Worker for Field Operations & Background Sync
-const CACHE_NAME = 'semax-pwa-v1';
+// Industrial Control 360 - Complete Service Worker & Offline Sync Engine
+const CACHE_NAME = 'ic360-pwa-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -7,26 +7,26 @@ const STATIC_ASSETS = [
   '/favicon.ico'
 ];
 
-// Install Event - Pre-cache critical PWA assets
+// 1. Install Event - Pre-cache critical application frame
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Pre-caching static assets');
+      console.log('[Service Worker] Pre-caching core application frame');
       return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[Service Worker] Asset pre-cache warning:', err);
+        console.warn('[Service Worker] Pre-cache warning:', err);
       });
     }).then(() => self.skipWaiting())
   );
 });
 
-// Activate Event - Clean up stale caches
+// 2. Activate Event - Purge old caches and claim clients immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache:', cache);
+            console.log('[Service Worker] Removing deprecated cache:', cache);
             return caches.delete(cache);
           }
         })
@@ -35,21 +35,20 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event - Stale-while-revalidate for static files, Network-first for API
+// 3. Fetch Event - Stale-while-revalidate for static assets, network-first for navigation
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Skip non-GET requests or browser extension requests
+  // Ignore non-GET requests or browser extension/socket requests
   if (event.request.method !== 'GET' || !url.protocol.startsWith('http')) {
     return;
   }
 
-  // Handle Firebase/Firestore or external APIs using Network-Only with fallback
-  if (url.hostname.includes('firestore') || url.hostname.includes('googleapis')) {
+  // Bypass service worker cache for direct Firebase / Google Cloud API calls
+  if (url.hostname.includes('firestore') || url.hostname.includes('googleapis') || url.hostname.includes('identitytoolkit')) {
     return;
   }
 
-  // Stale-While-Revalidate for local assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request).then((networkResponse) => {
@@ -61,10 +60,11 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Return index.html for SPA navigation if offline
+        // Fallback for SPA navigation route when offline
         if (event.request.mode === 'navigate') {
           return caches.match('/index.html');
         }
+        return cachedResponse;
       });
 
       return cachedResponse || fetchPromise;
@@ -72,20 +72,55 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Background Sync Event - Triggered when connectivity is re-established
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-field-reports' || event.tag === 'sync-offline-queue') {
-    console.log('[Service Worker] Background Sync triggered:', event.tag);
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window' }).then((clientList) => {
+// 4. IndexedDB Queue Processing Helper
+async function processOfflineQueueFromIndexedDB() {
+  const DB_NAME = 'SEMAX_FIELD_OFFLINE_DB';
+  const STORE_NAME = 'pending_field_operations';
+
+  return new Promise((resolve) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onerror = () => resolve({ synced: 0, failed: 0 });
+    request.onsuccess = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        return resolve({ synced: 0, failed: 0 });
+      }
+
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const getAllReq = store.getAll();
+
+      getAllReq.onsuccess = async () => {
+        const items = getAllReq.result || [];
+        console.log(`[Service Worker] Found ${items.length} pending items in IndexedDB queue.`);
+
+        // Notify active window clients to trigger Firestore queue flush
+        const clientList = await self.clients.matchAll({ type: 'window' });
         for (const client of clientList) {
           client.postMessage({
             type: 'SEMAX_TRIGGER_SYNC',
-            tag: event.tag,
+            pendingCount: items.length,
             timestamp: Date.now()
           });
         }
-      })
-    );
+        resolve({ synced: items.length, failed: 0 });
+      };
+      getAllReq.onerror = () => resolve({ synced: 0, failed: 0 });
+    };
+  });
+}
+
+// 5. Background Sync Event - Triggered when connectivity is re-established
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-field-reports' || event.tag === 'sync-offline-queue') {
+    console.log('[Service Worker] Background Sync event fired:', event.tag);
+    event.waitUntil(processOfflineQueueFromIndexedDB());
+  }
+});
+
+// 6. Message Listener - Allows client windows to manually trigger SW sync
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'FLUSH_OFFLINE_QUEUE') {
+    event.waitUntil(processOfflineQueueFromIndexedDB());
   }
 });
