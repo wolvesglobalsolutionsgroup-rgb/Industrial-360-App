@@ -113,6 +113,7 @@ export default function App() {
             <Route path="modulos/interoperabilidad" element={<InteroperabilityEngine />} />
             <Route path="modulos/cierre" element={<DossierCompiler />} />
             <Route path="client-portal-builder" element={<ClientPortalBuilder />} />
+            <Route path="portal-builder" element={<ClientPortalBuilder />} />
             <Route path="portal/:portalId" element={<ClientPortalView />} />
             <Route path="tools" element={<EngineeringTools />} />
             <Route path="project-brain" element={<ProjectBrain />} />

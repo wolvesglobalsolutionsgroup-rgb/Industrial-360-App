@@ -31,8 +31,14 @@ async function startServer() {
       const result = await handleGeminiProxy(req.body || {});
       res.json(result);
     } catch (error: any) {
-      console.error('Server Gemini Proxy Error:', error);
-      res.status(500).json({ error: error?.message || 'Error executing Gemini request.' });
+      const is429 = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('Quota exceeded');
+      if (is429) {
+        console.warn('Server Gemini Proxy Quota Limit Exceeded');
+        res.status(429).json({ error: error?.message || 'Quota exceeded for Gemini API.' });
+      } else {
+        console.error('Server Gemini Proxy Error:', error);
+        res.status(500).json({ error: error?.message || 'Error executing Gemini request.' });
+      }
     }
   };
 
