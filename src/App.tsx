@@ -38,6 +38,7 @@ import FleetEquipment from './pages/FleetEquipment';
 import InteroperabilityEngine from './pages/InteroperabilityEngine';
 import DossierCompiler from './pages/DossierCompiler';
 import { ProjectProvider } from './ProjectContext';
+import { ThemeProvider } from './theme/ThemeContext';
 
 export default function App() {
   const [user, loading] = useAuthState(auth);
@@ -58,7 +59,9 @@ export default function App() {
         ) : (
           <Route path="/" element={
             <ProjectProvider>
-              <Layout />
+              <ThemeProvider>
+                <Layout />
+              </ThemeProvider>
             </ProjectProvider>
           }>
             <Route index element={<Dashboard />} />

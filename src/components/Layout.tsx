@@ -4,14 +4,13 @@ import {
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
   MessageSquare, Mic, Box, LogOut, Calculator, Settings as SettingsIcon,
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
-  Database, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown, Truck, ArrowLeftRight, Building,
-  Wifi, WifiOff, RefreshCw, UserCheck
+  Database, Plug, Network, BrainCircuit, Briefcase, X, MapPin, Truck, ArrowLeftRight
 } from 'lucide-react';
 import { auth, logout } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { useProject, CORPORATE_PORTFOLIO_PROJECT, UserRole } from '../ProjectContext';
+import { useProject } from '../ProjectContext';
 import { ROLE_LABELS } from './ProtectedRoute';
-import { getPendingOfflineOperations, flushOfflineQueue } from '../lib/offlineSync';
+import TopContextBar from './TopContextBar';
 
 const coreOperativoItems = [
   { path: '/', label: 'Dashboard Ejecutivo', icon: LayoutDashboard },
@@ -53,7 +52,7 @@ const inteligenciaConectividadItems = [
   { path: '/modulos/escalamiento', label: 'Mod 9: Escalamiento SLA', icon: Network },
   { path: '/modulos/benchmarking', label: 'Mod 10: Benchmarking', icon: BrainCircuit },
   { path: '/modulos/bi-ofertas', label: 'Mod 11: BI y Ofertas', icon: Briefcase },
-  { path: '/settings', label: 'Configuración', icon: SettingsIcon },
+  { path: '/settings', label: 'Configuración & Temas', icon: SettingsIcon },
 ];
 
 export default function Layout() {
@@ -61,40 +60,7 @@ export default function Layout() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const { projects, currentProject, setCurrentProject, currentOrganization, userRole, setUserRole } = useProject();
-  const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
-  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [pendingQueueCount, setPendingQueueCount] = useState(0);
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  // Sync offline queue counter and network state
-  useEffect(() => {
-    const handleOnlineStatus = () => setIsOnline(navigator.onLine);
-    const updateQueue = async () => {
-      const pending = await getPendingOfflineOperations();
-      setPendingQueueCount(pending.length);
-    };
-
-    updateQueue();
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOnlineStatus);
-    window.addEventListener('semax-offline-queue-changed', updateQueue);
-
-    return () => {
-      window.removeEventListener('online', handleOnlineStatus);
-      window.removeEventListener('offline', handleOnlineStatus);
-      window.removeEventListener('semax-offline-queue-changed', updateQueue);
-    };
-  }, []);
-
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    await flushOfflineQueue();
-    const pending = await getPendingOfflineOperations();
-    setPendingQueueCount(pending.length);
-    setIsSyncing(false);
-  };
+  const { currentOrganization, userRole } = useProject();
 
   // Handle window resize to detect mobile view
   useEffect(() => {
@@ -121,7 +87,7 @@ export default function Layout() {
 
   const renderNavGroup = (title: string, items: any[]) => (
     <div className="mb-6">
-      <h3 className="px-4 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{title}</h3>
+      <h3 className="px-4 text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">{title}</h3>
       <div className="space-y-1 px-2">
         {items.map((item) => {
           const Icon = item.icon;
@@ -131,13 +97,13 @@ export default function Layout() {
               key={item.path}
               to={item.path}
               onClick={handleLinkClick}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-sm ${
                 isActive 
-                  ? 'bg-emerald-50 text-emerald-700 font-medium' 
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold shadow-2xs' 
+                  : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
-              <Icon size={18} className={isActive ? 'text-emerald-600' : 'text-gray-400'} />
+              <Icon size={18} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-slate-500'} />
               <span className="truncate">{item.label}</span>
             </Link>
           );
@@ -147,44 +113,50 @@ export default function Layout() {
   );
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans overflow-hidden">
+    <div className="flex h-screen bg-[var(--theme-bg-app)] text-gray-900 dark:text-slate-100 font-sans overflow-hidden transition-colors duration-200">
       {/* Mobile Overlay */}
       {isMobile && isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-20 transition-opacity"
+          className="fixed inset-0 bg-black/60 z-20 transition-opacity backdrop-blur-xs"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside 
-        className={`fixed md:relative top-0 left-0 h-full bg-white flex flex-col shadow-xl md:shadow-sm z-30 transition-all duration-300 ease-in-out overflow-hidden ${
+        className={`fixed md:relative top-0 left-0 h-full bg-white dark:bg-slate-900 flex flex-col shadow-xl md:shadow-xs z-30 transition-all duration-300 ease-in-out overflow-hidden border-r border-gray-200/80 dark:border-slate-800 ${
           isMobile 
-            ? `w-72 border-r border-gray-200 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
-            : `${isSidebarOpen ? 'w-72 border-r border-gray-200' : 'w-0 border-r-0'}`
+            ? `w-72 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
+            : `${isSidebarOpen ? 'w-72' : 'w-0 border-r-0'}`
         }`}
       >
         <div className="w-72 flex flex-col h-full">
-          <div className="p-6 flex items-center justify-between border-b border-gray-100 shrink-0">
+          {/* Organization Header */}
+          <div className="p-5 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 shrink-0">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-8 h-8 bg-amber-500 text-slate-950 font-black rounded-lg flex items-center justify-center shrink-0 shadow-xs">
-                SP
+              <div className="w-9 h-9 bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center shrink-0 shadow-md text-sm">
+                IC
               </div>
               <div className="overflow-hidden">
-                <h1 className="text-sm font-bold tracking-tight text-gray-900 truncate">{currentOrganization.name}</h1>
-                <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-widest">{currentOrganization.taxId || 'MULTI-TENANT SYSTEM'}</p>
+                <h1 className="text-sm font-bold tracking-tight text-gray-900 dark:text-slate-100 truncate">
+                  {currentOrganization.name}
+                </h1>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest truncate">
+                  {currentOrganization.taxId || 'CONTRATISTA REGISTRADA'}
+                </p>
               </div>
             </div>
             {isMobile && (
               <button 
                 onClick={() => setIsSidebarOpen(false)}
-                className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg shrink-0"
+                className="p-2 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl shrink-0"
               >
                 <X size={20} />
               </button>
             )}
           </div>
           
+          {/* Navigation Items */}
           <nav className="flex-1 overflow-y-auto py-4 custom-scrollbar">
             {renderNavGroup('Core Operativo', coreOperativoItems)}
             {renderNavGroup('Ingeniería & QA/QC', ingenieriaQaqcItems)}
@@ -192,20 +164,26 @@ export default function Layout() {
             {renderNavGroup('Inteligencia & Conectividad', inteligenciaConectividadItems)}
           </nav>
 
+          {/* User Profile Info Footer */}
           {user && (
-            <div className="p-4 border-t border-gray-200 shrink-0 bg-gray-50/50">
-              <div className="flex items-center gap-3 mb-4">
-                <img src={user.photoURL || ''} alt="User" className="w-10 h-10 rounded-full border border-gray-200 shrink-0" referrerPolicy="no-referrer" />
+            <div className="p-4 border-t border-gray-200 dark:border-slate-800 shrink-0 bg-gray-50/50 dark:bg-slate-900/50">
+              <div className="flex items-center gap-3 mb-3">
+                <img 
+                  src={user.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${user.displayName || 'User'}`} 
+                  alt="User" 
+                  className="w-9 h-9 rounded-full border border-gray-200 dark:border-slate-700 shrink-0" 
+                  referrerPolicy="no-referrer" 
+                />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{user.displayName}</p>
-                  <p className="text-xs text-emerald-700 font-semibold truncate">{ROLE_LABELS[userRole] || userRole}</p>
+                  <p className="text-xs font-bold text-gray-900 dark:text-slate-100 truncate">{user.displayName || user.email}</p>
+                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold truncate">{ROLE_LABELS[userRole] || userRole}</p>
                 </div>
               </div>
               <button 
                 onClick={logout}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-colors"
               >
-                <LogOut size={16} />
+                <LogOut size={15} />
                 Cerrar Sesión
               </button>
             </div>
@@ -213,164 +191,15 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 bg-gray-50/50 relative h-full overflow-hidden">
-        {/* Top Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              title={isSidebarOpen ? "Ocultar menú" : "Mostrar menú"}
-            >
-              <Menu size={20} />
-            </button>
-            
-            {/* Project Selector */}
-            <div className="relative">
-              <button 
-                onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
-                className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium"
-              >
-                <HardHat size={15} className="text-emerald-600 shrink-0" />
-                <span className="text-gray-700 max-w-[130px] sm:max-w-[200px] truncate font-semibold">
-                  {currentProject ? currentProject.name : 'Seleccionar Proyecto'}
-                </span>
-                <ChevronDown size={14} className="text-gray-500" />
-              </button>
-              
-              {isProjectMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsProjectMenuOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 max-h-80 overflow-y-auto">
-                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Modo de Selección</div>
-                    
-                    <button
-                      onClick={() => {
-                        setCurrentProject(CORPORATE_PORTFOLIO_PROJECT);
-                        setIsProjectMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-3.5 py-2.5 text-xs font-bold flex items-center gap-2 border-b border-gray-100 transition-colors ${
-                        currentProject?.id === 'all' 
-                          ? 'bg-emerald-50 text-emerald-800' 
-                          : 'text-gray-800 hover:bg-gray-50'
-                      }`}
-                    >
-                      <Building size={16} className="text-emerald-600 shrink-0" />
-                      <span className="truncate">🏢 PORTAFOLIO CORPORATIVO (TODOS LOS PROYECTOS)</span>
-                    </button>
-
-                    <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Proyectos de la Organización</div>
-                    {projects.length === 0 ? (
-                      <div className="px-4 py-3 text-xs text-gray-500">No hay proyectos. Crea uno en Gestión de Proyectos.</div>
-                    ) : (
-                      projects.map(project => (
-                        <button
-                          key={project.id}
-                          onClick={() => {
-                            setCurrentProject(project);
-                            setIsProjectMenuOpen(false);
-                          }}
-                          className={`w-full text-left px-4 py-2 text-xs hover:bg-gray-50 transition-colors ${currentProject?.id === project.id ? 'bg-emerald-50 text-emerald-700 font-bold' : 'text-gray-700'}`}
-                        >
-                          {project.name}
-                        </button>
-                      ))
-                    )}
-                    <div className="border-t border-gray-100 mt-2 pt-2">
-                      <Link 
-                        to="/projects" 
-                        onClick={() => setIsProjectMenuOpen(false)}
-                        className="block px-4 py-2 text-xs text-emerald-600 hover:bg-emerald-50 font-medium"
-                      >
-                        + Gestionar Proyectos
-                      </Link>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Role Selector Badge (Testing / Demo) */}
-            <div className="relative hidden sm:block">
-              <button
-                onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors"
-                title="Cambiar rol activo de usuario para simulación"
-              >
-                <UserCheck size={14} className="text-amber-700" />
-                <span>Rol: {ROLE_LABELS[userRole] || userRole}</span>
-                <ChevronDown size={13} className="text-amber-700" />
-              </button>
-
-              {isRoleMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsRoleMenuOpen(false)}></div>
-                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2">
-                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      Simular Rol de Usuario
-                    </div>
-                    {(Object.keys(ROLE_LABELS) as UserRole[]).map((roleKey) => (
-                      <button
-                        key={roleKey}
-                        onClick={() => {
-                          setUserRole(roleKey);
-                          setIsRoleMenuOpen(false);
-                        }}
-                        className={`w-full text-left px-3.5 py-2 text-xs transition-colors ${
-                          userRole === roleKey 
-                            ? 'bg-amber-50 text-amber-900 font-bold' 
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        {ROLE_LABELS[roleKey]}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Offline / Background Sync Indicator */}
-          <div className="flex items-center gap-2">
-            <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold border ${
-              isOnline 
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-                : 'bg-amber-50 border-amber-300 text-amber-900 animate-pulse'
-            }`}>
-              {isOnline ? (
-                <>
-                  <Wifi size={13} className="text-emerald-600" />
-                  <span className="hidden sm:inline">En Línea</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff size={13} className="text-amber-600" />
-                  <span>Modo Offline</span>
-                </>
-              )}
-              {pendingQueueCount > 0 && (
-                <span className="bg-amber-500 text-white font-bold px-1.5 py-0.2 rounded-full text-[10px]">
-                  {pendingQueueCount} pend.
-                </span>
-              )}
-            </div>
-
-            {pendingQueueCount > 0 && (
-              <button
-                onClick={handleManualSync}
-                disabled={isSyncing}
-                title="Sincronizar datos de campo pendientes"
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-[#0B2239] text-white hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
-                <span className="hidden md:inline">Sincronizar</span>
-              </button>
-            )}
-          </div>
-        </header>
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col min-w-0 bg-transparent relative h-full overflow-hidden">
+        {/* Top Context Bar */}
+        <TopContextBar 
+          isSidebarOpen={isSidebarOpen} 
+          setIsSidebarOpen={setIsSidebarOpen} 
+        />
         
+        {/* Router Outlet Container */}
         <div className="flex-1 overflow-auto p-4 md:p-8">
           <div className="max-w-7xl mx-auto h-full">
             <Outlet />

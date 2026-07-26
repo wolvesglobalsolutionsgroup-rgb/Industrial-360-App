@@ -32,20 +32,20 @@ export interface BrandKit {
 }
 
 const defaultBrandKit: BrandKit = {
-  companyName: 'SEMAX PINO C.A. - OBRAS Y SERVICIOS INDUSTRIALES',
-  taxId: 'RIF J-30489210-4',
-  address: 'Zona Industrial San Tomé - El Tigre, Edo. Anzoátegui, Venezuela',
-  phone: '+58 (283) 235-9000',
-  email: 'contacto@semaxpino.com',
-  website: 'www.semaxpino.com',
+  companyName: 'CONTRATISTA OPERATIVA C.A.',
+  taxId: 'RIF J-00000000-0',
+  address: 'Zona Industrial - Edo. Anzoátegui, Venezuela',
+  phone: '+58 (283) 000-0000',
+  email: 'contacto@organizacion.com',
+  website: 'www.organizacion.com',
   logoUrl: '',
   primaryColor: '#0B2239',
-  secondaryColor: '#F4C400',
-  headerText: 'SEMAX PINO C.A. - ENTREGABLE TÉCNICO DE CAMPO',
-  footerText: 'DOCUMENTO FISCAL Y TÉCNICO EMITIDO BAJO ESTÁNDARES PDVSA / COVENIN / ASME.',
+  secondaryColor: '#3CB179',
+  headerText: 'REPORTES TÉCNICOS Y ENTREGABLES DE CAMPO',
+  footerText: 'DOCUMENTO TÉCNICO EMITIDO BAJO ESTÁNDARES PDVSA / COVENIN / ASME.',
   digitalSignatureUrl: '',
-  authorizedSignerName: 'Ing. Gustavo Pino',
-  authorizedSignerTitle: 'Director General de Operaciones'
+  authorizedSignerName: 'Ing. Gerente de Operaciones',
+  authorizedSignerTitle: 'Dirección General de Operaciones'
 };
 
 export interface Project {
@@ -60,18 +60,18 @@ export interface Project {
 
 export const CORPORATE_PORTFOLIO_PROJECT: Project = {
   id: 'all',
-  name: '🏢 PORTAFOLIO CORPORATIVO (SEMAX PINO C.A.)',
+  name: '🏢 PORTAFOLIO CORPORATIVO',
   description: 'Consolidado ejecutivo, operativo y financiero de todos los proyectos de la organización',
   status: 'Activo',
   ownerId: 'org',
-  orgId: 'semax_pino'
+  orgId: 'default_org'
 };
 
 export const DEFAULT_ORGANIZATION: Organization = {
-  id: 'semax_pino',
-  name: 'SEMAX PINO C.A.',
-  taxId: 'RIF J-30489210-4',
-  description: 'Servicios Petroleros, BCP, VFD e Ingeniería Industrial'
+  id: 'default_org',
+  name: 'CONTRATISTA OPERATIVA C.A.',
+  taxId: 'RIF J-00000000-0',
+  description: 'Servicios de Ingeniería, Mantenimiento e Infraestructura Industrial'
 };
 
 interface ProjectContextType {
