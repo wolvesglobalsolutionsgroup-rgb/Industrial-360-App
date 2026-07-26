@@ -66,12 +66,12 @@ export default function TopContextBar({
     updateQueue();
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOnlineStatus);
-    window.addEventListener('ic360-offline-queue-changed', updateQueue);
+    window.addEventListener('semax-offline-queue-changed', updateQueue);
 
     return () => {
       window.removeEventListener('online', handleOnlineStatus);
       window.removeEventListener('offline', handleOnlineStatus);
-      window.removeEventListener('ic360-offline-queue-changed', updateQueue);
+      window.removeEventListener('semax-offline-queue-changed', updateQueue);
     };
   }, []);
 
@@ -84,7 +84,7 @@ export default function TopContextBar({
   };
 
   return (
-    <header className="h-16 border-b border-gray-200/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between px-4 shrink-0 shadow-xs z-20 transition-colors duration-200 print:hidden">
+    <header className="h-16 border-b border-gray-200/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between px-4 shrink-0 shadow-xs z-20 transition-colors duration-200">
       <div className="flex items-center gap-3">
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}

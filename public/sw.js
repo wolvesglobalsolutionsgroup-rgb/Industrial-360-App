@@ -74,7 +74,7 @@ self.addEventListener('fetch', (event) => {
 
 // 4. IndexedDB Queue Processing Helper
 async function processOfflineQueueFromIndexedDB() {
-  const DB_NAME = 'IC360_FIELD_OFFLINE_DB';
+  const DB_NAME = 'SEMAX_FIELD_OFFLINE_DB';
   const STORE_NAME = 'pending_field_operations';
 
   return new Promise((resolve) => {
@@ -98,7 +98,7 @@ async function processOfflineQueueFromIndexedDB() {
         const clientList = await self.clients.matchAll({ type: 'window' });
         for (const client of clientList) {
           client.postMessage({
-            type: 'IC360_TRIGGER_SYNC',
+            type: 'SEMAX_TRIGGER_SYNC',
             pendingCount: items.length,
             timestamp: Date.now()
           });

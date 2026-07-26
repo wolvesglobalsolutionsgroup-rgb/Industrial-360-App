@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
@@ -6,12 +6,11 @@ import {
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
   Database, Plug, Network, BrainCircuit, Briefcase, X, MapPin, Truck, ArrowLeftRight, Globe
 } from 'lucide-react';
-import { useAppAuthState, logout } from '../firebase';
-
+import { auth, logout } from '../firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
 import { useProject } from '../ProjectContext';
 import { ROLE_LABELS } from './ProtectedRoute';
 import TopContextBar from './TopContextBar';
-import PageSkeleton from './ui/PageSkeleton';
 
 const coreOperativoItems = [
   { path: '/', label: 'Dashboard Ejecutivo', icon: LayoutDashboard },
@@ -58,7 +57,7 @@ const inteligenciaConectividadItems = [
 ];
 
 export default function Layout() {
-  const [user] = useAppAuthState();
+  const [user] = useAuthState(auth);
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -126,7 +125,7 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside 
-        className={`fixed md:relative top-0 left-0 h-full bg-white dark:bg-slate-900 flex flex-col shadow-xl md:shadow-xs z-30 transition-all duration-300 ease-in-out overflow-hidden border-r border-gray-200/80 dark:border-slate-800 print:hidden ${
+        className={`fixed md:relative top-0 left-0 h-full bg-white dark:bg-slate-900 flex flex-col shadow-xl md:shadow-xs z-30 transition-all duration-300 ease-in-out overflow-hidden border-r border-gray-200/80 dark:border-slate-800 ${
           isMobile 
             ? `w-72 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
             : `${isSidebarOpen ? 'w-72' : 'w-0 border-r-0'}`
@@ -204,9 +203,7 @@ export default function Layout() {
         {/* Router Outlet Container */}
         <div className="flex-1 overflow-auto p-4 md:p-8">
           <div className="max-w-7xl mx-auto h-full">
-            <Suspense fallback={<PageSkeleton />}>
-              <Outlet />
-            </Suspense>
+            <Outlet />
           </div>
         </div>
       </main>

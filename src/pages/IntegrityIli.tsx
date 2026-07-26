@@ -53,7 +53,6 @@ export default function IntegrityIli() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
-  const [cpPoints, setCpPoints] = useState<CpSurveyPoint[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -206,7 +205,7 @@ export default function IntegrityIli() {
     setUploadMessage('Procesando corrida de inspección ILI ROSEN...');
     const fileName = file.name.toLowerCase();
 
-    const processRowObjects = (rows: Record<string, any>[], loadedCpPoints?: CpSurveyPoint[]) => {
+    const processRowObjects = (rows: Record<string, any>[]) => {
       const getVal = (row: Record<string, any>, possibleKeys: string[], defaultVal: any = '') => {
         const rowKeys = Object.keys(row);
         for (const pKey of possibleKeys) {
@@ -257,7 +256,7 @@ export default function IntegrityIli() {
           id: `ANO-IMP-${100 + parsedAnomalies.length}`,
           kp: dist,
           clockPosition: clockStr || '12:00',
-          depthPercent: wlVal || 10,
+          depthPercent: wlVal || 25,
           lengthMm: lenVal,
           widthMm: widVal,
           type: upperType.includes('DENT') ? 'Dent' : (upperType.includes('GOUGE') ? 'Gouge' : 'Metal Loss'),
@@ -266,44 +265,16 @@ export default function IntegrityIli() {
           pipeDiameter: 16,
           smys: 52000,
           maop: 1100,
-          status: wlVal >= 40 ? 'Atención Prioritaria' : 'Inconclusa',
+          status: (wlVal || 25) >= 40 ? 'Atención Prioritaria' : 'Inconclusa',
           easting: eastingVal,
           northing: northingVal,
-          cpPotentialMv: (() => {
-            let finalCp = cpVal ? -Math.abs(cpVal) : -940;
-            if (loadedCpPoints && loadedCpPoints.length > 0) {
-              let closestPt = null;
-              let minDiff = Infinity;
-              for (const pt of loadedCpPoints) {
-                const diff = Math.abs(pt.kp - dist);
-                if (diff < minDiff) {
-                  minDiff = diff;
-                  closestPt = pt;
-                }
-              }
-              if (closestPt) {
-                finalCp = closestPt.potentialMv;
-              }
-            }
-            return finalCp;
-          })(),
+          cpPotentialMv: cpVal ? -Math.abs(cpVal) : -940,
           upstreamWeldNo: jjNoStr,
           upstreamWeldDistMm: jjDistVal
         });
       }
 
       parsedAnomalies.sort((a, b) => b.depthPercent - a.depthPercent);
-
-      if (loadedCpPoints && loadedCpPoints.length > 0) {
-        loadedCpPoints.forEach(pt => {
-          pt.hasExternalDefect = parsedAnomalies.some(a => 
-            Math.abs(a.kp - pt.kp) < 0.2 && a.internalExternal === 'External'
-          );
-        });
-        setCpPoints([...loadedCpPoints]);
-      } else {
-        setCpPoints([]);
-      }
 
       if (parsedAnomalies.length > 0) {
         setAnomalies(parsedAnomalies);
@@ -322,101 +293,10 @@ export default function IntegrityIli() {
         try {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
           const workbook = XLSX.read(data, { type: 'array' });
-          
-          // 1. Intentar parsear potenciales de la pestaña POTENCIALES
-          const parsedCpPoints: CpSurveyPoint[] = [];
-          const cpSheetName = workbook.SheetNames.find(name => name.toUpperCase().includes('POTENCIAL'));
-          if (cpSheetName) {
-            try {
-              console.log(`Parsing CP potentials from sheet: ${cpSheetName}`);
-              const cpSheet = workbook.Sheets[cpSheetName];
-              const cpRows = XLSX.utils.sheet_to_json<any[]>(cpSheet, { header: 1, range: 0, defval: '' });
-              
-              let distColIdx = 0;
-              let potColIdx = -1;
-              let headerFound = false;
-
-              for (let rIdx = 0; rIdx < cpRows.length; rIdx++) {
-                const row = cpRows[rIdx];
-                if (!Array.isArray(row) || row.length === 0) continue;
-
-                if (!headerFound) {
-                  const rowStr = row.map(cell => String(cell).toUpperCase().trim());
-                  const isHeader = rowStr.some(str => str.includes('DISTANCIA') || str.includes('REFERENCIA'));
-                  if (isHeader) {
-                    distColIdx = rowStr.findIndex(str => str.includes('DISTANCIA'));
-                    if (distColIdx === -1) distColIdx = 0;
-                    
-                    potColIdx = rowStr.findIndex(str => str.includes('PACT') || str.includes('POFF') || str.includes('PON') || str.includes('PNAT') || str.includes('MV') || str.includes('POTENCIAL'));
-                    if (potColIdx === -1) {
-                      potColIdx = rowStr.length > 3 ? 3 : (rowStr.length > 4 ? 4 : -1);
-                    }
-                    headerFound = true;
-                  }
-                  continue;
-                }
-
-                const distValRaw = parseFloat(String(row[distColIdx]));
-                if (isNaN(distValRaw)) continue;
-
-                let potValRaw = potColIdx !== -1 ? parseFloat(String(row[potColIdx])) : NaN;
-                if (isNaN(potValRaw)) continue;
-
-                let potentialMv = potValRaw;
-                // Convertir a mV si viene en V (ej: 0.67 -> -670 mV)
-                if (Math.abs(potentialMv) < 5) {
-                  potentialMv = -Math.abs(potentialMv * 1000);
-                } else {
-                  potentialMv = -Math.abs(potentialMv);
-                }
-
-                const kp = parseFloat((distValRaw / 1000).toFixed(3)); // metros a km
-
-                parsedCpPoints.push({
-                  kp,
-                  potentialMv: Math.round(potentialMv),
-                  isDeficient: potentialMv > -850,
-                  hasExternalDefect: false
-                });
-              }
-
-              parsedCpPoints.sort((a, b) => a.kp - b.kp);
-            } catch (cpErr) {
-              console.error('Error parsing POTENCIALES sheet:', cpErr);
-            }
-          }
-
-          // 2. Buscar dinámicamente la pestaña que contenga las columnas clave de anomalías (ej. ROSOFT)
-          let targetSheetName = workbook.SheetNames[0];
-          const preferredNames = ['ROSOFT', 'DATOS INTEGRADOS', 'DATOS_INTEGRADOS', 'ANOMALÍAS', 'ANOMALIAS', 'ILI'];
-          const foundPreferred = workbook.SheetNames.find(name => 
-            preferredNames.includes(name.trim().toUpperCase())
-          );
-          
-          if (foundPreferred) {
-            targetSheetName = foundPreferred;
-          } else {
-            for (const sheetName of workbook.SheetNames) {
-              const worksheet = workbook.Sheets[sheetName];
-              const tempRows = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, range: 0, defval: '' });
-              if (tempRows.length > 0) {
-                const hasKeys = tempRows.slice(0, 5).some(row => {
-                  if (!Array.isArray(row)) return false;
-                  const rowStr = row.map(cell => String(cell).toUpperCase().trim());
-                  return rowStr.includes('DIST') && (rowStr.includes('WL') || rowStr.includes('AVGWL') || rowStr.includes('O_CLOCK'));
-                });
-                if (hasKeys) {
-                  targetSheetName = sheetName;
-                  break;
-                }
-              }
-            }
-          }
-
-          console.log(`Parsing sheet: ${targetSheetName}`);
-          const worksheet = workbook.Sheets[targetSheetName];
-          const jsonRows = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: '' });
-          processRowObjects(jsonRows, parsedCpPoints);
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonRows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+          processRowObjects(jsonRows);
         } catch (err: any) {
           console.error('Error al leer Excel:', err);
           setUploadMessage('Error al procesar el archivo Excel ROSEN.');
@@ -540,8 +420,6 @@ export default function IntegrityIli() {
     calcFolias
   );
 
-  const finalCpSurveyData = cpPoints.length > 0 ? cpPoints : cpSurveyData;
-
   const filteredAnomalies = anomalies.filter(a => {
     const matchesSearch = a.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           a.kp.toString().includes(searchTerm) ||
@@ -555,7 +433,7 @@ export default function IntegrityIli() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="backdrop-blur-xl bg-white/75 dark:bg-slate-900/75 p-6 sm:p-8 rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-sm shadow-slate-200/50 dark:shadow-none flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
+      <div className="backdrop-blur-xl bg-white/75 dark:bg-slate-900/75 p-6 sm:p-8 rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-sm shadow-slate-200/50 dark:shadow-none flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">
             <Database size={16} /> Módulo PIMS • Normativa ASME B31G / RSTRENG / NACE SP0169
@@ -594,14 +472,14 @@ export default function IntegrityIli() {
       </div>
 
       {uploadMessage && (
-        <div className="p-4 bg-amber-50/90 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-amber-800 rounded-2xl text-xs font-bold flex items-center justify-between backdrop-blur-md print:hidden">
+        <div className="p-4 bg-amber-50/90 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-amber-800 rounded-2xl text-xs font-bold flex items-center justify-between backdrop-blur-md">
           <span>{uploadMessage}</span>
           <button onClick={() => setUploadMessage(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">×</button>
         </div>
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex border border-white/80 dark:border-slate-800/80 bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl rounded-3xl p-1.5 shadow-xs overflow-x-auto gap-1 print:hidden">
+      <div className="flex border border-white/80 dark:border-slate-800/80 bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl rounded-3xl p-1.5 shadow-xs overflow-x-auto gap-1">
         <button
           onClick={() => setActiveTab('ili')}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
@@ -894,7 +772,7 @@ export default function IntegrityIli() {
 
           <div className="h-80 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={finalCpSurveyData}>
+              <ComposedChart data={cpSurveyData}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                 <XAxis dataKey="kp" label={{ value: 'Kilometraje KP (km)', position: 'insideBottom', offset: -5 }} />
                 <YAxis domain={[-1200, -600]} label={{ value: 'Potencial CP (-mV)', angle: -90, position: 'insideLeft' }} />
@@ -918,15 +796,7 @@ export default function IntegrityIli() {
               <span>Diagnóstico de Coincidencia de Corrosión Activa</span>
             </h3>
             <p className="text-xs text-slate-300 leading-relaxed">
-              {cpPoints.length > 0 ? (
-                `El análisis cruzado PIMS identificó ${
-                  cpPoints.filter(p => p.isDeficient && p.hasExternalDefect).length
-                } coincidencia(s) de pérdida de metal externa concurrente con potencial catódico deficiente (> -850 mV) en los kilometrajes: ${
-                  cpPoints.filter(p => p.isDeficient && p.hasExternalDefect).map(p => `KP ${p.kp} km`).join(', ') || 'ninguno'
-                }. Se recomienda programar excavaciones exploratorias de prioridad en estas ubicaciones.`
-              ) : (
-                "Existen zonas donde el potencial de protección catódica es menos negativo que -850 mV (e.g. KP 4.2 km y KP 28.6 km), coincidiendo directamente con anomalías de pérdida de metal externa. Se recomienda inspección directa de campo y ajuste de rectificadores."
-              )}
+              Existen zonas donde el potencial de protección catódica es menos negativo que -850 mV (e.g. KP 4.2 km y KP 28.6 km), coincidiendo directamente con anomalías de pérdida de metal externa. Se recomienda inspección directa de campo y ajuste de rectificadores.
             </p>
           </div>
         </div>
@@ -1064,30 +934,6 @@ export default function IntegrityIli() {
       {/* TAB 4: GENERADOR E IMPRESOR DE DIG SHEETS */}
       {activeTab === 'digsheets' && (
         <div className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-xs space-y-6 print:border-none print:shadow-none print:p-0">
-          <style dangerouslySetInnerHTML={{ __html: `
-            @media print {
-              body, html {
-                background: white !important;
-                color: black !important;
-              }
-              aside, header, nav, .print\\:hidden {
-                display: none !important;
-              }
-              main {
-                padding: 0 !important;
-                margin: 0 !important;
-                overflow: visible !important;
-                height: auto !important;
-                width: 100% !important;
-              }
-              .max-w-7xl, .mx-auto, .p-4, .md\\:p-8 {
-                max-width: 100% !important;
-                width: 100% !important;
-                padding: 0 !important;
-                margin: 0 !important;
-              }
-            }
-          `}} />
           <div className="flex justify-between items-center border-b border-gray-200 pb-4 print:hidden">
             <div>
               <h2 className="text-lg font-bold text-gray-900">Dig Sheet de Excavación de Campo</h2>
@@ -1119,7 +965,7 @@ export default function IntegrityIli() {
             </div>
 
             {/* Grid Coordinates & Location */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-mono">
+            <div className="grid grid-cols-2 gap-4 text-xs font-mono">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-300 space-y-1">
                 <p className="font-bold text-slate-900 uppercase">1. Ubicación UTM / Kilometraje</p>
                 <p><strong>Kilometraje (KP):</strong> {selectedAnomaly?.kp || 28.650} km</p>
@@ -1130,40 +976,8 @@ export default function IntegrityIli() {
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-300 space-y-1">
                 <p className="font-bold text-slate-900 uppercase">2. Referencia de Soldadura Aguas Arriba</p>
                 <p><strong>Junta Referencia:</strong> {selectedAnomaly?.upstreamWeldNo || 'JJ-2210'}</p>
-                <p><strong>Distancia desde Junta:</strong> {selectedAnomaly?.upstreamWeldDistMm || 410} mm Aguas Abajo</p>
+                <p><strong>Distancia desde Junta:</strong> {selectedAnomaly?.upstreamWeldDistMm || 410} mm</p>
                 <p><strong>Orientación Reloj:</strong> {selectedAnomaly?.clockPosition || '06:00'} o'clock</p>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-300 flex flex-col items-center justify-center min-h-[110px]">
-                <p className="font-bold text-slate-900 uppercase mb-2 text-center w-full">3. Orientación en Reloj</p>
-                <div className="relative w-18 h-18 rounded-full border-2 border-slate-950 bg-white flex items-center justify-center">
-                  <span className="absolute top-0.5 text-[7px] text-slate-950 font-mono leading-none">12</span>
-                  <span className="absolute right-0.5 text-[7px] text-slate-950 font-mono leading-none">3</span>
-                  <span className="absolute bottom-0.5 text-[7px] text-slate-950 font-mono leading-none">6</span>
-                  <span className="absolute left-0.5 text-[7px] text-slate-950 font-mono leading-none">9</span>
-                  
-                  {/* Center circle representing pipe wall */}
-                  <div className="w-12 h-12 rounded-full border border-slate-400 bg-transparent relative">
-                    {/* Center point */}
-                    <div className="absolute top-1/2 left-1/2 w-0.5 h-0.5 bg-slate-950 rounded-full transform -translate-x-1/2 -translate-y-1/2" />
-                    
-                    {/* Red Anomaly Dot */}
-                    {(() => {
-                      const pos = getClockNeedlePosition(selectedAnomaly?.clockPosition || '06:00');
-                      return (
-                        <div 
-                          className="absolute w-2.5 h-2.5 rounded-full bg-red-600 border border-white shadow-xs"
-                          style={{
-                            top: pos.topPct,
-                            left: pos.leftPct,
-                            transform: 'translate(-50%, -50%)'
-                          }}
-                        />
-                      );
-                    })()}
-                  </div>
-                </div>
-                <p className="text-[10px] font-bold text-slate-950 mt-1">{selectedAnomaly?.clockPosition || '06:00'} h ({selectedAnomaly?.internalExternal || 'External'})</p>
               </div>
             </div>
 

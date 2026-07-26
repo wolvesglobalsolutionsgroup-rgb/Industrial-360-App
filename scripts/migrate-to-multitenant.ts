@@ -7,7 +7,7 @@ import { db } from '../src/firebase';
  * /organizations/{orgId}/projects/{projId}/{subcollection}/{docId}
  */
 
-export async function migrateToMultitenant(orgId: string = 'default_org') {
+export async function migrateToMultitenant(orgId: string = 'semax_pino') {
   console.log(`🚀 Iniciando migración multi-tenancy para Organización: ${orgId}...`);
 
   try {
@@ -15,9 +15,9 @@ export async function migrateToMultitenant(orgId: string = 'default_org') {
     const orgRef = doc(db, 'organizations', orgId);
     await setDoc(orgRef, {
       id: orgId,
-      name: 'CONTRATISTA OPERATIVA INDUSTRIAL C.A.',
-      taxId: 'RIF J-00000000-0',
-      description: 'Consorcio y Contratista General de Ingeniería Industrial',
+      name: 'SEMAX PINO C.A.',
+      taxId: 'RIF J-30489210-4',
+      description: 'Empresa Líder en Servicios Petroleros, BCP, VFD e Ingeniería Industrial - El Tigre, Venezuela',
       createdAt: new Date().toISOString()
     }, { merge: true });
 
