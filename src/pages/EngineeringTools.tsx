@@ -898,7 +898,7 @@ export default function EngineeringTools() {
       </div>
 
       {/* ========================================== */}
-      /* TAB 1: PIPING, FLANGES, STUDS & VALVES      */
+      {/* TAB 1: PIPING, FLANGES, STUDS & VALVES      */}
       {/* ========================================== */}
       {activeMainTab === 'piping' && (
         <div className="space-y-6">
