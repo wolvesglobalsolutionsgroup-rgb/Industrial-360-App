@@ -3,15 +3,15 @@ import { motion } from 'motion/react';
 import { 
   User, Building, Bell, Shield, Save, Loader2, Palette, Upload, Check, Sparkles, Layers, Square, Sun, Moon
 } from 'lucide-react';
-import { auth, db } from '../firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { useAppAuthState, db } from '../firebase';
+
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useProject, BrandKit } from '../ProjectContext';
 import { useTheme } from '../theme/ThemeContext';
 import { THEME_PRESETS, ThemePresetId } from '../theme/themePresets';
 
 export default function Settings() {
-  const [user] = useAuthState(auth);
+  const [user] = useAppAuthState();
   const { brandKit, updateBrandKit } = useProject();
   const { preset, setPreset, density, setDensity, borderRadius, setBorderRadius, isDarkMode, toggleMode } = useTheme();
 

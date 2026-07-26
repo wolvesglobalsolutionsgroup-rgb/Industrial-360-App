@@ -4,8 +4,8 @@
  */
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from './firebase';
+
+import { useAppAuthState } from './firebase';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { lazy, Suspense } from 'react';
@@ -48,7 +48,7 @@ const ClientPortalView = lazy(() => import('./pages/ClientPortalView'));
 
 
 export default function App() {
-  const [user, loading] = useAuthState(auth);
+  const [user, loading] = useAppAuthState();
 
   if (loading) {
     return (

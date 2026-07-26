@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { loginWithGoogle, loginWithEmail, registerWithEmail, loginAnonymously } from '../firebase';
+import { loginWithGoogle, loginWithEmail, loginAnonymously } from '../firebase';
 import { HardHat, Loader2, AlertCircle, Mail, Lock, LogIn, UserPlus, Sparkles, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'motion/react';
 
@@ -23,11 +23,7 @@ export default function Login() {
     setIsLoading(true);
     setErrorMsg('');
     try {
-      if (isRegistering) {
-        await registerWithEmail(email, password);
-      } else {
-        await loginWithEmail(email, password);
-      }
+      await loginWithEmail(email, password);
     } catch (err: any) {
       console.error(err);
       if (err.code === 'auth/email-already-in-use') {
