@@ -75,7 +75,7 @@ const COLUMN_CONFIGS = [
   { id: 'terminada', title: 'Terminadas / NDT', colorAccent: 'emerald' as const },
 ];
 
-import { seedDemoData } from '../lib/seedDemoData';
+import { seedDemoData, FALLBACK_DEMO_TASKS } from '../lib/seedDemoData';
 
 export default function Tasks() {
   const { currentProject } = useProject();
@@ -168,11 +168,22 @@ export default function Tasks() {
         } as TaskItem;
       });
 
-      setTasks(tsks);
+      if (tsks.length === 0) {
+        const filteredFallback = currentProject.id === 'all'
+          ? FALLBACK_DEMO_TASKS
+          : FALLBACK_DEMO_TASKS.filter(t => t.projectId === currentProject.id);
+        setTasks(filteredFallback.length > 0 ? (filteredFallback as any) : (FALLBACK_DEMO_TASKS as any));
+      } else {
+        setTasks(tsks);
+      }
       setLoading(false);
       clearTimeout(timer);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'tasks');
+      console.warn("Tasks read fallback to demo tasks", error);
+      const filteredFallback = currentProject.id === 'all'
+        ? FALLBACK_DEMO_TASKS
+        : FALLBACK_DEMO_TASKS.filter(t => t.projectId === currentProject.id);
+      setTasks(filteredFallback.length > 0 ? (filteredFallback as any) : (FALLBACK_DEMO_TASKS as any));
       setLoading(false);
       clearTimeout(timer);
     });

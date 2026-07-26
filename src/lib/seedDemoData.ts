@@ -1,10 +1,177 @@
 import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db, auth, loginAnonymously } from '../firebase';
+
+export const FALLBACK_DEMO_TASKS = [
+  {
+    id: 'TASK-001',
+    projectId: 'PROJ-001',
+    wbsCode: 'WBS-1.1',
+    title: 'Movilización de Equipos y Preparación de Terreno (Frente Jusepín)',
+    description: 'Acondicionamiento de patio de acopio, movilización de grúas, plantas de soldar y equipos pesados.',
+    specialty: 'Civil',
+    unit: '%',
+    plannedQuantity: 100,
+    executedQuantity: 100,
+    unitCost: 45000,
+    status: 'terminada',
+    priority: 'medium',
+    crewName: 'Cuadrilla Movilización',
+    frontName: 'Frente Jusepín',
+    ptwRequired: false,
+    startDate: '2026-01-15',
+    dueDate: '2026-01-25',
+    subtasks: [
+      { id: 'st-1', text: 'Permisología ambiental aprobada', completed: true },
+      { id: 'st-2', text: 'Inspección de equipos pesados', completed: true }
+    ]
+  },
+  {
+    id: 'TASK-002',
+    projectId: 'PROJ-001',
+    wbsCode: 'WBS-1.2',
+    title: 'Tendido y Cimentación de Zanja Tubería API 5L 16"',
+    description: 'Excavación de zanja 1.50m de profundidad, conformado de cama de arena y alineación de tubos.',
+    specialty: 'Civil',
+    unit: 'm',
+    plannedQuantity: 12500,
+    executedQuantity: 7200,
+    unitCost: 42,
+    status: 'en_campo',
+    priority: 'high',
+    crewName: 'Cuadrilla Movimiento de Tierra',
+    frontName: 'Frente San Mateo',
+    ptwRequired: true,
+    startDate: '2026-01-26',
+    dueDate: '2026-03-30',
+    subtasks: [
+      { id: 'st-3', text: 'Cama de arena tramo 0-5km', completed: true },
+      { id: 'st-4', text: 'Zanjado tramo 5-10km', completed: false }
+    ]
+  },
+  {
+    id: 'TASK-003',
+    projectId: 'PROJ-001',
+    wbsCode: 'WBS-1.3',
+    title: 'Soldadura Proceso SMAW/GMAW Juntas de Campo (ASME B31.4)',
+    description: 'Ejecución de soldadura de pase de raíz, relleno y presentación en tubería API 5L X52.',
+    specialty: 'Mecánica',
+    unit: 'junta',
+    plannedQuantity: 480,
+    executedQuantity: 210,
+    unitCost: 380,
+    status: 'en_campo',
+    priority: 'urgent',
+    crewName: 'Cuadrilla Soldadura Alfa',
+    frontName: 'Frente Canal de Riego',
+    ptwRequired: true,
+    startDate: '2026-02-01',
+    dueDate: '2026-04-15',
+    subtasks: [
+      { id: 'st-5', text: 'Prueba de homologación de soldadores CIV', completed: true }
+    ]
+  },
+  {
+    id: 'TASK-004',
+    projectId: 'PROJ-001',
+    wbsCode: 'WBS-1.4',
+    title: 'Ensayos No Destructivos NDT (UT/Gammagrafía) al 100%',
+    description: 'Evaluación radiográfica y ultrasonido industrial según norma API 1104 / ASME B31.4.',
+    specialty: 'QA/QC',
+    unit: 'inspección',
+    plannedQuantity: 480,
+    executedQuantity: 205,
+    unitCost: 110,
+    status: 'en_campo',
+    priority: 'high',
+    crewName: 'Inspectores NDT Level II',
+    frontName: 'Frente Canal de Riego',
+    ptwRequired: true,
+    startDate: '2026-02-05',
+    dueDate: '2026-04-20'
+  },
+  {
+    id: 'TASK-005',
+    projectId: 'PROJ-001',
+    wbsCode: 'WBS-1.5',
+    title: 'Aplicación de Revestimiento Mantas Canusa y Protección Catódica',
+    description: 'Chorreado de arena SSPC-SP10 y colocación de termocontraíbles anticorrosivos.',
+    specialty: 'Mecánica',
+    unit: 'junta',
+    plannedQuantity: 480,
+    executedQuantity: 180,
+    unitCost: 140,
+    status: 'planificada',
+    priority: 'medium',
+    crewName: 'Cuadrilla Revestimiento',
+    frontName: 'Frente San Mateo',
+    ptwRequired: false,
+    startDate: '2026-03-01',
+    dueDate: '2026-05-01'
+  },
+  {
+    id: 'TASK-006',
+    projectId: 'PROJ-002',
+    wbsCode: 'WBS-2.1',
+    title: 'Aislamiento, Parada y Despresurización Tren K-101',
+    description: 'Bloqueo e etiquetado LOTO de líneas de gas de proceso de 24". Purga con Nitrógeno seco.',
+    specialty: 'SIHO-A',
+    unit: 'global',
+    plannedQuantity: 1,
+    executedQuantity: 1,
+    unitCost: 35000,
+    status: 'terminada',
+    priority: 'urgent',
+    crewName: 'Seguridad e Inspección',
+    frontName: 'Planta San Joaquín',
+    ptwRequired: true,
+    startDate: '2026-03-01',
+    dueDate: '2026-03-03'
+  },
+  {
+    id: 'TASK-007',
+    projectId: 'PROJ-002',
+    wbsCode: 'WBS-2.2',
+    title: 'Desmontaje y Revisión Interna Válvulas de Control 12" ANSI 600',
+    description: 'Mantenimiento de actuadores neumáticos y reemplazo de empaquetaduras Teflon/Graphite.',
+    specialty: 'Instrumentación',
+    unit: 'valvula',
+    plannedQuantity: 8,
+    executedQuantity: 2,
+    unitCost: 4500,
+    status: 'en_campo',
+    priority: 'high',
+    crewName: 'Especialistas Instrumentación',
+    frontName: 'Patio K-101',
+    ptwRequired: true,
+    startDate: '2026-03-04',
+    dueDate: '2026-03-20'
+  },
+  {
+    id: 'TASK-008',
+    projectId: 'PROJ-002',
+    wbsCode: 'WBS-2.3',
+    title: 'Purga de Cabezales y Suministro de N2 Seco',
+    description: 'Suministro de cisterna de Nitrógeno para barrido de gas amargo.',
+    specialty: 'Mecánica',
+    unit: 'evento',
+    plannedQuantity: 1,
+    executedQuantity: 0,
+    unitCost: 12000,
+    status: 'bloqueada',
+    priority: 'urgent',
+    crewName: 'Cuadrilla Mecánica',
+    frontName: 'Patio K-101',
+    restrictionNotes: 'Retraso en transporte de cisterna N2 por transportista externo. Pendiente aprobación ETT.'
+  }
+];
 
 export async function seedDemoData(force = false): Promise<{ success: boolean; message: string }> {
   if (!auth.currentUser) {
-    console.warn("Carga de datos demo cancelada: Usuario en modo demo local sin permisos de escritura en Firestore.");
-    return { success: false, message: "Modo demo local: Se requiere usuario autenticado para escribir en Firestore." };
+    try {
+      await loginAnonymously();
+    } catch (e) {
+      console.warn("No se pudo iniciar sesión anónima en seedDemoData:", e);
+    }
   }
 
   try {

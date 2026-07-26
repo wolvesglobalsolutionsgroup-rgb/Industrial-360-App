@@ -48,10 +48,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     <Card className={`relative overflow-hidden before:absolute before:top-0 before:left-0 before:bottom-0 before:w-1.5 ${accentBorders[accentColor]} ${className}`}>
       <CardContent className="p-5 flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          <p className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wide text-slate-500 dark:text-slate-400 line-clamp-1">
             {title}
           </p>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono tracking-tight select-none">
             {value}
           </div>
           
