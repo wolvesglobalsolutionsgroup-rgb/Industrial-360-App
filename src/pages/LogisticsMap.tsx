@@ -1,32 +1,138 @@
-import { useState, useRef, useEffect } from 'react';
-import { MapPin, Search, Navigation, Loader2, Map as MapIcon, Play, Square, Route, History } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { 
+  MapPin, Search, Navigation, Loader2, Map as MapIcon, Play, Square, Route, 
+  Wifi, WifiOff, RefreshCw, Download, Upload, Plus, Check, Compass, Layers, 
+  Shield, Sparkles, AlertCircle, FileSpreadsheet
+} from 'lucide-react';
 import { callGeminiProxy } from '../lib/geminiProxy';
-import { collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, onSnapshot, where, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db, auth } from '../firebase';
+import { useProject } from '../ProjectContext';
+import { Card, CardHeader, CardContent, Button, StatusBadge, Input } from '../components/ui';
+import PageHeader from '../components/common/PageHeader';
+import StatCard from '../components/common/StatCard';
+import { FieldMap, GPSPicker, RouteDrawer } from '../components/field';
+import { MapMarkerData, MapRouteData } from '../components/field/FieldMap';
+import { RoutePoint } from '../components/field/RouteDrawer';
+import { subscribeSyncStatus, syncPendingRecords, SyncStats, isBrowserOnline } from '../lib/offline/syncEngine';
+import { exportRouteToKML, exportMarkersToKML, downloadKMLFile, importKMLToGeoJSON } from '../lib/kml/kmlExporter';
+import * as turf from '@turf/turf';
 
 export default function LogisticsMap() {
+  const { currentProject } = useProject();
+
+  // Active view tab
+  const [activeTab, setActiveTab] = useState<'map' | 'drawer' | 'assistant'>('map');
+
+  // GPS Location state
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
+
+  // Firestore & Field Data
+  const [fieldReports, setFieldReports] = useState<any[]>([]);
+  const [savedRoutes, setSavedRoutes] = useState<MapRouteData[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
+
+  // Live Tracking State
+  const [isTracking, setIsTracking] = useState(false);
+  const [liveDistance, setLiveDistance] = useState(0); // km
+  const [livePath, setLivePath] = useState<RoutePoint[]>([]);
+  const watchIdRef = useRef<number | null>(null);
+  const lastLocRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  // Offline Sync State
+  const [syncStats, setSyncStats] = useState<SyncStats>({
+    isOnline: true,
+    pendingReportsCount: 0,
+    pendingValuationsCount: 0,
+    pendingRoutesCount: 0,
+    totalPending: 0,
+    isSyncing: false
+  });
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  // AI Assistant state
   const [queryText, setQueryText] = useState('');
   const [response, setResponse] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [location, setLocation] = useState<{lat: number, lng: number} | null>(null);
-  const [mapLinks, setMapLinks] = useState<any[]>([]);
-  
-  // Tracking state
-  const [isTracking, setIsTracking] = useState(false);
-  const [distance, setDistance] = useState(0); // in km
-  const [path, setPath] = useState<{lat: number, lng: number, timestamp: number}[]>([]);
-  const watchIdRef = useRef<number | null>(null);
-  const lastLocationRef = useRef<{lat: number, lng: number} | null>(null);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [mapLinks, setMapLinks] = useState<string[]>([]);
 
+  // KML File Import state
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importedFeaturesCount, setImportedFeaturesCount] = useState<number | null>(null);
+
+  // 1. Subscribe to offline sync engine status
   useEffect(() => {
-    // Initial location
+    const unsubscribe = subscribeSyncStatus((stats) => {
+      setSyncStats(stats);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Fetch Field Reports & Saved Routes from Firestore
+  useEffect(() => {
+    setIsLoadingData(true);
+    const projId = currentProject?.id || 'all';
+
+    // Query field reports
+    const qReports = projId !== 'all'
+      ? query(collection(db, 'field_reports'), where('projectId', '==', projId))
+      : query(collection(db, 'field_reports'));
+
+    const unsubReports = onSnapshot(qReports, (snapshot) => {
+      const reportsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setFieldReports(reportsData);
+      setIsLoadingData(false);
+    }, (err) => {
+      console.warn("Error fetching field reports for map:", err);
+      setIsLoadingData(false);
+    });
+
+    // Query saved routes
+    const qRoutes = projId !== 'all'
+      ? query(collection(db, 'routes'), where('projectId', '==', projId))
+      : query(collection(db, 'routes'));
+
+    const unsubRoutes = onSnapshot(qRoutes, (snapshot) => {
+      const routesData = snapshot.docs.map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          name: d.name || 'Ruta Registrada',
+          color: '#ff6b00',
+          path: d.path || [],
+          distanceKm: d.distanceKm || 0
+        } as MapRouteData;
+      });
+      setSavedRoutes(routesData);
+    }, (err) => {
+      console.warn("Error fetching routes for map:", err);
+    });
+
+    return () => {
+      unsubReports();
+      unsubRoutes();
+    };
+  }, [currentProject]);
+
+  // 3. Initial GPS Geolocation
+  useEffect(() => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        (err) => console.error("Error getting location:", err)
+        (pos) => {
+          setUserLocation({
+            lat: Number(pos.coords.latitude.toFixed(6)),
+            lng: Number(pos.coords.longitude.toFixed(6)),
+            accuracy: Math.round(pos.coords.accuracy)
+          });
+        },
+        (err) => {
+          console.warn("Defaulting location to Faja del Orinoco:", err);
+          setUserLocation({ lat: 8.8234, lng: -63.5129, accuracy: 15 });
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
       );
     }
-    
     return () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
@@ -34,20 +140,8 @@ export default function LogisticsMap() {
     };
   }, []);
 
-  // Haversine formula to calculate distance
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Radius of the earth in km
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-      Math.sin(dLon / 2) * Math.sin(dLon / 2); 
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
-    return R * c; // Distance in km
-  };
-
-  const toggleTracking = async () => {
+  // 4. Live GPS Tracking Toggle
+  const toggleTracking = () => {
     if (isTracking) {
       // Stop tracking
       if (watchIdRef.current !== null) {
@@ -55,70 +149,91 @@ export default function LogisticsMap() {
         watchIdRef.current = null;
       }
       setIsTracking(false);
-      
-      // Save route to Firebase if there's distance
-      if (distance > 0 && auth.currentUser) {
-        try {
-          await addDoc(collection(db, 'routes'), {
-            userId: auth.currentUser.uid,
-            distanceKm: distance,
-            path: path,
-            startTime: path[0]?.timestamp,
-            endTime: Date.now(),
-            createdAt: serverTimestamp()
-          });
-          alert(`Ruta guardada. Distancia total: ${distance.toFixed(2)} km`);
-        } catch (error) {
-          console.error("Error saving route:", error);
-        }
+
+      if (livePath.length >= 2) {
+        // Automatically save live route
+        const autoName = `Recorrido GPS - ${new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`;
+        addDoc(collection(db, 'routes'), {
+          name: autoName,
+          projectId: currentProject?.id || 'all',
+          distanceKm: Number(liveDistance.toFixed(3)),
+          path: livePath,
+          startTime: livePath[0]?.timestamp || Date.now(),
+          endTime: Date.now(),
+          createdAt: new Date().toISOString()
+        }).catch(err => console.error("Error saving live route:", err));
       }
     } else {
       // Start tracking
-      setDistance(0);
-      setPath([]);
-      lastLocationRef.current = location;
+      setLiveDistance(0);
+      setLivePath([]);
+      lastLocRef.current = userLocation;
       setIsTracking(true);
-      
+
       if ('geolocation' in navigator) {
         watchIdRef.current = navigator.geolocation.watchPosition(
           (pos) => {
-            const newLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-            setLocation(newLoc);
-            
-            setPath(prev => [...prev, { ...newLoc, timestamp: Date.now() }]);
-            
-            if (lastLocationRef.current) {
-              const dist = calculateDistance(
-                lastLocationRef.current.lat, lastLocationRef.current.lng,
-                newLoc.lat, newLoc.lng
-              );
-              // Only add distance if it's significant (e.g., > 10 meters) to avoid GPS jitter
-              if (dist > 0.01) {
-                setDistance(prev => prev + dist);
-                lastLocationRef.current = newLoc;
+            const newLoc = {
+              lat: Number(pos.coords.latitude.toFixed(6)),
+              lng: Number(pos.coords.longitude.toFixed(6)),
+              timestamp: Date.now()
+            };
+            setUserLocation({ lat: newLoc.lat, lng: newLoc.lng, accuracy: Math.round(pos.coords.accuracy) });
+            setLivePath(prev => [...prev, newLoc]);
+
+            if (lastLocRef.current) {
+              try {
+                const from = turf.point([lastLocRef.current.lng, lastLocRef.current.lat]);
+                const to = turf.point([newLoc.lng, newLoc.lat]);
+                const distKm = turf.distance(from, to, { units: 'kilometers' });
+                if (distKm > 0.005) { // Filter out minor GPS jitter < 5 meters
+                  setLiveDistance(prev => prev + distKm);
+                  lastLocRef.current = newLoc;
+                }
+              } catch (e) {
+                lastLocRef.current = newLoc;
               }
             } else {
-              lastLocationRef.current = newLoc;
+              lastLocRef.current = newLoc;
             }
           },
-          (err) => console.error("Error tracking location:", err),
+          (err) => console.error("Tracking watchPosition error:", err),
           { enableHighAccuracy: true, maximumAge: 0 }
         );
       }
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
+  // 5. Manual Sync Trigger
+  const handleManualSync = async () => {
+    setIsManualSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await syncPendingRecords();
+      setSyncMessage(`Sincronización completada: ${res.successCount} registros subidos.`);
+      setTimeout(() => setSyncMessage(null), 4000);
+    } catch (err: any) {
+      setSyncMessage(`Error de sincronización: ${err?.message || 'Error de red'}`);
+    } finally {
+      setIsManualSyncing(false);
+    }
+  };
+
+  // 6. Handle AI Assistant Search
+  const handleSearchAI = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!queryText.trim()) return;
 
-    setIsProcessing(true);
+    setIsProcessingAI(true);
     setResponse('');
     setMapLinks([]);
 
     try {
-      const prompt = `Eres un asistente de logística de obra. El usuario está en el campo y necesita información geográfica, rutas, o proveedores cercanos.
-      Pregunta: ${queryText}`;
+      const prompt = `Eres un Asistente Experto en Logística de Campo, Rutas de Transporte e Infraestructura Petrolera (PDVSA / Oil & Gas).
+El usuario consulta desde la obra en coordenadas: ${userLocation ? `Lat: ${userLocation.lat}, Lng: ${userLocation.lng}` : 'Faja del Orinoco'}.
+Consulta: ${queryText}
+
+Ofrece una respuesta técnica, indicando rutas de acceso recomendadas, estaciones de servicio, proveedores o puntos logísticos clave.`;
 
       const res = await callGeminiProxy({
         model: 'gemini-2.5-flash',
@@ -127,159 +242,441 @@ export default function LogisticsMap() {
           tools: [{ googleMaps: {} }],
           toolConfig: {
             retrievalConfig: {
-              latLng: location ? {
-                latitude: location.lat,
-                longitude: location.lng
+              latLng: userLocation ? {
+                latitude: userLocation.lat,
+                longitude: userLocation.lng
               } : undefined
             }
           }
         }
       });
 
-      setResponse(res.text || 'No se encontró información.');
-      
+      setResponse(res.text || 'No se obtuvieron resultados para la consulta.');
+
       const chunks = res.raw?.candidates?.[0]?.groundingMetadata?.groundingChunks;
       if (chunks) {
         const links = chunks.map((chunk: any) => chunk.web?.uri || chunk.maps?.uri).filter(Boolean);
         setMapLinks(links);
       }
-
-    } catch (error: any) {
-      console.error("Error en mapa:", error);
-      setResponse(`Error: ${error.message}`);
+    } catch (err: any) {
+      console.error("Error en Asistente IA Logística:", err);
+      setResponse(`Error al procesar consulta: ${err.message}`);
     } finally {
-      setIsProcessing(false);
+      setIsProcessingAI(false);
     }
   };
 
+  // 7. Handle KML File Upload / Import
+  const handleKmlImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const content = evt.target?.result as string;
+      const geoJson = importKMLToGeoJSON(content);
+      if (geoJson && geoJson.features) {
+        setImportedFeaturesCount(geoJson.features.length);
+        // Add lines as route overlays
+        const newRoutes: MapRouteData[] = [];
+        geoJson.features.forEach((feat: any, idx: number) => {
+          if (feat.geometry?.type === 'LineString') {
+            const coords = feat.geometry.coordinates || [];
+            const pts = coords.map((c: number[]) => ({ lng: c[0], lat: c[1] }));
+            newRoutes.push({
+              id: `imported_${idx}_${Date.now()}`,
+              name: feat.properties?.name || `KML Ruta ${idx + 1}`,
+              color: '#0284c7',
+              path: pts
+            });
+          }
+        });
+
+        if (newRoutes.length > 0) {
+          setSavedRoutes(prev => [...prev, ...newRoutes]);
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // 8. Convert Field Reports to Map Markers
+  const mapMarkers: MapMarkerData[] = fieldReports
+    .filter(r => r.location && r.location.lat && r.location.lng)
+    .map(r => ({
+      id: r.id,
+      lat: r.location.lat,
+      lng: r.location.lng,
+      title: r.correlatedTaskName || `Reporte de Inspección (${r.date})`,
+      description: r.notes || r.aiAnalysis || 'Reporte de campo',
+      category: 'report',
+      imageUrl: r.imagePreview || null,
+      date: r.date
+    }));
+
+  // Combine live tracking route with saved routes
+  const combinedRoutes = [...savedRoutes];
+  if (isTracking && livePath.length > 0) {
+    combinedRoutes.push({
+      id: 'live_tracking_route',
+      name: '🔴 Recorrido GPS en Vivo',
+      color: '#dc2626',
+      path: livePath,
+      distanceKm: liveDistance
+    });
+  }
+
+  const handleExportAllKML = () => {
+    const kmlXml = exportMarkersToKML(mapMarkers.map(m => ({
+      id: m.id,
+      name: m.title,
+      description: m.description,
+      lat: m.lat,
+      lng: m.lng,
+      category: m.category
+    })));
+    downloadKMLFile(kmlXml, `Puntos_Inspeccion_${currentProject?.id || 'Campo'}.kml`);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20 md:pb-0">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-3">
-          <MapIcon className="text-emerald-600" size={32} />
-          Logística y Ubicación
-        </h1>
-        <p className="text-gray-500 mt-1">Mapeo de frentes de trabajo, rutas de transporte y seguimiento de recorridos.</p>
-      </header>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Tracking Panel */}
-        <div className="md:col-span-1 space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Route size={20} className="text-emerald-600" />
-              Seguimiento de Ruta
-            </h2>
-            
-            <div className="mb-6">
-              <div className="text-3xl font-bold text-gray-900 mb-1">
-                {distance.toFixed(2)} <span className="text-lg text-gray-500 font-normal">km</span>
-              </div>
-              <p className="text-sm text-gray-500">Distancia recorrida hoy</p>
-            </div>
-
-            <button
-              onClick={toggleTracking}
-              className={`w-full py-3 px-4 rounded-xl font-medium flex items-center justify-center gap-2 transition-all ${
-                isTracking 
-                  ? 'bg-red-100 text-red-700 hover:bg-red-200 animate-pulse' 
-                  : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md'
-              }`}
+    <div className="space-y-6 pb-20">
+      
+      {/* Header */}
+      <PageHeader
+        title="Modo Campo, Mapas y GIS"
+        subtitle="Mapeo satelital Leaflet, captura GPS offline, trazado de servidumbre y exportación KML (PDVSA)"
+        badge={
+          <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+            <Compass size={12} /> GIS Field Engine
+          </span>
+        }
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={activeTab === 'map' ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('map')}
+              leftIcon={<MapIcon size={14} />}
             >
-              {isTracking ? (
-                <>
-                  <Square size={20} />
-                  Detener Tracking
-                </>
-              ) : (
-                <>
-                  <Play size={20} />
-                  Iniciar Recorrido
-                </>
-              )}
-            </button>
-            
-            {isTracking && (
-              <p className="text-xs text-center text-gray-500 mt-3">
-                Registrando ubicación en segundo plano...
-              </p>
-            )}
+              Mapa e Inspección
+            </Button>
+            <Button
+              variant={activeTab === 'drawer' ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('drawer')}
+              leftIcon={<Route size={14} />}
+            >
+              Dibujador de Trazado
+            </Button>
+            <Button
+              variant={activeTab === 'assistant' ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('assistant')}
+              leftIcon={<Sparkles size={14} />}
+            >
+              Asistente Geográfico IA
+            </Button>
           </div>
+        }
+      />
 
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-            <div className="flex items-center gap-3 mb-2 p-3 bg-blue-50 text-blue-800 rounded-xl">
-              <MapPin size={20} className="shrink-0" />
-              <div>
-                <h3 className="font-semibold text-sm">Ubicación Actual</h3>
-                <p className="text-xs opacity-80 font-mono mt-1">
-                  {location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'Buscando GPS...'}
-                </p>
-              </div>
+      {/* Offline Sync Status Bar */}
+      <div className={`p-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-3 transition-colors ${
+        syncStats.isOnline 
+          ? 'bg-surface border-line' 
+          : 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200'
+      }`}>
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-xl flex items-center justify-center shrink-0 ${
+            syncStats.isOnline ? 'bg-emerald-500/15 text-emerald-600' : 'bg-amber-500/20 text-amber-600'
+          }`}>
+            {syncStats.isOnline ? <Wifi size={18} /> : <WifiOff size={18} />}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-ink">
+                {syncStats.isOnline ? 'Conexión a Red Activa (Online)' : 'Modo Campo Offline Activo'}
+              </span>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                syncStats.totalPending > 0 ? 'bg-amber-500/20 text-amber-700' : 'bg-emerald-500/20 text-emerald-700'
+              }`}>
+                {syncStats.totalPending > 0 ? `${syncStats.totalPending} Pendientes por Sincronizar` : 'Todo Sincronizado'}
+              </span>
             </div>
+            <p className="text-[11px] text-ink-soft">
+              {syncStats.isOnline 
+                ? 'Los datos de reportes, rutas y valuaciones se guardan directo en Firestore.'
+                : 'Trabajando sin red. Los datos se almacenan en la base IndexedDB del dispositivo y se subirán automáticamente al recuperar señal.'}
+            </p>
           </div>
         </div>
 
-        {/* Search Panel */}
-        <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Search size={20} className="text-emerald-600" />
-            Asistente Geográfico IA
-          </h2>
-          
-          <form onSubmit={handleSearch} className="flex gap-3 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-              <input 
-                type="text"
-                value={queryText}
-                onChange={(e) => setQueryText(e.target.value)}
-                placeholder="Ej: Ferreterías industriales cerca de mi ubicación, o ruta hacia el botadero..."
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
-              />
-            </div>
-            <button 
-              type="submit"
-              disabled={isProcessing || !queryText.trim()}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
+        <div className="flex items-center gap-2">
+          {syncStats.totalPending > 0 && syncStats.isOnline && (
+            <Button
+              variant="primary"
+              size="sm"
+              isLoading={isManualSyncing || syncStats.isSyncing}
+              onClick={handleManualSync}
+              leftIcon={<RefreshCw size={14} />}
+              className="text-xs font-bold"
             >
-              {isProcessing ? <Loader2 size={20} className="animate-spin" /> : <Navigation size={20} />}
-              Buscar
-            </button>
-          </form>
-
-          {response && (
-            <div className="bg-gray-50 p-6 rounded-xl border border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <MapIcon size={18} className="text-emerald-600" />
-                Respuesta del Asistente
-              </h3>
-              <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap mb-6">
-                {response}
-              </div>
-              
-              {mapLinks.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Enlaces de Google Maps:</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {mapLinks.map((link, idx) => (
-                      <a 
-                        key={idx} 
-                        href={link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs bg-white border border-gray-200 px-3 py-1.5 rounded-full hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
-                      >
-                        <MapPin size={12} />
-                        Ver en Maps {idx + 1}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+              Sincronizar Ahora ({syncStats.totalPending})
+            </Button>
           )}
         </div>
       </div>
+
+      {syncMessage && (
+        <div className="p-3 bg-brand-500/10 border border-brand-500/20 text-brand-500 rounded-xl text-xs font-bold flex items-center gap-2">
+          <Check size={14} />
+          {syncMessage}
+        </div>
+      )}
+
+      {/* Main Stats Banner */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Puntos GPS en Mapa"
+          value={mapMarkers.length}
+          sublabel="Reportes de inspección geolocalizados"
+        />
+        <StatCard
+          title="Trazados / Rutas"
+          value={combinedRoutes.length}
+          sublabel="Líneas de tuberías y transporte"
+        />
+        <StatCard
+          title="Distancia Recorrida Hoy"
+          value={`${liveDistance.toFixed(2)} km`}
+          sublabel={isTracking ? '🔴 Tracking GPS Activo' : 'Tracking Detenido'}
+        />
+        <StatCard
+          title="Estado Base de Datos"
+          value={syncStats.isOnline ? 'Online DB' : 'IndexedDB'}
+          sublabel={`${syncStats.totalPending} registros en cola`}
+        />
+      </div>
+
+      {/* Tab 1: Map & Live Tracking */}
+      {activeTab === 'map' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Tracking & GIS Toolbar Panel */}
+          <div className="lg:col-span-1 space-y-5">
+            
+            {/* Tracking Control Card */}
+            <Card>
+              <CardHeader className="border-b border-line pb-3">
+                <div className="flex items-center gap-2">
+                  <Route size={18} className="text-brand-500" />
+                  <h3 className="font-bold text-sm text-ink">Tracking GPS en Vivo</h3>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                <div>
+                  <span className="block text-[10px] uppercase font-bold text-ink-faint mb-1">Distancia del Recorrido</span>
+                  <div className="text-3xl font-display font-bold text-ink tabular">
+                    {liveDistance.toFixed(3)} <span className="text-sm font-normal text-ink-soft">km</span>
+                  </div>
+                  <p className="text-[11px] text-ink-soft mt-1">Cálculo de distancia geodésica con algoritmo Turf.js</p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant={isTracking ? 'danger' : 'primary'}
+                  size="md"
+                  className="w-full font-bold"
+                  onClick={toggleTracking}
+                  leftIcon={isTracking ? <Square size={16} /> : <Play size={16} />}
+                >
+                  {isTracking ? 'Detener Tracking GPS' : 'Iniciar Recorrido en Vivo'}
+                </Button>
+
+                {isTracking && (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-300 font-medium text-center bg-amber-500/10 p-2 rounded-xl animate-pulse">
+                    Registrando coordenadas GPS en segundo plano...
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* GPS Picker Card */}
+            <GPSPicker 
+              onLocationChange={(loc) => setUserLocation(loc)} 
+              initialLocation={userLocation}
+            />
+
+            {/* KML Import / Export Tools */}
+            <Card>
+              <CardHeader className="border-b border-line pb-3">
+                <div className="flex items-center gap-2">
+                  <Layers size={18} className="text-brand-500" />
+                  <h3 className="font-bold text-sm text-ink">Gestión de Capas KML (PDVSA)</h3>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-4">
+                <input
+                  type="file"
+                  accept=".kml,.xml"
+                  ref={fileInputRef}
+                  onChange={handleKmlImport}
+                  className="hidden"
+                />
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full font-bold text-xs"
+                  onClick={() => fileInputRef.current?.click()}
+                  leftIcon={<Upload size={14} />}
+                >
+                  Importar Archivo KML a Mapa
+                </Button>
+
+                {importedFeaturesCount !== null && (
+                  <p className="text-[11px] text-emerald-600 font-bold bg-emerald-500/10 p-2 rounded-xl">
+                    ✓ Se importaron {importedFeaturesCount} elementos del archivo KML.
+                  </p>
+                )}
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={mapMarkers.length === 0}
+                  className="w-full font-bold text-xs"
+                  onClick={handleExportAllKML}
+                  leftIcon={<Download size={14} />}
+                >
+                  Exportar Puntos a KML ({mapMarkers.length})
+                </Button>
+              </CardContent>
+            </Card>
+
+          </div>
+
+          {/* Leaflet Map Interactive View */}
+          <div className="lg:col-span-2 space-y-4">
+            <Card className="overflow-hidden p-0 border border-line">
+              <FieldMap
+                height="560px"
+                center={userLocation || { lat: 8.8234, lng: -63.5129 }}
+                zoom={13}
+                markers={mapMarkers}
+                routes={combinedRoutes}
+                userLocation={userLocation}
+              />
+            </Card>
+          </div>
+
+        </div>
+      )}
+
+      {/* Tab 2: Route Drawer */}
+      {activeTab === 'drawer' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <RouteDrawer
+              onRouteSaved={(r) => {
+                setSavedRoutes(prev => [...prev, {
+                  id: `drawer_${Date.now()}`,
+                  name: r.name,
+                  color: '#ff6b00',
+                  path: r.points,
+                  distanceKm: r.distanceKm
+                }]);
+              }}
+            />
+          </div>
+
+          <div className="lg:col-span-1">
+            <Card className="p-0 overflow-hidden">
+              <CardHeader className="p-4 border-b border-line">
+                <h3 className="font-bold text-sm text-ink">Vista Previa del Mapa</h3>
+              </CardHeader>
+              <div className="p-2">
+                <FieldMap
+                  height="420px"
+                  center={userLocation || { lat: 8.8234, lng: -63.5129 }}
+                  zoom={12}
+                  routes={savedRoutes}
+                  userLocation={userLocation}
+                />
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: AI Geographic & Logistics Assistant */}
+      {activeTab === 'assistant' && (
+        <div className="max-w-3xl mx-auto space-y-6">
+          <Card>
+            <CardHeader className="border-b border-line pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-brand-500" />
+                <h3 className="font-bold text-sm text-ink">Asistente Geográfico IA & Búsqueda de Rutas</h3>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-4">
+              <form onSubmit={handleSearchAI} className="flex gap-2">
+                <input
+                  type="text"
+                  value={queryText}
+                  onChange={(e) => setQueryText(e.target.value)}
+                  placeholder="Ej: Ferreterías industriales, suministros de tubería o talleres cerca de mi ubicación..."
+                  className="input-base text-xs py-2.5"
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={isProcessingAI || !queryText.trim()}
+                  isLoading={isProcessingAI}
+                  leftIcon={<Search size={14} />}
+                  className="shrink-0 font-bold text-xs"
+                >
+                  Consultar
+                </Button>
+              </form>
+
+              {response && (
+                <div className="bg-surface-2 p-4 rounded-xl border border-line space-y-3">
+                  <h4 className="text-xs font-bold text-ink flex items-center gap-1.5 uppercase">
+                    <Compass size={14} className="text-brand-500" />
+                    Respuesta Técnica del Asistente
+                  </h4>
+                  <p className="text-xs text-ink whitespace-pre-wrap leading-relaxed">
+                    {response}
+                  </p>
+
+                  {mapLinks.length > 0 && (
+                    <div className="pt-2 border-t border-line">
+                      <span className="block text-[11px] font-bold text-ink mb-2">Enlaces Google Maps recomendados:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {mapLinks.map((link, idx) => (
+                          <a
+                            key={idx}
+                            href={link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-medium bg-surface border border-line px-2.5 py-1 rounded-full text-brand-500 hover:bg-brand-500/10 transition-colors"
+                          >
+                            <MapPin size={12} />
+                            Ubicación Maps #{idx + 1}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
     </div>
   );
 }

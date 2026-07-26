@@ -20,6 +20,7 @@ import {
 } from '../components/ui';
 import StatCard from '../components/common/StatCard';
 import PageHeader from '../components/common/PageHeader';
+import { GPSPicker, FieldMap } from '../components/field';
 
 export interface FieldReportItem {
   id: string;
@@ -754,6 +755,12 @@ Responde de forma ejecutiva, concisa y profesional.`;
                   ))}
                 </select>
               </div>
+
+              {/* GPS Geolocation Capture */}
+              <GPSPicker 
+                onLocationChange={(loc) => setLocation(loc)} 
+                initialLocation={location}
+              />
 
               {/* Submit */}
               <div className="pt-2 border-t border-line">
