@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { BrainCircuit, Send, FileText, Loader2, Sparkles, X, Paperclip, Mic, Square, Volume2, Settings2, Link2 } from 'lucide-react';
-import { GoogleGenAI, ThinkingLevel, Modality } from '@google/genai';
+import { callGeminiProxy } from '../lib/geminiProxy';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useProject } from '../ProjectContext';
@@ -78,17 +78,13 @@ export default function ProjectBrain() {
   const transcribeAudio = async (audioBlob: Blob) => {
     setIsProcessing(true);
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("API Key no configurada");
-
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       reader.onloadend = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
-        const ai = new GoogleGenAI({ apiKey });
         
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
+        const response = await callGeminiProxy({
+          model: 'gemini-2.5-flash',
           contents: [
             { text: 'Transcribe el siguiente audio del usuario. Solo devuelve el texto transcrito.' },
             { inlineData: { data: base64Audio, mimeType: 'audio/webm' } }
@@ -115,15 +111,12 @@ export default function ProjectBrain() {
 
     try {
       setIsPlayingAudio(true);
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("API Key no configurada");
 
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
+      const response = await callGeminiProxy({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ parts: [{ text }] }],
         config: {
-          responseModalities: [Modality.AUDIO],
+          responseModalities: ['AUDIO'],
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: { voiceName: 'Zephyr' },
@@ -132,7 +125,7 @@ export default function ProjectBrain() {
         },
       });
 
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      const base64Audio = response.raw?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (base64Audio) {
         const audioUrl = `data:audio/wav;base64,${base64Audio}`;
         const audio = new Audio(audioUrl);
@@ -158,13 +151,6 @@ export default function ProjectBrain() {
     setIsProcessing(true);
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error("La API Key de Gemini no está configurada.");
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      
       const prompt = `Eres el "Cerebro Operativo" de "Industrial Control 360", un sistema de gestión de proyectos experto en la industria petrolera (PDVSA). 
       Tu objetivo es ayudar a simplificar el control de avance, planificación, presupuesto, y gestión documental.
       
@@ -188,12 +174,11 @@ export default function ProjectBrain() {
       
       Consulta del usuario: "${userQuery}"`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+      const response = await callGeminiProxy({
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }],
-          thinkingConfig: isHighThinking ? { thinkingLevel: ThinkingLevel.HIGH } : undefined,
         }
       });
 

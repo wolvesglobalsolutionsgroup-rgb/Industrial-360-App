@@ -4,7 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { HardHat, TrendingUp, DollarSign, AlertCircle, Download, FileText, CloudRain, Loader2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
-import { GoogleGenAI } from '@google/genai';
+import { callGeminiProxy } from '../lib/geminiProxy';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useProject } from '../ProjectContext';
@@ -60,10 +60,9 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchWeatherContext = async () => {
       try {
-        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: '¿Cuál es el clima actual y pronóstico para los próximos 3 días en la ciudad principal de mi ubicación? Responde en 2 oraciones indicando cómo podría afectar labores de construcción al aire libre.',
+        const response = await callGeminiProxy({
+          model: 'gemini-2.5-flash',
+          prompt: '¿Cuál es el clima actual y pronóstico para los próximos 3 días en la ciudad principal de mi ubicación? Responde en 2 oraciones indicando cómo podría afectar labores de construcción al aire libre.',
           config: {
             tools: [{ googleSearch: {} }]
           }

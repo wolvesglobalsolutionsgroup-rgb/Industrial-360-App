@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, Loader2, Plus, Receipt, Download } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { callGeminiProxy } from '../lib/geminiProxy';
 import { collection, addDoc, query, onSnapshot } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 
@@ -64,8 +64,6 @@ export default function Expenses() {
         reader.readAsDataURL(file);
       });
 
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
       const prompt = `Analiza esta factura o recibo de compra para una obra de construcción. 
       Extrae la siguiente información en formato JSON estricto:
       {
@@ -77,8 +75,8 @@ export default function Expenses() {
       }
       Devuelve SOLO el JSON, sin formato markdown.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+      const response = await callGeminiProxy({
+        model: 'gemini-2.5-flash',
         contents: [
           {
             inlineData: {

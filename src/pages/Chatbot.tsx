@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI } from '@google/genai';
+import { callGeminiProxy } from '../lib/geminiProxy';
 import { Send, Bot, User, Loader2, Paperclip, FileText, X } from 'lucide-react';
 import Markdown from 'react-markdown';
 import { motion } from 'motion/react';
@@ -57,8 +57,6 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
       // Build contents array
       const contents: any[] = [];
       
@@ -80,8 +78,8 @@ export default function Chatbot() {
 
       contents.push(prompt);
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+      const response = await callGeminiProxy({
+        model: 'gemini-2.5-flash',
         contents: contents,
       });
 

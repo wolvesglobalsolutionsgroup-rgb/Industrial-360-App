@@ -1,154 +1,94 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Mic, MicOff, Loader2, Volume2 } from 'lucide-react';
-import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import { callGeminiProxy } from '../lib/geminiProxy';
 
 export default function VoiceChat() {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [session, setSession] = useState<any>(null);
-  const [transcript, setTranscript] = useState<string[]>([]);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [transcript, setTranscript] = useState<string>('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
-  const connect = async () => {
-    setIsConnecting(true);
+  const startRecording = async () => {
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
-      const sessionPromise = ai.live.connect({
-        model: "gemini-3.1-flash-live-preview",
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
-          },
-          systemInstruction: "Eres un ingeniero civil experto y asistente de obra. Responde de manera profesional, concisa y estructurada a las consultas por voz.",
-        },
-        callbacks: {
-          onopen: async () => {
-            setIsConnected(true);
-            setIsConnecting(false);
-            await startAudioCapture(sessionPromise);
-          },
-          onmessage: async (message: LiveServerMessage) => {
-            // Handle audio output
-            const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
-            if (base64Audio) {
-              playAudio(base64Audio);
+      setTranscript('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await processAudio(audioBlob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Microphone error:', error);
+      alert('No se pudo acceder al micrófono.');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const processAudio = async (audioBlob: Blob) => {
+    setIsProcessing(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        
+        const response = await callGeminiProxy({
+          model: 'gemini-2.5-flash',
+          contents: [
+            { text: 'Eres un ingeniero civil experto y asistente de obra. Responde a la consulta de voz del usuario de manera concisa y profesional.' },
+            { inlineData: { data: base64Audio, mimeType: 'audio/webm' } }
+          ]
+        });
+
+        if (response.text) {
+          setTranscript(response.text);
+          // Play TTS audio response
+          try {
+            const ttsRes = await callGeminiProxy({
+              model: 'gemini-2.5-flash-preview-tts',
+              contents: [{ parts: [{ text: response.text }] }],
+              config: {
+                responseModalities: ['AUDIO'],
+                speechConfig: {
+                  voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } }
+                }
+              }
+            });
+            const audioData = ttsRes.raw?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+            if (audioData) {
+              const audio = new Audio(`data:audio/wav;base64,${audioData}`);
+              await audio.play();
             }
-          },
-          onclose: () => {
-            setIsConnected(false);
-            stopAudioCapture();
-          },
-          onerror: (err) => {
-            console.error("Live API Error:", err);
-            setIsConnected(false);
-            stopAudioCapture();
+          } catch (ttsErr) {
+            console.warn('TTS output warning:', ttsErr);
           }
         }
-      });
-      
-      setSession(sessionPromise);
-
-    } catch (error) {
-      console.error("Connection error:", error);
-      setIsConnecting(false);
-    }
-  };
-
-  const startAudioCapture = async (sessionPromise: any) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 } });
-      streamRef.current = stream;
-      
-      const audioContext = new AudioContext({ sampleRate: 16000 });
-      audioContextRef.current = audioContext;
-      
-      const source = audioContext.createMediaStreamSource(stream);
-      sourceRef.current = source;
-      
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
-      processorRef.current = processor;
-      
-      processor.onaudioprocess = (e) => {
-        const inputData = e.inputBuffer.getChannelData(0);
-        // Convert Float32Array to Int16Array
-        const pcm16 = new Int16Array(inputData.length);
-        for (let i = 0; i < inputData.length; i++) {
-          pcm16[i] = Math.max(-32768, Math.min(32767, inputData[i] * 32768));
-        }
-        
-        // Convert to base64
-        const buffer = new ArrayBuffer(pcm16.length * 2);
-        const view = new DataView(buffer);
-        for (let i = 0; i < pcm16.length; i++) {
-          view.setInt16(i * 2, pcm16[i], true); // true for little-endian
-        }
-        
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = btoa(binary);
-        
-        sessionPromise.then((s: any) => {
-          s.sendRealtimeInput({
-            audio: { data: base64, mimeType: 'audio/pcm;rate=16000' }
-          });
-        });
       };
-      
-      source.connect(processor);
-      processor.connect(audioContext.destination);
-      
     } catch (error) {
-      console.error("Error accessing microphone:", error);
-    }
-  };
-
-  const stopAudioCapture = () => {
-    if (processorRef.current && sourceRef.current) {
-      sourceRef.current.disconnect();
-      processorRef.current.disconnect();
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-    }
-  };
-
-  const disconnect = () => {
-    if (session) {
-      session.then((s: any) => s.close());
-    }
-    stopAudioCapture();
-    setIsConnected(false);
-  };
-
-  const playAudio = async (base64Audio: string) => {
-    if (!audioContextRef.current) return;
-    
-    try {
-      const binaryString = atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      // The audio from Gemini Live is 24kHz PCM
-      const audioBuffer = await audioContextRef.current.decodeAudioData(bytes.buffer);
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContextRef.current.destination);
-      source.start();
-    } catch (error) {
-      console.error("Error playing audio:", error);
+      console.error('Error processing voice query:', error);
+      setTranscript('Error al procesar la consulta de voz.');
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -162,23 +102,22 @@ export default function VoiceChat() {
       </div>
 
       <div className="relative">
-        {/* Pulsing background when connected */}
-        {isConnected && (
+        {isRecording && (
           <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20 scale-150"></div>
         )}
         
         <button
-          onClick={isConnected ? disconnect : connect}
-          disabled={isConnecting}
+          onClick={isRecording ? stopRecording : startRecording}
+          disabled={isProcessing}
           className={`relative z-10 w-32 h-32 rounded-full flex items-center justify-center transition-all shadow-xl ${
-            isConnected 
+            isRecording 
               ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30' 
               : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
           }`}
         >
-          {isConnecting ? (
+          {isProcessing ? (
             <Loader2 size={48} className="animate-spin" />
-          ) : isConnected ? (
+          ) : isRecording ? (
             <MicOff size={48} />
           ) : (
             <Mic size={48} />
@@ -186,16 +125,23 @@ export default function VoiceChat() {
         </button>
       </div>
 
-      <div className="mt-12 text-center">
-        {isConnecting ? (
-          <p className="text-emerald-600 font-medium animate-pulse">Conectando con el asistente...</p>
-        ) : isConnected ? (
-          <div className="flex items-center gap-2 text-emerald-600 font-medium">
+      <div className="mt-8 text-center max-w-lg">
+        {isProcessing ? (
+          <p className="text-emerald-600 font-medium animate-pulse">Procesando audio y consultando al servidor...</p>
+        ) : isRecording ? (
+          <div className="flex items-center justify-center gap-2 text-emerald-600 font-medium">
             <Volume2 size={20} className="animate-pulse" />
-            Escuchando... Habla ahora.
+            Grabando... Toca el botón para detener y procesar.
           </div>
         ) : (
-          <p className="text-gray-500 font-medium">Toca el micrófono para empezar</p>
+          <p className="text-gray-500 font-medium">Toca el micrófono para hablar con el asistente</p>
+        )}
+
+        {transcript && (
+          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl text-left text-sm text-gray-800 leading-relaxed">
+            <span className="font-bold text-emerald-700 block mb-1">Respuesta del Asistente:</span>
+            {transcript}
+          </div>
         )}
       </div>
     </div>

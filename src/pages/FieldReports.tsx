@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Camera, MapPin, Users, Clock, Save, FileText, CheckCircle2, Mic, Square, Loader2, Sparkles, Image as ImageIcon } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { callGeminiProxy } from '../lib/geminiProxy';
 import { collection, query, onSnapshot, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
@@ -93,17 +93,13 @@ export default function FieldReports() {
   const transcribeAudio = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("API Key no configurada");
-
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       reader.onloadend = async () => {
         const base64Audio = (reader.result as string).split(',')[1];
-        const ai = new GoogleGenAI({ apiKey });
         
-        const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
+        const response = await callGeminiProxy({
+          model: 'gemini-2.5-flash',
           contents: [
             { text: 'Transcribe este reporte de campo dictado por el ingeniero. Solo devuelve el texto transcrito, sin comentarios adicionales.' },
             { inlineData: { data: base64Audio, mimeType: 'audio/webm' } }
@@ -131,14 +127,10 @@ export default function FieldReports() {
 
     setIsAnalyzingImage(true);
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("API Key no configurada");
-
       const base64Reader = new FileReader();
       base64Reader.readAsDataURL(file);
       base64Reader.onloadend = async () => {
         const base64Image = (base64Reader.result as string).split(',')[1];
-        const ai = new GoogleGenAI({ apiKey });
         
         const tasksContext = tasks.map(t => `- ${t.name} (Planificado: ${t.plannedQuantity} ${t.unit})`).join('\n');
         
@@ -150,8 +142,8 @@ export default function FieldReports() {
         
         Responde de forma concisa y profesional.`;
 
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.1-pro-preview',
+        const response = await callGeminiProxy({
+          model: 'gemini-2.5-flash',
           contents: [
             { text: prompt },
             { inlineData: { data: base64Image, mimeType: file.type } }

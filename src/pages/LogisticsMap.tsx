@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { MapPin, Search, Navigation, Loader2, Map as MapIcon, Play, Square, Route, History } from 'lucide-react';
-import { GoogleGenAI } from '@google/genai';
+import { callGeminiProxy } from '../lib/geminiProxy';
 import { collection, addDoc, serverTimestamp, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 
@@ -117,16 +117,11 @@ export default function LogisticsMap() {
     setMapLinks([]);
 
     try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("API Key no configurada");
-
-      const ai = new GoogleGenAI({ apiKey });
-      
       const prompt = `Eres un asistente de logística de obra. El usuario está en el campo y necesita información geográfica, rutas, o proveedores cercanos.
       Pregunta: ${queryText}`;
 
-      const res = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+      const res = await callGeminiProxy({
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           tools: [{ googleMaps: {} }],
@@ -143,7 +138,7 @@ export default function LogisticsMap() {
 
       setResponse(res.text || 'No se encontró información.');
       
-      const chunks = res.candidates?.[0]?.groundingMetadata?.groundingChunks;
+      const chunks = res.raw?.candidates?.[0]?.groundingMetadata?.groundingChunks;
       if (chunks) {
         const links = chunks.map((chunk: any) => chunk.web?.uri || chunk.maps?.uri).filter(Boolean);
         setMapLinks(links);

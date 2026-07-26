@@ -4,7 +4,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { Plus, CheckCircle2, Circle, Upload, LayoutList, CalendarDays, Edit2, Trash2, Activity, AlertTriangle, Sparkles, X, Loader2 } from 'lucide-react';
 import { XMLParser } from 'fast-xml-parser';
 import { motion } from 'motion/react';
-import { GoogleGenAI } from '@google/genai';
+import { callGeminiProxy } from '../lib/geminiProxy';
 import { useProject } from '../ProjectContext';
 
 export default function Tasks() {
@@ -73,8 +73,6 @@ export default function Tasks() {
     setAiResponse('');
     
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
       // Prepare context
       const tasksContext = tasks.map(t => 
         `- ${t.name}: Planificado ${t.plannedQuantity} ${t.unit}, Ejecutado ${t.executedQuantity.toFixed(2)} ${t.unit}, Costo Unitario $${t.unitCost}, Inicio: ${t.startDate}, Fin: ${t.endDate}`
@@ -89,8 +87,8 @@ Si la pregunta requiere información técnica especializada, normativas de const
 
 Pregunta del usuario: ${aiQuery}`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.1-pro-preview',
+      const response = await callGeminiProxy({
+        model: 'gemini-2.5-flash',
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }]
