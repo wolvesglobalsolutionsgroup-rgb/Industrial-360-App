@@ -11,10 +11,10 @@ export default function Login() {
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-          ObraSync
+          Industrial Control 360
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Inteligencia y control para tus proyectos de construcción
+          Enterprise Operating System para la industria Oil & Gas
         </p>
       </div>
 
