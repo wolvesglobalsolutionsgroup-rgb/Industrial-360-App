@@ -63,12 +63,12 @@ export default function TopContextBar({
     updateQueue();
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOnlineStatus);
-    window.addEventListener('semax-offline-queue-changed', updateQueue);
+    window.addEventListener('ic360-offline-queue-changed', updateQueue);
 
     return () => {
       window.removeEventListener('online', handleOnlineStatus);
       window.removeEventListener('offline', handleOnlineStatus);
-      window.removeEventListener('semax-offline-queue-changed', updateQueue);
+      window.removeEventListener('ic360-offline-queue-changed', updateQueue);
     };
   }, []);
 

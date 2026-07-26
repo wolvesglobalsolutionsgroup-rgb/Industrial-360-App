@@ -242,7 +242,7 @@ export default function ClientPortalBuilder() {
                   value={portalName}
                   onChange={(e) => setPortalName(e.target.value)}
                   placeholder="ej. Portal de Avance - Estación de Flujo X"
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-sm text-slate-900 outline-none focus:ring-2 focus:ring-[#0B2239]"
                 />
               </div>
 
@@ -253,7 +253,7 @@ export default function ClientPortalBuilder() {
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="ej. Comité de Inspección PDVSA"
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-sm text-slate-900 outline-none focus:ring-2 focus:ring-[#0B2239]"
                 />
               </div>
             </div>
@@ -305,7 +305,7 @@ export default function ClientPortalBuilder() {
                   value={customLogoUrl}
                   onChange={(e) => setCustomLogoUrl(e.target.value)}
                   placeholder="https://servidor.com/logo-cliente.png"
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-sm text-slate-900 outline-none focus:ring-2 focus:ring-[#0B2239]"
                 />
                 <p className="text-[11px] text-gray-400 mt-1">Opcional. Si se omite, usará el BrandKit corporativo.</p>
               </div>
@@ -323,7 +323,7 @@ export default function ClientPortalBuilder() {
                     type="text"
                     value={accentColor}
                     onChange={(e) => setAccentColor(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm uppercase font-bold"
+                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm uppercase font-bold text-slate-900"
                   />
                 </div>
               </div>
