@@ -517,52 +517,45 @@ export default function Valuations() {
       />
 
       {/* KPI Metrics Row */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Skeleton className="h-28 rounded-2xl" />
-          <Skeleton className="h-28 rounded-2xl" />
-          <Skeleton className="h-28 rounded-2xl" />
-          <Skeleton className="h-28 rounded-2xl" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Monto Bruto Acumulado"
-            value={`$ ${totalGrossSum.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            sublabel={`${valuations.length} Valuaciones registradas`}
-            icon={<DollarSign size={20} />}
-            accentColor="brand"
-          />
-          <StatCard
-            title="Retenciones PDVSA"
-            value={`$ ${totalRetentionsSum.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            sublabel="FC 10% + Laboral 5%"
-            icon={<ShieldCheck size={20} />}
-            accentColor="amber"
-          />
-          <StatCard
-            title="Amortización Anticipo"
-            value={`$ ${totalAmortizationSum.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            sublabel={`Anticipo ${currentProject?.advancePercent || 30}%`}
-            icon={<Calculator size={20} />}
-            accentColor="indigo"
-          />
-          <StatCard
-            title="Neto Aprobado / Pagado"
-            value={`$ ${totalNetPaidSum.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-            sublabel={`${valuations.filter(v => v.status === 'Pagada').length} Liquidadas`}
-            icon={<CheckCircle2 size={20} />}
-            accentColor="emerald"
-          />
-        </div>
-      )}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Monto Bruto Acumulado"
+          value={`$ ${totalGrossSum.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          sublabel={`${valuations.length} Valuaciones registradas`}
+          icon={<DollarSign size={20} />}
+          accentColor="brand"
+        />
+        <StatCard
+          title="Retenciones PDVSA"
+          value={`$ ${totalRetentionsSum.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          sublabel="FC 10% + Laboral 5%"
+          icon={<ShieldCheck size={20} />}
+          accentColor="amber"
+        />
+        <StatCard
+          title="Amortización Anticipo"
+          value={`$ ${totalAmortizationSum.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          sublabel={`Anticipo ${currentProject?.advancePercent || 30}%`}
+          icon={<Calculator size={20} />}
+          accentColor="indigo"
+        />
+        <StatCard
+          title="Neto Aprobado / Pagado"
+          value={`$ ${totalNetPaidSum.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          sublabel={`${valuations.filter(v => v.status === 'Pagada').length} Liquidadas`}
+          icon={<CheckCircle2 size={20} />}
+          accentColor="emerald"
+        />
+      </div>
 
       {/* Valuations List / Cards */}
       {isLoading ? (
-        <div className="space-y-4">
-          <Skeleton className="h-44 rounded-2xl" />
-          <Skeleton className="h-44 rounded-2xl" />
-        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent mb-3" />
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Cargando valuaciones de obra ROE...</p>
+          </CardContent>
+        </Card>
       ) : valuations.length === 0 ? (
         <Card>
           <CardContent className="py-12">
@@ -735,11 +728,11 @@ export default function Valuations() {
         onClose={() => setIsModalOpen(false)}
         title="Generar Nueva Valuación ROE PDVSA"
       >
-        <form onSubmit={handleCreateValuation} className="space-y-5 text-ink">
+        <form onSubmit={handleCreateValuation} className="space-y-5 text-slate-900 dark:text-slate-100">
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-ink-soft mb-1">Fecha Inicio Período</label>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">Fecha Inicio Período</label>
               <Input 
                 type="date" 
                 required 
@@ -748,7 +741,7 @@ export default function Valuations() {
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-ink-soft mb-1">Fecha Fin Período</label>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">Fecha Fin Período</label>
               <Input 
                 type="date" 
                 required 
@@ -760,12 +753,12 @@ export default function Valuations() {
 
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="block text-xs font-bold text-ink-soft">Monto Bruto Executado ($)</label>
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">Monto Bruto Ejecutado ($)</label>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="text-[11px] h-7"
+                className="text-[11px] h-7 px-2.5"
                 isLoading={isCalculating}
                 leftIcon={<Calculator size={12} />}
                 onClick={calculateFromTasks}
@@ -784,9 +777,9 @@ export default function Valuations() {
           </div>
 
           {/* Configurable Retentions & Amortization */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-surface-2 p-3 rounded-xl border border-line">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700/70">
             <div>
-              <label className="block text-[11px] font-bold text-ink-soft mb-1">% Ret. Fiel Cumplimiento</label>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">% Ret. Fiel Cumplimiento</label>
               <Input 
                 type="number" 
                 value={newValuation.retentionFCPercent} 
@@ -794,7 +787,7 @@ export default function Valuations() {
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-ink-soft mb-1">% Retención Laboral</label>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">% Retención Laboral</label>
               <Input 
                 type="number" 
                 value={newValuation.retentionLaboralPercent} 
@@ -802,7 +795,7 @@ export default function Valuations() {
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-ink-soft mb-1">% Amortiz. Anticipo</label>
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5">% Amortiz. Anticipo</label>
               <Input 
                 type="number" 
                 value={newValuation.advancePercent} 
@@ -812,37 +805,37 @@ export default function Valuations() {
           </div>
 
           {/* Realtime calculation box */}
-          <div className="bg-surface-2 p-4 rounded-xl border border-line space-y-1.5 text-xs font-mono">
-            <div className="flex justify-between text-ink-soft">
+          <div className="bg-slate-100/80 dark:bg-slate-950/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs font-mono">
+            <div className="flex justify-between text-slate-700 dark:text-slate-300 font-semibold">
               <span>Monto Bruto:</span>
-              <span>$ {formGross.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
+              <span className="font-bold">$ {formGross.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="flex justify-between text-rose-600 dark:text-rose-400">
+            <div className="flex justify-between text-rose-600 dark:text-rose-400 font-medium">
               <span>(-) Ret. FC ({newValuation.retentionFCPercent}%):</span>
               <span>-$ {formRetentionFC.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="flex justify-between text-rose-600 dark:text-rose-400">
+            <div className="flex justify-between text-rose-600 dark:text-rose-400 font-medium">
               <span>(-) Ret. Laboral ({newValuation.retentionLaboralPercent}%):</span>
               <span>-$ {formRetentionLaboral.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="flex justify-between text-indigo-600 dark:text-indigo-400">
+            <div className="flex justify-between text-indigo-600 dark:text-indigo-400 font-medium">
               <span>(-) Amortización Anticipo ({newValuation.advancePercent}%):</span>
               <span>-$ {formAmortization.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div className="pt-2 border-t border-line flex justify-between text-sm font-extrabold text-emerald-600 dark:text-emerald-400">
+            <div className="pt-2.5 border-t border-slate-200 dark:border-slate-800 flex justify-between text-sm font-black text-emerald-600 dark:text-emerald-400">
               <span>(=) NETO ESTIMADO A COBRAR:</span>
               <span>$ {formNet.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</span>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-ink-soft mb-1">Descripción / Concepto Contractual</label>
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">Descripción / Concepto Contractual</label>
             <textarea 
               required 
               rows={3} 
               value={newValuation.description} 
               onChange={e => setNewValuation({ ...newValuation, description: e.target.value })} 
-              className="w-full px-3 py-2 bg-surface border border-line rounded-xl text-ink text-xs focus:ring-2 focus:ring-brand-500 outline-none resize-none" 
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-slate-900 dark:text-slate-100 text-xs focus:ring-2 focus:ring-emerald-500 outline-none resize-none font-medium placeholder-slate-400 dark:placeholder-slate-500" 
               placeholder="Ej: Valuación N° 1 correspondiente a trabajos de movimiento de tierra, fundaciones y montaje..." 
             />
           </div>
