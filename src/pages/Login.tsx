@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { loginWithGoogle, loginWithEmail, loginAnonymously } from '../firebase';
-import { HardHat, ShieldCheck, Activity, Cpu, Sparkles, Eye, EyeOff, KeyRound, Mail } from 'lucide-react';
+import { HardHat, ShieldCheck, Activity, Cpu, Sparkles, Eye, EyeOff, KeyRound, Mail, ArrowLeft } from 'lucide-react';
 import { Input, Button, StatusBadge } from '../components/ui';
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -229,7 +231,15 @@ export default function Login() {
               </Button>
             </div>
 
-            <div className="border-t border-line pt-4 text-center">
+            <div className="border-t border-line pt-4 text-center space-y-3">
+              <button 
+                type="button" 
+                onClick={() => navigate('/landing')}
+                className="inline-flex items-center gap-1.5 text-xs text-emerald-600 hover:text-emerald-500 font-bold hover:underline cursor-pointer"
+              >
+                <ArrowLeft size={14} />
+                <span>Ver Landing Page Corporativa</span>
+              </button>
               <p className="text-[11px] text-ink-faint leading-relaxed">
                 Acceso restringido a personal autorizado y contratistas registrados. Al ingresar aceptas las políticas de seguridad e integridad industrial.
               </p>

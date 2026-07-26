@@ -53,87 +53,93 @@ export default function App() {
     );
   }
 
+  if (!user) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/landing" element={<Landing />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/portal/:portalId" element={<ClientPortalView />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    );
+  }
+
   return (
     <Router>
       <Routes>
-        <Route path="/portal/:portalId" element={<ClientPortalView />} />
         <Route path="/landing" element={<Landing />} />
-        {!user ? (
-          <>
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </>
-        ) : (
-          <Route path="/" element={
-            <ProjectProvider>
-              <ThemeProvider>
-                <AppLayout />
-              </ThemeProvider>
-            </ProjectProvider>
-          }>
-            <Route index element={<Dashboard />} />
-            <Route path="projects" element={<Projects />} />
-            
-            {/* Rutas con Protección de Rol */}
-            <Route path="tasks" element={
-              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor']} moduleName="WBS / Planificación">
-                <Tasks />
-              </ProtectedRoute>
-            } />
-            <Route path="valuations" element={
-              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Valuaciones y Facturación">
-                <Valuations />
-              </ProtectedRoute>
-            } />
-            <Route path="expenses" element={
-              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Gestión de Costos y Gastos">
-                <Expenses />
-              </ProtectedRoute>
-            } />
-            <Route path="budget-details" element={
-              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Detalles Presupuestarios">
-                <BudgetDetails />
-              </ProtectedRoute>
-            } />
-            <Route path="siho-ptw" element={
-              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']} moduleName="Módulo SIHO-A y Permisos PTW">
-                <SihoPtw />
-              </ProtectedRoute>
-            } />
-            <Route path="qa-qc-welding" element={
-              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector']} moduleName="Control de Calidad y Juntas de Soldadura">
-                <QaQcWelding />
-              </ProtectedRoute>
-            } />
+        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/portal/:portalId" element={<ClientPortalView />} />
+        <Route path="/" element={
+          <ProjectProvider>
+            <ThemeProvider>
+              <AppLayout />
+            </ThemeProvider>
+          </ProjectProvider>
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="projects" element={<Projects />} />
+          
+          {/* Rutas con Protección de Rol */}
+          <Route path="tasks" element={
+            <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor']} moduleName="WBS / Planificación">
+              <Tasks />
+            </ProtectedRoute>
+          } />
+          <Route path="valuations" element={
+            <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Valuaciones y Facturación">
+              <Valuations />
+            </ProtectedRoute>
+          } />
+          <Route path="expenses" element={
+            <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Gestión de Costos y Gastos">
+              <Expenses />
+            </ProtectedRoute>
+          } />
+          <Route path="budget-details" element={
+            <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Detalles Presupuestarios">
+              <BudgetDetails />
+            </ProtectedRoute>
+          } />
+          <Route path="siho-ptw" element={
+            <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']} moduleName="Módulo SIHO-A y Permisos PTW">
+              <SihoPtw />
+            </ProtectedRoute>
+          } />
+          <Route path="qa-qc-welding" element={
+            <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector']} moduleName="Control de Calidad y Juntas de Soldadura">
+              <QaQcWelding />
+            </ProtectedRoute>
+          } />
 
-            {/* Rutas adicionales de operación */}
-            <Route path="field-reports" element={<FieldReports />} />
-            <Route path="documents" element={<Documents />} />
-            <Route path="logistics" element={<LogisticsMap />} />
-            <Route path="inventory" element={<Inventory />} />
-            <Route path="modulos/ili-pigging" element={<IntegrityIli />} />
-            <Route path="modulos/standby-moc" element={<StandbyMoc />} />
-            <Route path="modulos/flota" element={<FleetEquipment />} />
-            <Route path="modulos/interoperabilidad" element={<InteroperabilityEngine />} />
-            <Route path="modulos/cierre" element={<DossierCompiler />} />
-            <Route path="client-portal-builder" element={<ClientPortalBuilder />} />
-            <Route path="portal-builder" element={<ClientPortalBuilder />} />
-            <Route path="portal/:portalId" element={<ClientPortalView />} />
-            <Route path="tools" element={<EngineeringTools />} />
-            <Route path="project-brain" element={<ProjectBrain />} />
-            <Route path="intelligence" element={<Intelligence />} />
-            <Route path="chat" element={<Chatbot />} />
-            <Route path="voice" element={<VoiceChat />} />
-            <Route path="bim" element={<BIMViewer />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="progress-details" element={<ProgressDetails />} />
-            <Route path="personnel-details" element={<PersonnelDetails />} />
-            <Route path="alerts-details" element={<AlertsDetails />} />
-            <Route path="modulos/:id" element={<ModulePlaceholder />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        )}
+          {/* Rutas adicionales de operación */}
+          <Route path="field-reports" element={<FieldReports />} />
+          <Route path="documents" element={<Documents />} />
+          <Route path="logistics" element={<LogisticsMap />} />
+          <Route path="inventory" element={<Inventory />} />
+          <Route path="modulos/ili-pigging" element={<IntegrityIli />} />
+          <Route path="modulos/standby-moc" element={<StandbyMoc />} />
+          <Route path="modulos/flota" element={<FleetEquipment />} />
+          <Route path="modulos/interoperabilidad" element={<InteroperabilityEngine />} />
+          <Route path="modulos/cierre" element={<DossierCompiler />} />
+          <Route path="client-portal-builder" element={<ClientPortalBuilder />} />
+          <Route path="portal-builder" element={<ClientPortalBuilder />} />
+          <Route path="tools" element={<EngineeringTools />} />
+          <Route path="project-brain" element={<ProjectBrain />} />
+          <Route path="intelligence" element={<Intelligence />} />
+          <Route path="chat" element={<Chatbot />} />
+          <Route path="voice" element={<VoiceChat />} />
+          <Route path="bim" element={<BIMViewer />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="progress-details" element={<ProgressDetails />} />
+          <Route path="personnel-details" element={<PersonnelDetails />} />
+          <Route path="alerts-details" element={<AlertsDetails />} />
+          <Route path="modulos/:id" element={<ModulePlaceholder />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
       </Routes>
     </Router>
   );

@@ -64,124 +64,124 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Root Operational Collections
+    // Root Operational Collections (Public Read for Client Portals & App Users)
     // ===============================================================
     match /projects/{projectId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /tasks/{taskId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isSupervisor();
       allow delete: if isGerente();
     }
 
     match /valuations/{valuationId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /expenses/{expenseId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /field_reports/{reportId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isCampo();
       allow delete: if isSupervisor();
     }
 
     match /siho_ptw/{ptwId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isCampo();
       allow delete: if isGerente();
     }
 
     match /ptws/{ptwId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isCampo();
       allow delete: if isGerente();
     }
 
     match /weld_joints/{jointId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isInspector();
       allow delete: if isGerente();
     }
 
     match /welds/{weldId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isInspector();
       allow delete: if isGerente();
     }
 
     match /ndt_reports/{reportId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isInspector();
       allow delete: if isGerente();
     }
 
     match /inventory/{itemId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isSupervisor();
       allow delete: if isGerente();
     }
 
     match /documents/{documentId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isCampo();
       allow delete: if isGerente();
     }
 
     match /ili_runs/{runId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isInspector();
       allow delete: if isGerente();
     }
 
     match /standby_claims/{claimId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /moc_requests/{mocId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isSupervisor();
       allow delete: if isGerente();
     }
 
     match /fleet_equipment/{equipId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isSupervisor();
       allow delete: if isGerente();
     }
 
     match /interop_imports/{importId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /dossier_compilations/{dossierId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /settings/{settingId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /engineering_calcs/{calcId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
       allow create, update: if isCampo();
       allow delete: if isGerente();
     }
