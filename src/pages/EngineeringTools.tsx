@@ -48,53 +48,168 @@ const FLANGE_DATA: Record<string, Record<string, FlangeMatrixSpec>> = {
     '1/2"': { nps: '1/2"', odMm: 89, thicknessMm: 11.2, bcdMm: 60.3, holesCount: 4, holeDiamInches: '5/8"', boltDiamInches: '1/2"-13 UNC', socketInches: '7/8"', socketMm: 22, torqueFtLb: 60 },
     '3/4"': { nps: '3/4"', odMm: 98, thicknessMm: 12.7, bcdMm: 69.8, holesCount: 4, holeDiamInches: '5/8"', boltDiamInches: '1/2"-13 UNC', socketInches: '7/8"', socketMm: 22, torqueFtLb: 60 },
     '1"': { nps: '1"', odMm: 108, thicknessMm: 14.3, bcdMm: 79.4, holesCount: 4, holeDiamInches: '5/8"', boltDiamInches: '1/2"-13 UNC', socketInches: '7/8"', socketMm: 22, torqueFtLb: 60 },
+    '1-1/4"': { nps: '1-1/4"', odMm: 117, thicknessMm: 15.9, bcdMm: 88.9, holesCount: 4, holeDiamInches: '5/8"', boltDiamInches: '1/2"-13 UNC', socketInches: '7/8"', socketMm: 22, torqueFtLb: 60 },
+    '1-1/2"': { nps: '1-1/2"', odMm: 127, thicknessMm: 17.5, bcdMm: 98.4, holesCount: 4, holeDiamInches: '5/8"', boltDiamInches: '1/2"-13 UNC', socketInches: '7/8"', socketMm: 22, torqueFtLb: 60 },
     '2"': { nps: '2"', odMm: 152, thicknessMm: 19.1, bcdMm: 120.7, holesCount: 4, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 120 },
+    '2-1/2"': { nps: '2-1/2"', odMm: 178, thicknessMm: 22.4, bcdMm: 139.7, holesCount: 4, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 120 },
     '3"': { nps: '3"', odMm: 191, thicknessMm: 23.9, bcdMm: 152.4, holesCount: 4, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 120 },
+    '3-1/2"': { nps: '3-1/2"', odMm: 216, thicknessMm: 23.9, bcdMm: 177.8, holesCount: 8, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 120 },
     '4"': { nps: '4"', odMm: 229, thicknessMm: 23.9, bcdMm: 190.5, holesCount: 8, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 120 },
+    '5"': { nps: '5"', odMm: 254, thicknessMm: 23.9, bcdMm: 215.9, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 200 },
     '6"': { nps: '6"', odMm: 279, thicknessMm: 25.4, bcdMm: 241.3, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 200 },
     '8"': { nps: '8"', odMm: 343, thicknessMm: 28.6, bcdMm: 298.5, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 200 },
     '10"': { nps: '10"', odMm: 406, thicknessMm: 30.2, bcdMm: 362.0, holesCount: 12, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 320 },
     '12"': { nps: '12"', odMm: 483, thicknessMm: 31.8, bcdMm: 431.8, holesCount: 12, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 320 },
+    '14"': { nps: '14"', odMm: 533, thicknessMm: 35.0, bcdMm: 476.3, holesCount: 12, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 480 },
     '16"': { nps: '16"', odMm: 597, thicknessMm: 36.5, bcdMm: 539.8, holesCount: 16, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 480 },
-    '24"': { nps: '24"', odMm: 813, thicknessMm: 47.6, bcdMm: 749.3, holesCount: 20, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1000 }
+    '18"': { nps: '18"', odMm: 635, thicknessMm: 39.7, bcdMm: 577.9, holesCount: 16, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 710 },
+    '20"': { nps: '20"', odMm: 699, thicknessMm: 42.9, bcdMm: 635.0, holesCount: 20, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 710 },
+    '24"': { nps: '24"', odMm: 813, thicknessMm: 47.6, bcdMm: 749.3, holesCount: 20, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1000 },
+    '26"': { nps: '26"', odMm: 870, thicknessMm: 68.3, bcdMm: 806.5, holesCount: 24, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1050 },
+    '28"': { nps: '28"', odMm: 927, thicknessMm: 71.4, bcdMm: 863.6, holesCount: 28, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1100 },
+    '30"': { nps: '30"', odMm: 984, thicknessMm: 74.6, bcdMm: 914.4, holesCount: 28, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1150 },
+    '32"': { nps: '32"', odMm: 1060, thicknessMm: 81.0, bcdMm: 977.9, holesCount: 28, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 1800 },
+    '34"': { nps: '34"', odMm: 1111, thicknessMm: 82.6, bcdMm: 1028.7, holesCount: 32, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 1850 },
+    '36"': { nps: '36"', odMm: 1168, thicknessMm: 90.5, bcdMm: 1085.9, holesCount: 32, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 1900 },
+    '40"': { nps: '40"', odMm: 1289, thicknessMm: 90.5, bcdMm: 1200.2, holesCount: 36, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 2000 },
+    '42"': { nps: '42"', odMm: 1346, thicknessMm: 96.8, bcdMm: 1257.3, holesCount: 36, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 2100 }
   },
   '300#': {
+    '1/2"': { nps: '1/2"', odMm: 95, thicknessMm: 14.3, bcdMm: 66.7, holesCount: 4, holeDiamInches: '5/8"', boltDiamInches: '1/2"-13 UNC', socketInches: '7/8"', socketMm: 22, torqueFtLb: 70 },
+    '3/4"': { nps: '3/4"', odMm: 117, thicknessMm: 15.9, bcdMm: 82.6, holesCount: 4, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 130 },
+    '1"': { nps: '1"', odMm: 124, thicknessMm: 17.5, bcdMm: 88.9, holesCount: 4, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 130 },
+    '1-1/4"': { nps: '1-1/4"', odMm: 133, thicknessMm: 19.1, bcdMm: 98.4, holesCount: 4, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 130 },
+    '1-1/2"': { nps: '1-1/2"', odMm: 156, thicknessMm: 20.6, bcdMm: 114.3, holesCount: 4, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 210 },
     '2"': { nps: '2"', odMm: 165, thicknessMm: 22.4, bcdMm: 127.0, holesCount: 8, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 120 },
+    '2-1/2"': { nps: '2-1/2"', odMm: 191, thicknessMm: 25.4, bcdMm: 149.2, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 210 },
     '3"': { nps: '3"', odMm: 210, thicknessMm: 28.6, bcdMm: 168.3, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 200 },
+    '3-1/2"': { nps: '3-1/2"', odMm: 229, thicknessMm: 30.2, bcdMm: 184.2, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 210 },
     '4"': { nps: '4"', odMm: 254, thicknessMm: 31.8, bcdMm: 200.0, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 200 },
+    '5"': { nps: '5"', odMm: 279, thicknessMm: 35.0, bcdMm: 235.0, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 220 },
     '6"': { nps: '6"', odMm: 318, thicknessMm: 36.5, bcdMm: 269.9, holesCount: 12, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 200 },
     '8"': { nps: '8"', odMm: 381, thicknessMm: 41.3, bcdMm: 330.2, holesCount: 12, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 320 },
-    '12"': { nps: '12"', odMm: 521, thicknessMm: 50.8, bcdMm: 457.2, holesCount: 16, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 710 }
+    '10"': { nps: '10"', odMm: 445, thicknessMm: 47.6, bcdMm: 387.4, holesCount: 16, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 500 },
+    '12"': { nps: '12"', odMm: 521, thicknessMm: 50.8, bcdMm: 457.2, holesCount: 16, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 710 },
+    '14"': { nps: '14"', odMm: 584, thicknessMm: 54.0, bcdMm: 514.4, holesCount: 20, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 730 },
+    '16"': { nps: '16"', odMm: 648, thicknessMm: 57.2, bcdMm: 571.5, holesCount: 20, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1050 },
+    '18"': { nps: '18"', odMm: 711, thicknessMm: 60.3, bcdMm: 628.7, holesCount: 24, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1100 },
+    '20"': { nps: '20"', odMm: 775, thicknessMm: 63.5, bcdMm: 685.8, holesCount: 24, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1150 },
+    '24"': { nps: '24"', odMm: 914, thicknessMm: 69.9, bcdMm: 812.8, holesCount: 24, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 1950 },
+    '26"': { nps: '26"', odMm: 972, thicknessMm: 88.9, bcdMm: 876.3, holesCount: 28, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1200 },
+    '28"': { nps: '28"', odMm: 1035, thicknessMm: 95.3, bcdMm: 933.5, holesCount: 28, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 2000 },
+    '30"': { nps: '30"', odMm: 1092, thicknessMm: 101.6, bcdMm: 990.6, holesCount: 28, holeDiamInches: '1-7/8"', boltDiamInches: '1-3/4"-8 UN', socketInches: '2-3/4"', socketMm: 70, torqueFtLb: 3100 },
+    '32"': { nps: '32"', odMm: 1149, thicknessMm: 108.0, bcdMm: 1047.8, holesCount: 28, holeDiamInches: '2"', boltDiamInches: '1-7/8"-8 UN', socketInches: '2-15/16"', socketMm: 75, torqueFtLb: 3800 },
+    '34"': { nps: '34"', odMm: 1207, thicknessMm: 111.1, bcdMm: 1104.9, holesCount: 32, holeDiamInches: '2"', boltDiamInches: '1-7/8"-8 UN', socketInches: '2-15/16"', socketMm: 75, torqueFtLb: 3900 },
+    '36"': { nps: '36"', odMm: 1270, thicknessMm: 117.5, bcdMm: 1162.1, holesCount: 32, holeDiamInches: '2-1/8"', boltDiamInches: '2"-8 UN', socketInches: '3-1/8"', socketMm: 80, torqueFtLb: 4800 },
+    '40"': { nps: '40"', odMm: 1240, thicknessMm: 133.4, bcdMm: 1143.0, holesCount: 32, holeDiamInches: '1-7/8"', boltDiamInches: '1-3/4"-8 UN', socketInches: '2-3/4"', socketMm: 70, torqueFtLb: 3300 },
+    '42"': { nps: '42"', odMm: 1295, thicknessMm: 142.9, bcdMm: 1193.8, holesCount: 36, holeDiamInches: '1-7/8"', boltDiamInches: '1-3/4"-8 UN', socketInches: '2-3/4"', socketMm: 70, torqueFtLb: 3500 }
   },
   '600#': {
+    '1/2"': { nps: '1/2"', odMm: 95, thicknessMm: 14.3, bcdMm: 66.7, holesCount: 4, holeDiamInches: '5/8"', boltDiamInches: '1/2"-13 UNC', socketInches: '7/8"', socketMm: 22, torqueFtLb: 80 },
+    '3/4"': { nps: '3/4"', odMm: 117, thicknessMm: 15.9, bcdMm: 82.6, holesCount: 4, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 140 },
+    '1"': { nps: '1"', odMm: 124, thicknessMm: 17.5, bcdMm: 88.9, holesCount: 4, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 140 },
+    '1-1/4"': { nps: '1-1/4"', odMm: 133, thicknessMm: 20.6, bcdMm: 98.4, holesCount: 4, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 140 },
+    '1-1/2"': { nps: '1-1/2"', odMm: 156, thicknessMm: 22.4, bcdMm: 114.3, holesCount: 4, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 230 },
     '2"': { nps: '2"', odMm: 165, thicknessMm: 25.4, bcdMm: 127.0, holesCount: 8, holeDiamInches: '3/4"', boltDiamInches: '5/8"-11 UNC', socketInches: '1-1/16"', socketMm: 27, torqueFtLb: 140 },
+    '2-1/2"': { nps: '2-1/2"', odMm: 191, thicknessMm: 28.6, bcdMm: 149.2, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 230 },
+    '3"': { nps: '3"', odMm: 210, thicknessMm: 31.8, bcdMm: 168.3, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 230 },
+    '3-1/2"': { nps: '3-1/2"', odMm: 229, thicknessMm: 35.0, bcdMm: 184.2, holesCount: 8, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 360 },
     '4"': { nps: '4"', odMm: 273, thicknessMm: 38.1, bcdMm: 215.9, holesCount: 8, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 360 },
+    '5"': { nps: '5"', odMm: 330, thicknessMm: 44.5, bcdMm: 266.7, holesCount: 8, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 540 },
     '6"': { nps: '6"', odMm: 356, thicknessMm: 47.6, bcdMm: 292.1, holesCount: 12, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 540 },
-    '8"': { nps: '8"', odMm: 419, thicknessMm: 55.6, bcdMm: 349.2, holesCount: 12, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 780 }
+    '8"': { nps: '8"', odMm: 419, thicknessMm: 55.6, bcdMm: 349.2, holesCount: 12, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 780 },
+    '10"': { nps: '10"', odMm: 508, thicknessMm: 63.5, bcdMm: 431.8, holesCount: 16, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1150 },
+    '12"': { nps: '12"', odMm: 559, thicknessMm: 66.7, bcdMm: 489.0, holesCount: 20, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1200 },
+    '14"': { nps: '14"', odMm: 603, thicknessMm: 69.9, bcdMm: 527.1, holesCount: 20, holeDiamInches: '1-5/8"', boltDiamInches: '1-3/8"-8 UN', socketInches: '2-3/16"', socketMm: 55, torqueFtLb: 1600 },
+    '16"': { nps: '16"', odMm: 686, thicknessMm: 76.2, bcdMm: 603.3, holesCount: 20, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 2100 },
+    '18"': { nps: '18"', odMm: 743, thicknessMm: 82.6, bcdMm: 654.1, holesCount: 20, holeDiamInches: '1-7/8"', boltDiamInches: '1-5/8"-8 UN', socketInches: '2-9/16"', socketMm: 65, torqueFtLb: 2800 },
+    '20"': { nps: '20"', odMm: 813, thicknessMm: 88.9, bcdMm: 723.9, holesCount: 24, holeDiamInches: '1-7/8"', boltDiamInches: '1-5/8"-8 UN', socketInches: '2-9/16"', socketMm: 65, torqueFtLb: 2900 },
+    '24"': { nps: '24"', odMm: 940, thicknessMm: 101.6, bcdMm: 838.2, holesCount: 24, holeDiamInches: '2-1/8"', boltDiamInches: '1-7/8"-8 UN', socketInches: '2-15/16"', socketMm: 75, torqueFtLb: 4400 },
+    '26"': { nps: '26"', odMm: 1016, thicknessMm: 108.0, bcdMm: 914.4, holesCount: 28, holeDiamInches: '2-1/8"', boltDiamInches: '1-7/8"-8 UN', socketInches: '2-15/16"', socketMm: 75, torqueFtLb: 4600 },
+    '28"': { nps: '28"', odMm: 1073, thicknessMm: 114.3, bcdMm: 965.2, holesCount: 28, holeDiamInches: '2-3/8"', boltDiamInches: '2"-8 UN', socketInches: '3-1/8"', socketMm: 80, torqueFtLb: 5600 },
+    '30"': { nps: '30"', odMm: 1130, thicknessMm: 120.7, bcdMm: 1022.4, holesCount: 28, holeDiamInches: '2-3/8"', boltDiamInches: '2"-8 UN', socketInches: '3-1/8"', socketMm: 80, torqueFtLb: 5800 },
+    '32"': { nps: '32"', odMm: 1194, thicknessMm: 127.0, bcdMm: 1079.5, holesCount: 28, holeDiamInches: '2-5/8"', boltDiamInches: '2-1/4"-8 UN', socketInches: '3-1/2"', socketMm: 90, torqueFtLb: 7800 },
+    '34"': { nps: '34"', odMm: 1245, thicknessMm: 133.4, bcdMm: 1130.3, holesCount: 32, holeDiamInches: '2-5/8"', boltDiamInches: '2-1/4"-8 UN', socketInches: '3-1/2"', socketMm: 90, torqueFtLb: 8000 },
+    '36"': { nps: '36"', odMm: 1314, thicknessMm: 139.7, bcdMm: 1193.8, holesCount: 32, holeDiamInches: '2-7/8"', boltDiamInches: '2-1/2"-8 UN', socketInches: '3-7/8"', socketMm: 98, torqueFtLb: 10500 },
+    '40"': { nps: '40"', odMm: 1321, thicknessMm: 165.1, bcdMm: 1212.9, holesCount: 32, holeDiamInches: '2-3/8"', boltDiamInches: '2-1/4"-8 UN', socketInches: '3-1/2"', socketMm: 90, torqueFtLb: 8200 },
+    '42"': { nps: '42"', odMm: 1378, thicknessMm: 171.5, bcdMm: 1263.7, holesCount: 32, holeDiamInches: '2-5/8"', boltDiamInches: '2-1/2"-8 UN', socketInches: '3-7/8"', socketMm: 98, torqueFtLb: 11000 }
   },
   '900#': {
+    '1/2"': { nps: '1/2"', odMm: 121, thicknessMm: 22.4, bcdMm: 82.6, holesCount: 4, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 220 },
+    '3/4"': { nps: '3/4"', odMm: 130, thicknessMm: 25.4, bcdMm: 88.9, holesCount: 4, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 220 },
+    '1"': { nps: '1"', odMm: 149, thicknessMm: 28.6, bcdMm: 101.6, holesCount: 4, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 350 },
+    '1-1/4"': { nps: '1-1/4"', odMm: 159, thicknessMm: 28.6, bcdMm: 111.1, holesCount: 4, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 350 },
+    '1-1/2"': { nps: '1-1/2"', odMm: 178, thicknessMm: 31.8, bcdMm: 124.0, holesCount: 4, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 520 },
+    '2"': { nps: '2"', odMm: 216, thicknessMm: 38.1, bcdMm: 165.1, holesCount: 8, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 380 },
+    '2-1/2"': { nps: '2-1/2"', odMm: 244, thicknessMm: 41.3, bcdMm: 190.5, holesCount: 8, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 550 },
     '3"': { nps: '3"', odMm: 241, thicknessMm: 38.1, bcdMm: 190.5, holesCount: 8, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 380 },
-    '6"': { nps: '6"', odMm: 381, thicknessMm: 55.6, bcdMm: 317.5, holesCount: 12, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 820 }
+    '4"': { nps: '4"', odMm: 292, thicknessMm: 44.5, bcdMm: 235.0, holesCount: 8, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 800 },
+    '6"': { nps: '6"', odMm: 381, thicknessMm: 55.6, bcdMm: 317.5, holesCount: 12, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 820 },
+    '8"': { nps: '8"', odMm: 470, thicknessMm: 63.5, bcdMm: 393.7, holesCount: 12, holeDiamInches: '1-1/2"', boltDiamInches: '1-3/8"-8 UN', socketInches: '2-3/16"', socketMm: 55, torqueFtLb: 1650 },
+    '10"': { nps: '10"', odMm: 546, thicknessMm: 69.9, bcdMm: 469.9, holesCount: 16, holeDiamInches: '1-1/2"', boltDiamInches: '1-3/8"-8 UN', socketInches: '2-3/16"', socketMm: 55, torqueFtLb: 1700 },
+    '12"': { nps: '12"', odMm: 610, thicknessMm: 79.4, bcdMm: 533.4, holesCount: 20, holeDiamInches: '1-1/2"', boltDiamInches: '1-3/8"-8 UN', socketInches: '2-3/16"', socketMm: 55, torqueFtLb: 1750 },
+    '14"': { nps: '14"', odMm: 641, thicknessMm: 85.7, bcdMm: 558.8, holesCount: 20, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 2300 },
+    '16"': { nps: '16"', odMm: 705, thicknessMm: 88.9, bcdMm: 616.0, holesCount: 20, holeDiamInches: '1-7/8"', boltDiamInches: '1-3/4"-8 UN', socketInches: '2-3/4"', socketMm: 70, torqueFtLb: 3600 },
+    '18"': { nps: '18"', odMm: 787, thicknessMm: 101.6, bcdMm: 685.8, holesCount: 20, holeDiamInches: '2-1/8"', boltDiamInches: '2"-8 UN', socketInches: '3-1/8"', socketMm: 80, torqueFtLb: 5400 },
+    '20"': { nps: '20"', odMm: 851, thicknessMm: 108.0, bcdMm: 749.3, holesCount: 20, holeDiamInches: '2-1/8"', boltDiamInches: '2"-8 UN', socketInches: '3-1/8"', socketMm: 80, torqueFtLb: 5600 },
+    '24"': { nps: '24"', odMm: 1041, thicknessMm: 139.7, bcdMm: 901.7, holesCount: 20, holeDiamInches: '2-5/8"', boltDiamInches: '2-1/2"-8 UN', socketInches: '3-7/8"', socketMm: 98, torqueFtLb: 11200 },
+    '26"': { nps: '26"', odMm: 1086, thicknessMm: 152.4, bcdMm: 952.5, holesCount: 24, holeDiamInches: '2-7/8"', boltDiamInches: '2-1/2"-8 UN', socketInches: '3-7/8"', socketMm: 98, torqueFtLb: 11500 },
+    '28"': { nps: '28"', odMm: 1168, thicknessMm: 165.1, bcdMm: 1022.4, holesCount: 24, holeDiamInches: '3-1/8"', boltDiamInches: '2-3/4"-8 UN', socketInches: '4-1/4"', socketMm: 108, torqueFtLb: 15000 },
+    '30"': { nps: '30"', odMm: 1232, thicknessMm: 171.5, bcdMm: 1085.9, holesCount: 24, holeDiamInches: '3-3/8"', boltDiamInches: '3"-8 UN', socketInches: '4-5/8"', socketMm: 118, torqueFtLb: 19500 },
+    '36"': { nps: '36"', odMm: 1461, thicknessMm: 212.7, bcdMm: 1289.1, holesCount: 28, holeDiamInches: '3-5/8"', boltDiamInches: '3-1/2"-8 UN', socketInches: '5-3/8"', socketMm: 136, torqueFtLb: 31000 },
+    '42"': { nps: '42"', odMm: 1676, thicknessMm: 241.3, bcdMm: 1485.9, holesCount: 32, holeDiamInches: '4-1/8"', boltDiamInches: '4"-8 UN', socketInches: '6-1/8"', socketMm: 155, torqueFtLb: 46000 }
   },
   '1500#': {
+    '1/2"': { nps: '1/2"', odMm: 121, thicknessMm: 22.4, bcdMm: 82.6, holesCount: 4, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 220 },
+    '3/4"': { nps: '3/4"', odMm: 130, thicknessMm: 25.4, bcdMm: 88.9, holesCount: 4, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 220 },
+    '1"': { nps: '1"', odMm: 149, thicknessMm: 28.6, bcdMm: 101.6, holesCount: 4, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 350 },
+    '1-1/2"': { nps: '1-1/2"', odMm: 178, thicknessMm: 31.8, bcdMm: 124.0, holesCount: 4, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 520 },
     '2"': { nps: '2"', odMm: 216, thicknessMm: 38.1, bcdMm: 165.1, holesCount: 8, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 380 },
-    '4"': { nps: '4"', odMm: 311, thicknessMm: 54.0, bcdMm: 241.3, holesCount: 8, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1200 }
+    '3"': { nps: '3"', odMm: 267, thicknessMm: 47.6, bcdMm: 203.2, holesCount: 8, holeDiamInches: '1-2/8"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 850 },
+    '4"': { nps: '4"', odMm: 311, thicknessMm: 54.0, bcdMm: 241.3, holesCount: 8, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1200 },
+    '6"': { nps: '6"', odMm: 394, thicknessMm: 82.6, bcdMm: 317.5, holesCount: 12, holeDiamInches: '1-1/2"', boltDiamInches: '1-3/8"-8 UN', socketInches: '2-3/16"', socketMm: 55, torqueFtLb: 1750 },
+    '8"': { nps: '8"', odMm: 483, thicknessMm: 92.1, bcdMm: 393.7, holesCount: 12, holeDiamInches: '1-3/4"', boltDiamInches: '1-5/8"-8 UN', socketInches: '2-9/16"', socketMm: 65, torqueFtLb: 2900 },
+    '10"': { nps: '10"', odMm: 584, thicknessMm: 108.0, bcdMm: 482.6, holesCount: 12, holeDiamInches: '2"', boltDiamInches: '1-7/8"-8 UN', socketInches: '2-15/16"', socketMm: 75, torqueFtLb: 4800 },
+    '12"': { nps: '12"', odMm: 673, thicknessMm: 124.0, bcdMm: 552.4, holesCount: 16, holeDiamInches: '2-1/8"', boltDiamInches: '2"-8 UN', socketInches: '3-1/8"', socketMm: 80, torqueFtLb: 5800 },
+    '14"': { nps: '14"', odMm: 749, thicknessMm: 133.4, bcdMm: 616.0, holesCount: 16, holeDiamInches: '2-3/8"', boltDiamInches: '2-1/4"-8 UN', socketInches: '3-1/2"', socketMm: 90, torqueFtLb: 8200 },
+    '16"': { nps: '16"', odMm: 826, thicknessMm: 146.1, bcdMm: 685.8, holesCount: 16, holeDiamInches: '2-5/8"', boltDiamInches: '2-1/2"-8 UN', socketInches: '3-7/8"', socketMm: 98, torqueFtLb: 11800 },
+    '18"': { nps: '18"', odMm: 914, thicknessMm: 162.0, bcdMm: 762.0, holesCount: 16, holeDiamInches: '2-7/8"', boltDiamInches: '2-3/4"-8 UN', socketInches: '4-1/4"', socketMm: 108, torqueFtLb: 15800 },
+    '20"': { nps: '20"', odMm: 984, thicknessMm: 177.8, bcdMm: 825.5, holesCount: 16, holeDiamInches: '3-1/8"', boltDiamInches: '3"-8 UN', socketInches: '4-5/8"', socketMm: 118, torqueFtLb: 21000 },
+    '24"': { nps: '24"', odMm: 1168, thicknessMm: 203.2, bcdMm: 990.6, holesCount: 16, holeDiamInches: '3-5/8"', boltDiamInches: '3-1/2"-8 UN', socketInches: '5-3/8"', socketMm: 136, torqueFtLb: 33000 }
   },
   '2500#': {
+    '1/2"': { nps: '1/2"', odMm: 133, thicknessMm: 30.2, bcdMm: 88.9, holesCount: 4, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 260 },
+    '3/4"': { nps: '3/4"', odMm: 140, thicknessMm: 31.8, bcdMm: 95.3, holesCount: 4, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 260 },
+    '1"': { nps: '1"', odMm: 159, thicknessMm: 35.0, bcdMm: 108.0, holesCount: 4, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 410 },
+    '1-1/2"': { nps: '1-1/2"', odMm: 203, thicknessMm: 44.5, bcdMm: 133.4, holesCount: 4, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 890 },
     '2"': { nps: '2"', odMm: 235, thicknessMm: 50.8, bcdMm: 171.4, holesCount: 8, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 580 },
-    '4"': { nps: '4"', odMm: 356, thicknessMm: 76.2, bcdMm: 273.0, holesCount: 8, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 2100 }
+    '2-1/2"': { nps: '2-1/2"', odMm: 267, thicknessMm: 57.2, bcdMm: 196.9, holesCount: 8, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 920 },
+    '3"': { nps: '3"', odMm: 305, thicknessMm: 66.7, bcdMm: 228.6, holesCount: 8, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1350 },
+    '4"': { nps: '4"', odMm: 356, thicknessMm: 76.2, bcdMm: 273.0, holesCount: 8, holeDiamInches: '1-5/8"', boltDiamInches: '1-1/2"-8 UN', socketInches: '2-3/8"', socketMm: 60, torqueFtLb: 2100 },
+    '6"': { nps: '6"', odMm: 483, thicknessMm: 108.0, bcdMm: 368.3, holesCount: 8, holeDiamInches: '2-1/8"', boltDiamInches: '2"-8 UN', socketInches: '3-1/8"', socketMm: 80, torqueFtLb: 6200 },
+    '8"': { nps: '8"', odMm: 552, thicknessMm: 127.0, bcdMm: 438.2, holesCount: 12, holeDiamInches: '2-1/8"', boltDiamInches: '2"-8 UN', socketInches: '3-1/8"', socketMm: 80, torqueFtLb: 6400 },
+    '10"': { nps: '10"', odMm: 673, thicknessMm: 165.1, bcdMm: 539.8, holesCount: 12, holeDiamInches: '2-5/8"', boltDiamInches: '2-1/2"-8 UN', socketInches: '3-7/8"', socketMm: 98, torqueFtLb: 12500 },
+    '12"': { nps: '12"', odMm: 762, thicknessMm: 184.2, bcdMm: 619.1, holesCount: 12, holeDiamInches: '2-7/8"', boltDiamInches: '2-3/4"-8 UN', socketInches: '4-1/4"', socketMm: 108, torqueFtLb: 17200 }
   },
   'API 3K': {
     '2-1/16"': { nps: '2-1/16"', odMm: 200, thicknessMm: 33.3, bcdMm: 146.0, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 220 },
-    '4-1/16"': { nps: '4-1/16"', odMm: 275, thicknessMm: 44.5, bcdMm: 215.9, holesCount: 8, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 410 }
+    '3-1/8"': { nps: '3-1/8"', odMm: 240, thicknessMm: 38.0, bcdMm: 181.0, holesCount: 8, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 380 },
+    '4-1/16"': { nps: '4-1/16"', odMm: 275, thicknessMm: 44.5, bcdMm: 215.9, holesCount: 8, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 410 },
+    '7-1/16"': { nps: '7-1/16"', odMm: 380, thicknessMm: 55.0, bcdMm: 317.5, holesCount: 12, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 820 },
+    '11"': { nps: '11"', odMm: 545, thicknessMm: 70.0, bcdMm: 469.9, holesCount: 16, holeDiamInches: '1-1/2"', boltDiamInches: '1-3/8"-8 UN', socketInches: '2-3/16"', socketMm: 55, torqueFtLb: 1700 }
   },
   'API 5K': {
     '2-1/16"': { nps: '2-1/16"', odMm: 215, thicknessMm: 38.1, bcdMm: 165.1, holesCount: 8, holeDiamInches: '1"', boltDiamInches: '7/8"-9 UNC', socketInches: '1-7/16"', socketMm: 36, torqueFtLb: 420 },
-    '4-1/16"': { nps: '4-1/16"', odMm: 310, thicknessMm: 54.0, bcdMm: 241.3, holesCount: 8, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1250 }
+    '3-1/8"': { nps: '3-1/8"', odMm: 265, thicknessMm: 47.6, bcdMm: 203.2, holesCount: 8, holeDiamInches: '1-1/8"', boltDiamInches: '1"-8 UNC', socketInches: '1-5/8"', socketMm: 41, torqueFtLb: 850 },
+    '4-1/16"': { nps: '4-1/16"', odMm: 310, thicknessMm: 54.0, bcdMm: 241.3, holesCount: 8, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1250 },
+    '7-1/16"': { nps: '7-1/16"', odMm: 395, thicknessMm: 82.6, bcdMm: 317.5, holesCount: 12, holeDiamInches: '1-1/2"', boltDiamInches: '1-3/8"-8 UN', socketInches: '2-3/16"', socketMm: 55, torqueFtLb: 1750 },
+    '11"': { nps: '11"', odMm: 585, thicknessMm: 108.0, bcdMm: 482.6, holesCount: 12, holeDiamInches: '2"', boltDiamInches: '1-7/8"-8 UN', socketInches: '2-15/16"', socketMm: 75, torqueFtLb: 4800 }
   },
   'API 10K': {
     '2-1/16"': { nps: '2-1/16"', odMm: 200, thicknessMm: 46.0, bcdMm: 146.0, holesCount: 8, holeDiamInches: '7/8"', boltDiamInches: '3/4"-10 UNC', socketInches: '1-1/4"', socketMm: 32, torqueFtLb: 280 },
-    '4-1/16"': { nps: '4-1/16"', odMm: 315, thicknessMm: 70.0, bcdMm: 241.3, holesCount: 8, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1450 }
+    '3-1/16"': { nps: '3-1/16"', odMm: 270, thicknessMm: 57.0, bcdMm: 196.9, holesCount: 8, holeDiamInches: '1-1/4"', boltDiamInches: '1-1/8"-8 UN', socketInches: '1-13/16"', socketMm: 46, torqueFtLb: 950 },
+    '4-1/16"': { nps: '4-1/16"', odMm: 315, thicknessMm: 70.0, bcdMm: 241.3, holesCount: 8, holeDiamInches: '1-3/8"', boltDiamInches: '1-1/4"-8 UN', socketInches: '2"', socketMm: 50, torqueFtLb: 1450 },
+    '7-1/16"': { nps: '7-1/16"', odMm: 480, thicknessMm: 108.0, bcdMm: 368.3, holesCount: 8, holeDiamInches: '2-1/8"', boltDiamInches: '2"-8 UN', socketInches: '3-1/8"', socketMm: 80, torqueFtLb: 6400 }
   }
 };
 
@@ -111,49 +226,152 @@ interface ValveSpec {
 
 const VALVE_FACE_DATA_BY_CLASS: Record<string, Record<string, ValveSpec>> = {
   '150#': {
+    '1/2"': { nps: '1/2"', gateMm: 108, ballMm: 108, globeMm: 108, checkMm: 108, butterflyMm: 33, plugMm: 108 },
+    '3/4"': { nps: '3/4"', gateMm: 117, ballMm: 117, globeMm: 117, checkMm: 117, butterflyMm: 33, plugMm: 117 },
+    '1"': { nps: '1"', gateMm: 127, ballMm: 127, globeMm: 127, checkMm: 127, butterflyMm: 33, plugMm: 127 },
+    '1-1/4"': { nps: '1-1/4"', gateMm: 140, ballMm: 140, globeMm: 140, checkMm: 140, butterflyMm: 33, plugMm: 140 },
+    '1-1/2"': { nps: '1-1/2"', gateMm: 165, ballMm: 165, globeMm: 165, checkMm: 165, butterflyMm: 33, plugMm: 165 },
     '2"': { nps: '2"', gateMm: 178, ballMm: 178, globeMm: 203, checkMm: 203, butterflyMm: 43, plugMm: 178 },
+    '2-1/2"': { nps: '2-1/2"', gateMm: 191, ballMm: 191, globeMm: 216, checkMm: 216, butterflyMm: 46, plugMm: 191 },
     '3"': { nps: '3"', gateMm: 203, ballMm: 203, globeMm: 241, checkMm: 241, butterflyMm: 46, plugMm: 203 },
+    '3-1/2"': { nps: '3-1/2"', gateMm: 216, ballMm: 216, globeMm: 241, checkMm: 241, butterflyMm: 46, plugMm: 216 },
     '4"': { nps: '4"', gateMm: 229, ballMm: 229, globeMm: 292, checkMm: 292, butterflyMm: 52, plugMm: 229 },
+    '5"': { nps: '5"', gateMm: 254, ballMm: 254, globeMm: 356, checkMm: 330, butterflyMm: 56, plugMm: 254 },
     '6"': { nps: '6"', gateMm: 267, ballMm: 394, globeMm: 406, checkMm: 356, butterflyMm: 56, plugMm: 267 },
     '8"': { nps: '8"', gateMm: 292, ballMm: 457, globeMm: 495, checkMm: 495, butterflyMm: 64, plugMm: 292 },
     '10"': { nps: '10"', gateMm: 330, ballMm: 533, globeMm: 622, checkMm: 622, butterflyMm: 68, plugMm: 330 },
-    '12"': { nps: '12"', gateMm: 356, ballMm: 610, globeMm: 698, checkMm: 698, butterflyMm: 78, plugMm: 356 }
+    '12"': { nps: '12"', gateMm: 356, ballMm: 610, globeMm: 698, checkMm: 698, butterflyMm: 78, plugMm: 356 },
+    '14"': { nps: '14"', gateMm: 381, ballMm: 686, globeMm: 787, checkMm: 787, butterflyMm: 78, plugMm: 381 },
+    '16"': { nps: '16"', gateMm: 406, ballMm: 762, globeMm: 864, checkMm: 864, butterflyMm: 102, plugMm: 406 },
+    '18"': { nps: '18"', gateMm: 432, ballMm: 864, globeMm: 978, checkMm: 978, butterflyMm: 114, plugMm: 432 },
+    '20"': { nps: '20"', gateMm: 457, ballMm: 914, globeMm: 978, checkMm: 978, butterflyMm: 127, plugMm: 457 },
+    '24"': { nps: '24"', gateMm: 508, ballMm: 1067, globeMm: 1295, checkMm: 1295, butterflyMm: 154, plugMm: 508 },
+    '26"': { nps: '26"', gateMm: 559, ballMm: 1143, globeMm: 1350, checkMm: 1350, butterflyMm: 165, plugMm: 559 },
+    '28"': { nps: '28"', gateMm: 610, ballMm: 1245, globeMm: 1420, checkMm: 1420, butterflyMm: 165, plugMm: 610 },
+    '30"': { nps: '30"', gateMm: 660, ballMm: 1295, globeMm: 1500, checkMm: 1500, butterflyMm: 190, plugMm: 660 },
+    '32"': { nps: '32"', gateMm: 711, ballMm: 1372, globeMm: 1580, checkMm: 1580, butterflyMm: 190, plugMm: 711 },
+    '34"': { nps: '34"', gateMm: 762, ballMm: 1473, globeMm: 1650, checkMm: 1650, butterflyMm: 216, plugMm: 762 },
+    '36"': { nps: '36"', gateMm: 813, ballMm: 1524, globeMm: 1727, checkMm: 1727, butterflyMm: 216, plugMm: 813 },
+    '40"': { nps: '40"', gateMm: 914, ballMm: 1676, globeMm: 1850, checkMm: 1850, butterflyMm: 241, plugMm: 914 },
+    '42"': { nps: '42"', gateMm: 965, ballMm: 1753, globeMm: 1950, checkMm: 1950, butterflyMm: 254, plugMm: 965 }
   },
   '300#': {
+    '1/2"': { nps: '1/2"', gateMm: 140, ballMm: 140, globeMm: 152, checkMm: 152, butterflyMm: 33, plugMm: 140 },
+    '3/4"': { nps: '3/4"', gateMm: 152, ballMm: 152, globeMm: 178, checkMm: 178, butterflyMm: 33, plugMm: 152 },
+    '1"': { nps: '1"', gateMm: 165, ballMm: 165, globeMm: 203, checkMm: 203, butterflyMm: 33, plugMm: 165 },
+    '1-1/4"': { nps: '1-1/4"', gateMm: 178, ballMm: 178, globeMm: 216, checkMm: 216, butterflyMm: 33, plugMm: 178 },
+    '1-1/2"': { nps: '1-1/2"', gateMm: 191, ballMm: 191, globeMm: 229, checkMm: 229, butterflyMm: 33, plugMm: 191 },
     '2"': { nps: '2"', gateMm: 216, ballMm: 216, globeMm: 267, checkMm: 267, butterflyMm: 43, plugMm: 216 },
+    '2-1/2"': { nps: '2-1/2"', gateMm: 241, ballMm: 241, globeMm: 292, checkMm: 292, butterflyMm: 48, plugMm: 241 },
     '3"': { nps: '3"', gateMm: 283, ballMm: 283, globeMm: 318, checkMm: 318, butterflyMm: 48, plugMm: 283 },
+    '3-1/2"': { nps: '3-1/2"', gateMm: 292, ballMm: 292, globeMm: 330, checkMm: 330, butterflyMm: 48, plugMm: 292 },
     '4"': { nps: '4"', gateMm: 305, ballMm: 305, globeMm: 356, checkMm: 356, butterflyMm: 54, plugMm: 305 },
+    '5"': { nps: '5"', gateMm: 381, ballMm: 381, globeMm: 400, checkMm: 400, butterflyMm: 59, plugMm: 381 },
     '6"': { nps: '6"', gateMm: 403, ballMm: 403, globeMm: 445, checkMm: 445, butterflyMm: 59, plugMm: 403 },
     '8"': { nps: '8"', gateMm: 419, ballMm: 502, globeMm: 559, checkMm: 533, butterflyMm: 73, plugMm: 419 },
     '10"': { nps: '10"', gateMm: 457, ballMm: 568, globeMm: 622, checkMm: 622, butterflyMm: 83, plugMm: 457 },
-    '12"': { nps: '12"', gateMm: 502, ballMm: 648, globeMm: 711, checkMm: 711, butterflyMm: 92, plugMm: 502 }
+    '12"': { nps: '12"', gateMm: 502, ballMm: 648, globeMm: 711, checkMm: 711, butterflyMm: 92, plugMm: 502 },
+    '14"': { nps: '14"', gateMm: 762, ballMm: 762, globeMm: 838, checkMm: 838, butterflyMm: 117, plugMm: 762 },
+    '16"': { nps: '16"', gateMm: 838, ballMm: 838, globeMm: 864, checkMm: 864, butterflyMm: 133, plugMm: 838 },
+    '18"': { nps: '18"', gateMm: 914, ballMm: 914, globeMm: 978, checkMm: 978, butterflyMm: 149, plugMm: 914 },
+    '20"': { nps: '20"', gateMm: 991, ballMm: 991, globeMm: 1016, checkMm: 1016, butterflyMm: 159, plugMm: 991 },
+    '24"': { nps: '24"', gateMm: 1143, ballMm: 1143, globeMm: 1346, checkMm: 1346, butterflyMm: 181, plugMm: 1143 },
+    '26"': { nps: '26"', gateMm: 1245, ballMm: 1245, globeMm: 1420, checkMm: 1420, butterflyMm: 195, plugMm: 1245 },
+    '28"': { nps: '28"', gateMm: 1346, ballMm: 1346, globeMm: 1500, checkMm: 1500, butterflyMm: 210, plugMm: 1346 },
+    '30"': { nps: '30"', gateMm: 1397, ballMm: 1397, globeMm: 1580, checkMm: 1580, butterflyMm: 230, plugMm: 1397 },
+    '32"': { nps: '32"', gateMm: 1524, ballMm: 1524, globeMm: 1680, checkMm: 1680, butterflyMm: 240, plugMm: 1524 },
+    '34"': { nps: '34"', gateMm: 1626, ballMm: 1626, globeMm: 1750, checkMm: 1750, butterflyMm: 250, plugMm: 1626 },
+    '36"': { nps: '36"', gateMm: 1727, ballMm: 1727, globeMm: 1850, checkMm: 1850, butterflyMm: 260, plugMm: 1727 },
+    '40"': { nps: '40"', gateMm: 1930, ballMm: 1930, globeMm: 2050, checkMm: 2050, butterflyMm: 280, plugMm: 1930 },
+    '42"': { nps: '42"', gateMm: 2032, ballMm: 2032, globeMm: 2150, checkMm: 2150, butterflyMm: 300, plugMm: 2032 }
   },
   '600#': {
+    '1/2"': { nps: '1/2"', gateMm: 165, ballMm: 165, globeMm: 165, checkMm: 165, butterflyMm: 43, plugMm: 165 },
+    '3/4"': { nps: '3/4"', gateMm: 191, ballMm: 191, globeMm: 191, checkMm: 191, butterflyMm: 43, plugMm: 191 },
+    '1"': { nps: '1"', gateMm: 216, ballMm: 216, globeMm: 216, checkMm: 216, butterflyMm: 43, plugMm: 216 },
+    '1-1/4"': { nps: '1-1/4"', gateMm: 229, ballMm: 229, globeMm: 229, checkMm: 229, butterflyMm: 43, plugMm: 229 },
+    '1-1/2"': { nps: '1-1/2"', gateMm: 241, ballMm: 241, globeMm: 241, checkMm: 241, butterflyMm: 43, plugMm: 241 },
     '2"': { nps: '2"', gateMm: 292, ballMm: 292, globeMm: 292, checkMm: 292, butterflyMm: 43, plugMm: 292 },
+    '2-1/2"': { nps: '2-1/2"', gateMm: 330, ballMm: 330, globeMm: 330, checkMm: 330, butterflyMm: 48, plugMm: 330 },
     '3"': { nps: '3"', gateMm: 356, ballMm: 356, globeMm: 356, checkMm: 356, butterflyMm: 54, plugMm: 356 },
+    '3-1/2"': { nps: '3-1/2"', gateMm: 381, ballMm: 381, globeMm: 381, checkMm: 381, butterflyMm: 54, plugMm: 381 },
     '4"': { nps: '4"', gateMm: 432, ballMm: 432, globeMm: 432, checkMm: 432, butterflyMm: 64, plugMm: 432 },
+    '5"': { nps: '5"', gateMm: 508, ballMm: 508, globeMm: 508, checkMm: 508, butterflyMm: 70, plugMm: 508 },
     '6"': { nps: '6"', gateMm: 559, ballMm: 559, globeMm: 559, checkMm: 559, butterflyMm: 78, plugMm: 559 },
     '8"': { nps: '8"', gateMm: 660, ballMm: 660, globeMm: 660, checkMm: 660, butterflyMm: 89, plugMm: 660 },
     '10"': { nps: '10"', gateMm: 787, ballMm: 787, globeMm: 787, checkMm: 787, butterflyMm: 102, plugMm: 787 },
-    '12"': { nps: '12"', gateMm: 838, ballMm: 838, globeMm: 838, checkMm: 838, butterflyMm: 114, plugMm: 838 }
+    '12"': { nps: '12"', gateMm: 838, ballMm: 838, globeMm: 838, checkMm: 838, butterflyMm: 114, plugMm: 838 },
+    '14"': { nps: '14"', gateMm: 889, ballMm: 889, globeMm: 889, checkMm: 889, butterflyMm: 127, plugMm: 889 },
+    '16"': { nps: '16"', gateMm: 991, ballMm: 991, globeMm: 991, checkMm: 991, butterflyMm: 140, plugMm: 991 },
+    '18"': { nps: '18"', gateMm: 1092, ballMm: 1092, globeMm: 1092, checkMm: 1092, butterflyMm: 152, plugMm: 1092 },
+    '20"': { nps: '20"', gateMm: 1194, ballMm: 1194, globeMm: 1194, checkMm: 1194, butterflyMm: 165, plugMm: 1194 },
+    '24"': { nps: '24"', gateMm: 1397, ballMm: 1397, globeMm: 1397, checkMm: 1397, butterflyMm: 190, plugMm: 1397 },
+    '26"': { nps: '26"', gateMm: 1448, ballMm: 1448, globeMm: 1448, checkMm: 1448, butterflyMm: 203, plugMm: 1448 },
+    '28"': { nps: '28"', gateMm: 1549, ballMm: 1549, globeMm: 1549, checkMm: 1549, butterflyMm: 216, plugMm: 1549 },
+    '30"': { nps: '30"', gateMm: 1651, ballMm: 1651, globeMm: 1651, checkMm: 1651, butterflyMm: 229, plugMm: 1651 },
+    '32"': { nps: '32"', gateMm: 1753, ballMm: 1753, globeMm: 1753, checkMm: 1753, butterflyMm: 241, plugMm: 1753 },
+    '34"': { nps: '34"', gateMm: 1854, ballMm: 1854, globeMm: 1854, checkMm: 1854, butterflyMm: 254, plugMm: 1854 },
+    '36"': { nps: '36"', gateMm: 2083, ballMm: 2083, globeMm: 2083, checkMm: 2083, butterflyMm: 267, plugMm: 2083 },
+    '40"': { nps: '40"', gateMm: 2250, ballMm: 2250, globeMm: 2250, checkMm: 2250, butterflyMm: 290, plugMm: 2250 },
+    '42"': { nps: '42"', gateMm: 2350, ballMm: 2350, globeMm: 2350, checkMm: 2350, butterflyMm: 310, plugMm: 2350 }
   },
   '900#': {
+    '1/2"': { nps: '1/2"', gateMm: 216, ballMm: 216, globeMm: 216, checkMm: 216, butterflyMm: 43, plugMm: 216 },
+    '3/4"': { nps: '3/4"', gateMm: 229, ballMm: 229, globeMm: 229, checkMm: 229, butterflyMm: 43, plugMm: 229 },
+    '1"': { nps: '1"', gateMm: 254, ballMm: 254, globeMm: 254, checkMm: 254, butterflyMm: 43, plugMm: 254 },
+    '1-1/4"': { nps: '1-1/4"', gateMm: 279, ballMm: 279, globeMm: 279, checkMm: 279, butterflyMm: 43, plugMm: 279 },
+    '1-1/2"': { nps: '1-1/2"', gateMm: 305, ballMm: 305, globeMm: 305, checkMm: 305, butterflyMm: 43, plugMm: 305 },
     '2"': { nps: '2"', gateMm: 368, ballMm: 368, globeMm: 368, checkMm: 368, butterflyMm: 43, plugMm: 368 },
+    '2-1/2"': { nps: '2-1/2"', gateMm: 419, ballMm: 419, globeMm: 419, checkMm: 419, butterflyMm: 48, plugMm: 419 },
     '3"': { nps: '3"', gateMm: 381, ballMm: 381, globeMm: 381, checkMm: 381, butterflyMm: 54, plugMm: 381 },
     '4"': { nps: '4"', gateMm: 457, ballMm: 457, globeMm: 457, checkMm: 457, butterflyMm: 64, plugMm: 457 },
     '6"': { nps: '6"', gateMm: 610, ballMm: 610, globeMm: 610, checkMm: 610, butterflyMm: 78, plugMm: 610 },
     '8"': { nps: '8"', gateMm: 737, ballMm: 737, globeMm: 737, checkMm: 737, butterflyMm: 89, plugMm: 737 },
     '10"': { nps: '10"', gateMm: 838, ballMm: 838, globeMm: 838, checkMm: 838, butterflyMm: 102, plugMm: 838 },
-    '12"': { nps: '12"', gateMm: 965, ballMm: 965, globeMm: 965, checkMm: 965, butterflyMm: 114, plugMm: 965 }
+    '12"': { nps: '12"', gateMm: 965, ballMm: 965, globeMm: 965, checkMm: 965, butterflyMm: 114, plugMm: 965 },
+    '14"': { nps: '14"', gateMm: 1029, ballMm: 1029, globeMm: 1029, checkMm: 1029, butterflyMm: 127, plugMm: 1029 },
+    '16"': { nps: '16"', gateMm: 1130, ballMm: 1130, globeMm: 1130, checkMm: 1130, butterflyMm: 140, plugMm: 1130 },
+    '18"': { nps: '18"', gateMm: 1219, ballMm: 1219, globeMm: 1219, checkMm: 1219, butterflyMm: 152, plugMm: 1219 },
+    '20"': { nps: '20"', gateMm: 1321, ballMm: 1321, globeMm: 1321, checkMm: 1321, butterflyMm: 165, plugMm: 1321 },
+    '24"': { nps: '24"', gateMm: 1549, ballMm: 1549, globeMm: 1549, checkMm: 1549, butterflyMm: 190, plugMm: 1549 },
+    '26"': { nps: '26"', gateMm: 1650, ballMm: 1650, globeMm: 1650, checkMm: 1650, butterflyMm: 203, plugMm: 1650 },
+    '28"': { nps: '28"', gateMm: 1750, ballMm: 1750, globeMm: 1750, checkMm: 1750, butterflyMm: 216, plugMm: 1750 },
+    '30"': { nps: '30"', gateMm: 1850, ballMm: 1850, globeMm: 1850, checkMm: 1850, butterflyMm: 229, plugMm: 1850 },
+    '36"': { nps: '36"', gateMm: 2150, ballMm: 2150, globeMm: 2150, checkMm: 2150, butterflyMm: 267, plugMm: 2150 },
+    '42"': { nps: '42"', gateMm: 2450, ballMm: 2450, globeMm: 2450, checkMm: 2450, butterflyMm: 310, plugMm: 2450 }
   },
   '1500#': {
+    '1/2"': { nps: '1/2"', gateMm: 216, ballMm: 216, globeMm: 216, checkMm: 216, butterflyMm: 43, plugMm: 216 },
+    '3/4"': { nps: '3/4"', gateMm: 229, ballMm: 229, globeMm: 229, checkMm: 229, butterflyMm: 43, plugMm: 229 },
+    '1"': { nps: '1"', gateMm: 254, ballMm: 254, globeMm: 254, checkMm: 254, butterflyMm: 43, plugMm: 254 },
+    '1-1/2"': { nps: '1-1/2"', gateMm: 305, ballMm: 305, globeMm: 305, checkMm: 305, butterflyMm: 43, plugMm: 305 },
     '2"': { nps: '2"', gateMm: 368, ballMm: 368, globeMm: 368, checkMm: 368, butterflyMm: 43, plugMm: 368 },
+    '2-1/2"': { nps: '2-1/2"', gateMm: 419, ballMm: 419, globeMm: 419, checkMm: 419, butterflyMm: 48, plugMm: 419 },
     '3"': { nps: '3"', gateMm: 470, ballMm: 470, globeMm: 470, checkMm: 470, butterflyMm: 54, plugMm: 470 },
     '4"': { nps: '4"', gateMm: 546, ballMm: 546, globeMm: 546, checkMm: 546, butterflyMm: 64, plugMm: 546 },
     '6"': { nps: '6"', gateMm: 705, ballMm: 705, globeMm: 705, checkMm: 705, butterflyMm: 78, plugMm: 705 },
     '8"': { nps: '8"', gateMm: 832, ballMm: 832, globeMm: 832, checkMm: 832, butterflyMm: 89, plugMm: 832 },
     '10"': { nps: '10"', gateMm: 991, ballMm: 991, globeMm: 991, checkMm: 991, butterflyMm: 102, plugMm: 991 },
-    '12"': { nps: '12"', gateMm: 1130, ballMm: 1130, globeMm: 1130, checkMm: 1130, butterflyMm: 114, plugMm: 1130 }
+    '12"': { nps: '12"', gateMm: 1130, ballMm: 1130, globeMm: 1130, checkMm: 1130, butterflyMm: 114, plugMm: 1130 },
+    '14"': { nps: '14"', gateMm: 1257, ballMm: 1257, globeMm: 1257, checkMm: 1257, butterflyMm: 127, plugMm: 1257 },
+    '16"': { nps: '16"', gateMm: 1384, ballMm: 1384, globeMm: 1384, checkMm: 1384, butterflyMm: 140, plugMm: 1384 },
+    '18"': { nps: '18"', gateMm: 1537, ballMm: 1537, globeMm: 1537, checkMm: 1537, butterflyMm: 152, plugMm: 1537 },
+    '20"': { nps: '20"', gateMm: 1664, ballMm: 1664, globeMm: 1664, checkMm: 1664, butterflyMm: 165, plugMm: 1664 },
+    '24"': { nps: '24"', gateMm: 1943, ballMm: 1943, globeMm: 1943, checkMm: 1943, butterflyMm: 190, plugMm: 1943 }
+  },
+  '2500#': {
+    '1/2"': { nps: '1/2"', gateMm: 264, ballMm: 264, globeMm: 264, checkMm: 264, butterflyMm: 43, plugMm: 264 },
+    '3/4"': { nps: '3/4"', gateMm: 273, ballMm: 273, globeMm: 273, checkMm: 273, butterflyMm: 43, plugMm: 273 },
+    '1"': { nps: '1"', gateMm: 308, ballMm: 308, globeMm: 308, checkMm: 308, butterflyMm: 43, plugMm: 308 },
+    '1-1/2"': { nps: '1-1/2"', gateMm: 387, ballMm: 387, globeMm: 387, checkMm: 387, butterflyMm: 43, plugMm: 387 },
+    '2"': { nps: '2"', gateMm: 451, ballMm: 451, globeMm: 451, checkMm: 451, butterflyMm: 43, plugMm: 451 },
+    '2-1/2"': { nps: '2-1/2"', gateMm: 508, ballMm: 508, globeMm: 508, checkMm: 508, butterflyMm: 48, plugMm: 508 },
+    '3"': { nps: '3"', gateMm: 578, ballMm: 578, globeMm: 578, checkMm: 578, butterflyMm: 54, plugMm: 578 },
+    '4"': { nps: '4"', gateMm: 673, ballMm: 673, globeMm: 673, checkMm: 673, butterflyMm: 64, plugMm: 673 },
+    '6"': { nps: '6"', gateMm: 914, ballMm: 914, globeMm: 914, checkMm: 914, butterflyMm: 78, plugMm: 914 },
+    '8"': { nps: '8"', gateMm: 1022, ballMm: 1022, globeMm: 1022, checkMm: 1022, butterflyMm: 89, plugMm: 1022 },
+    '10"': { nps: '10"', gateMm: 1270, ballMm: 1270, globeMm: 1270, checkMm: 1270, butterflyMm: 102, plugMm: 1270 },
+    '12"': { nps: '12"', gateMm: 1422, ballMm: 1422, globeMm: 1422, checkMm: 1422, butterflyMm: 114, plugMm: 1422 }
   }
 };
 
@@ -176,6 +394,17 @@ function getStarPatternSequence(holesCount: number): number[] {
       return [1, 15, 8, 22, 4, 18, 11, 25, 2, 16, 9, 23, 5, 19, 12, 26, 3, 17, 10, 24, 6, 20, 13, 27, 7, 21, 14, 28];
     case 32:
       return [1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31, 2, 18, 10, 26, 6, 22, 14, 30, 4, 20, 12, 28, 8, 24, 16, 32];
+    case 36:
+      return [1, 19, 10, 28, 5, 23, 14, 32, 2, 20, 11, 29, 6, 24, 15, 33, 3, 21, 12, 30, 7, 25, 16, 34, 4, 22, 13, 31, 8, 26, 17, 35, 9, 27, 18, 36];
+    case 40:
+      return [1, 21, 11, 31, 6, 26, 16, 36, 2, 22, 12, 32, 7, 27, 17, 37, 3, 23, 13, 33, 8, 28, 18, 38, 4, 24, 14, 34, 9, 29, 19, 39, 5, 25, 15, 35, 10, 30, 20, 40];
+    case 44:
+      return [1, 23, 12, 34, 6, 28, 17, 39, 2, 24, 13, 35, 7, 29, 18, 40, 3, 25, 14, 36, 8, 30, 19, 41, 4, 26, 15, 37, 9, 31, 20, 42, 5, 27, 16, 38, 10, 32, 21, 43, 11, 33, 22, 44];
+    case 48:
+      return [1, 25, 13, 37, 7, 31, 19, 43, 2, 26, 14, 38, 8, 32, 20, 44, 3, 27, 15, 39, 9, 33, 21, 45, 4, 28, 16, 40, 10, 34, 22, 46, 5, 29, 17, 41, 11, 35, 23, 47, 6, 30, 18, 42, 12, 36, 24, 48];
+    case 52:
+    case 56:
+    case 60:
     default: {
       const seq: number[] = [];
       const half = Math.floor(holesCount / 2);
