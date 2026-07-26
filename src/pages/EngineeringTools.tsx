@@ -162,27 +162,49 @@ export default function EngineeringTools() {
   const [weldNpsInches, setWeldNpsInches] = useState<number>(8);
   const [weldWallThicknessMm, setWeldWallThicknessMm] = useState<number>(8.18);
   const [weldProcess, setWeldProcess] = useState<'SMAW' | 'GTAW' | 'GMAW' | 'FCAW'>('SMAW');
+  const [weldElectrodeId, setWeldElectrodeId] = useState<string>('E7018');
   const [weldJointCount, setWeldJointCount] = useState<number>(10);
+  const [customEfficiency, setCustomEfficiency] = useState<number | null>(null);
+
+  // AWS Electrodes Catalog with technical deposition efficiency yields
+  const ELECTRODE_CATALOG = [
+    { id: 'E6010', name: 'AWS E6010 (Celulósico Raíz)', process: 'SMAW', yieldPct: 58, stubLossPct: 42, note: 'Ideal para pases de raíz en tuberías de acero al carbono (API 5L Gr. B/X52).' },
+    { id: 'E7018', name: 'AWS E7018-1 (Bajo Hidrógeno)', process: 'SMAW', yieldPct: 68, stubLossPct: 32, note: 'Polvo de hierro en revestimiento. Pases de relleno y presentación ASME B31.3.' },
+    { id: 'E8018-B2', name: 'AWS E8018-B2 (Cr-Mo Alloy)', process: 'SMAW', yieldPct: 66, stubLossPct: 34, note: 'Acero aleado Cromo-Molibdeno para líneas de vapor y alta temperatura.' },
+    { id: 'E308L-16', name: 'AWS E308L-16 (Inoxidable 304/316)', process: 'SMAW', yieldPct: 62, stubLossPct: 38, note: 'Electrodo rutilo-básico para aceros inoxidables austeníticos.' },
+    { id: 'ER70S-6_TIG', name: 'AWS ER70S-6 (Varilla TIG 36")', process: 'GTAW', yieldPct: 95, stubLossPct: 5, note: 'Varilla sólida con desoxidantes Si/Mn. Pase de raíz 100% radiografiado.' },
+    { id: 'ER70S-6_MIG', name: 'AWS ER70S-6 (Alambre Sólido MIG)', process: 'GMAW', yieldPct: 92, stubLossPct: 8, note: 'Alambre continuo para alta productividad en taller de prefabricación.' },
+    { id: 'E71T-1M', name: 'AWS E71T-1M / E71T-8 (Tubular FCAW)', process: 'FCAW', yieldPct: 86, stubLossPct: 14, note: 'Alambre tubular con escoria para alta tasa de deposición en campo.' },
+    { id: 'ERNiCrMo-3', name: 'AWS ERNiCrMo-3 (Inconel 625)', process: 'GTAW', yieldPct: 96, stubLossPct: 4, note: 'Aleación Níquel-Cromo-Molibdeno para revestimientos y servicio amargo H2S.' },
+  ];
+
+  const currentElectrode = ELECTRODE_CATALOG.find(e => e.id === weldElectrodeId) || ELECTRODE_CATALOG[1];
 
   const weldResults = useMemo(() => {
     const OD = weldNpsInches * 25.4;
     const t = weldWallThicknessMm;
     const meanDiam = OD - t;
     const meanCirc = Math.PI * meanDiam;
+    // Standard 75 degree included V-bevel angle + 2mm root gap estimation
     const areaSqMm = (t * t * Math.tan((37.5 * Math.PI) / 180)) + (2.0 * t);
     const volNetCuMm = areaSqMm * meanCirc * weldJointCount;
-    const netKg = (volNetCuMm * 7.85) / 1000000;
+    const netKg = (volNetCuMm * 7.85) / 1000000; // Steel density 7.85 g/cm3
     
-    let eff = 0.60;
-    if (weldProcess === 'GTAW') eff = 0.90;
-    if (weldProcess === 'GMAW') eff = 0.92;
-    if (weldProcess === 'FCAW') eff = 0.85;
-
-    const grossKg = netKg / eff;
+    const effDecimal = (customEfficiency !== null ? customEfficiency : currentElectrode.yieldPct) / 100;
+    const grossKg = netKg / Math.max(effDecimal, 0.1);
     const boxes5kg = Math.ceil(grossKg / 5);
+    const wasteKg = grossKg - netKg;
 
-    return { netKg, grossKg, boxes5kg, eff: eff * 100 };
-  }, [weldNpsInches, weldWallThicknessMm, weldProcess, weldJointCount]);
+    return { 
+      netKg, 
+      grossKg, 
+      boxes5kg, 
+      wasteKg,
+      effPct: effDecimal * 100,
+      electrodeName: currentElectrode.name,
+      electrodeNote: currentElectrode.note
+    };
+  }, [weldNpsInches, weldWallThicknessMm, currentElectrode, customEfficiency, weldJointCount]);
 
   // 2. Support Span MSS SP-69
   const [spanNps, setSpanNps] = useState<number>(4);
@@ -1161,18 +1183,29 @@ export default function EngineeringTools() {
                 />
               </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Proceso Soldadura</label>
+              <div className="col-span-2">
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
+                  <span>Tipo de Electrodo / Varilla AWS</span>
+                  <span className="text-[10px] text-amber-500 font-mono">Rendimiento Técnico: {currentElectrode.yieldPct}%</span>
+                </label>
                 <select
-                  value={weldProcess}
-                  onChange={(e) => setWeldProcess(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                  value={weldElectrodeId}
+                  onChange={(e) => {
+                    const el = ELECTRODE_CATALOG.find(x => x.id === e.target.value);
+                    if (el) {
+                      setWeldElectrodeId(el.id);
+                      setWeldProcess(el.process as any);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-slate-900 dark:text-white"
                 >
-                  <option value="SMAW">SMAW (Electrodo Revestido)</option>
-                  <option value="GTAW">GTAW (TIG)</option>
-                  <option value="GMAW">GMAW (MIG)</option>
-                  <option value="FCAW">FCAW (Tubular)</option>
+                  {ELECTRODE_CATALOG.map(el => (
+                    <option key={el.id} value={el.id}>
+                      [{el.process}] {el.name} — Rendimiento {el.yieldPct}%
+                    </option>
+                  ))}
                 </select>
+                <p className="text-[10px] text-slate-400 mt-1 italic">{currentElectrode.note}</p>
               </div>
 
               <div>
@@ -1185,6 +1218,17 @@ export default function EngineeringTools() {
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
                 />
               </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Ajuste Rendimiento (%)</label>
+                <input
+                  type="number"
+                  placeholder={`Std ${currentElectrode.yieldPct}%`}
+                  value={customEfficiency ?? ''}
+                  onChange={(e) => setCustomEfficiency(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl font-bold placeholder:text-slate-400"
+                />
+              </div>
             </div>
 
             <div className="p-4 bg-slate-900 text-white rounded-xl border border-slate-800 font-mono text-xs space-y-2">
@@ -1192,11 +1236,19 @@ export default function EngineeringTools() {
                 <span className="text-slate-400">Metal Neta Depositado:</span>
                 <span className="font-bold">{weldResults.netKg.toFixed(2)} kg</span>
               </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Rendimiento Técnico de Deposición:</span>
+                <span className="font-bold text-amber-400">{weldResults.effPct.toFixed(0)}%</span>
+              </div>
               <div className="flex justify-between text-amber-400 font-bold">
                 <span>Consumo Bruto Requerido:</span>
                 <span>{weldResults.grossKg.toFixed(2)} kg</span>
               </div>
-              <div className="flex justify-between text-emerald-400 font-bold border-t border-slate-800 pt-1.5">
+              <div className="flex justify-between text-slate-400 text-[10px]">
+                <span>Pérdidas por Colilla y Salpicadura:</span>
+                <span>{weldResults.wasteKg.toFixed(2)} kg</span>
+              </div>
+              <div className="flex justify-between text-emerald-400 font-bold border-t border-slate-800 pt-1.5 text-sm">
                 <span>Cajas de Electrodo (5 kg):</span>
                 <span>{weldResults.boxes5kg} Cajas</span>
               </div>

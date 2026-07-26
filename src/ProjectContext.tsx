@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { collection, query, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebase';
 
@@ -55,6 +55,7 @@ export interface Project {
   status: string;
   ownerId: string;
   advancePercent?: number;
+  budget?: number;
   orgId?: string;
 }
 
@@ -66,6 +67,39 @@ export const CORPORATE_PORTFOLIO_PROJECT: Project = {
   ownerId: 'org',
   orgId: 'default_org'
 };
+
+export const FALLBACK_DEMO_PROJECTS: Project[] = [
+  {
+    id: 'PROJ-001',
+    name: 'IPC Reemplazo Oleoducto 16" Jusepín - San Mateo',
+    description: 'Reemplazo de 12.5 km de tubería API 5L Gr. X52 Sch 40, incluyendo cruces especiales y pruebas hidrostáticas.',
+    budget: 1450000,
+    advancePercent: 48,
+    status: 'en_campo',
+    ownerId: 'demo_admin',
+    orgId: 'default_org'
+  },
+  {
+    id: 'PROJ-002',
+    name: 'Mantenimiento Mayor Tren K-101 Planta Compresora San Joaquín',
+    description: 'Overhaul completo de turbocompresor K-101 y cambio de válvulas de recirculación.',
+    budget: 820000,
+    advancePercent: 22,
+    status: 'en_campo',
+    ownerId: 'demo_admin',
+    orgId: 'default_org'
+  },
+  {
+    id: 'PROJ-003',
+    name: 'Adecuación Estación de Flujo Bare-1 Faja Petrolífera del Orinoco',
+    description: 'Sustitución de colectores de producción de crudo pesado e instalación de separadores multifásicos.',
+    budget: 2100000,
+    advancePercent: 85,
+    status: 'en_campo',
+    ownerId: 'demo_admin',
+    orgId: 'default_org'
+  }
+];
 
 export const DEFAULT_ORGANIZATION: Organization = {
   id: 'default_org',
@@ -162,15 +196,32 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     fetchBrand();
   }, [currentOrganization.id]);
 
+  const hasAttemptedSeedRef = useRef(false);
+
   useEffect(() => {
     // Escuchar proyectos planos y de la organización actual
     const q = query(collection(db, 'projects'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) {
-        // Auto-seed demo data if collection is empty
-        seedDemoData(true).then(() => {
+        if (!hasAttemptedSeedRef.current) {
+          hasAttemptedSeedRef.current = true;
+          seedDemoData(true)
+            .then((res) => {
+              if (!res.success) {
+                console.warn('Seeding unpermitted or failed, using local fallback demo projects');
+                setProjects(FALLBACK_DEMO_PROJECTS);
+              }
+            })
+            .catch(() => {
+              setProjects(FALLBACK_DEMO_PROJECTS);
+            })
+            .finally(() => {
+              setIsLoading(false);
+            });
+        } else {
+          setProjects(FALLBACK_DEMO_PROJECTS);
           setIsLoading(false);
-        });
+        }
         return;
       }
 
@@ -193,7 +244,13 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       }
       setIsLoading(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'projects');
+      // Avoid spamming error console if permission error
+      if (error?.code !== 'permission-denied') {
+        handleFirestoreError(error, OperationType.GET, 'projects');
+      } else {
+        console.warn('Firestore permission denied for projects collection. Using local demo fallback.');
+        setProjects(FALLBACK_DEMO_PROJECTS);
+      }
       setIsLoading(false);
     });
 

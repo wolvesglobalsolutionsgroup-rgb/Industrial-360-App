@@ -98,6 +98,13 @@ export const PIPE_SCHEDULE_CATALOG: Record<string, Record<string, PipeScheduleSp
     '120':     { nps: '12"', dnMm: 300, odMm: 323.8, schedule: '120', wallMm: 25.40, idMm: 273.0, weightKgM: 186.91, volumeLitersM: 58.53 },
     '160':     { nps: '12"', dnMm: 300, odMm: 323.8, schedule: '160', wallMm: 33.32, idMm: 257.2, weightKgM: 238.76, volumeLitersM: 51.96 }
   },
+  '14"': {
+    '10S':     { nps: '14"', dnMm: 350, odMm: 355.6, schedule: '10S', wallMm: 4.78, idMm: 346.0, weightKgM: 41.38, volumeLitersM: 94.03 },
+    '30':      { nps: '14"', dnMm: 350, odMm: 355.6, schedule: '30', wallMm: 7.92, idMm: 339.8, weightKgM: 67.90, volumeLitersM: 90.68 },
+    '40/STD':  { nps: '14"', dnMm: 350, odMm: 355.6, schedule: '40/STD', wallMm: 9.53, idMm: 336.5, weightKgM: 81.33, volumeLitersM: 88.93 },
+    '80/XS':   { nps: '14"', dnMm: 350, odMm: 355.6, schedule: '80/XS', wallMm: 15.09, idMm: 325.4, weightKgM: 126.71, volumeLitersM: 83.16 },
+    '160':     { nps: '14"', dnMm: 350, odMm: 355.6, schedule: '160', wallMm: 35.71, idMm: 284.2, weightKgM: 281.82, volumeLitersM: 63.43 }
+  },
   '16"': {
     '10S':     { nps: '16"', dnMm: 400, odMm: 406.4, schedule: '10S', wallMm: 4.57, idMm: 397.3, weightKgM: 45.30, volumeLitersM: 123.97 },
     '30':      { nps: '16"', dnMm: 400, odMm: 406.4, schedule: '30', wallMm: 7.92, idMm: 390.6, weightKgM: 77.83, volumeLitersM: 119.82 },
@@ -106,6 +113,20 @@ export const PIPE_SCHEDULE_CATALOG: Record<string, Record<string, PipeScheduleSp
     '120':     { nps: '16"', dnMm: 400, odMm: 406.4, schedule: '120', wallMm: 28.58, idMm: 349.2, weightKgM: 266.36, volumeLitersM: 95.77 },
     '160':     { nps: '16"', dnMm: 400, odMm: 406.4, schedule: '160', wallMm: 40.49, idMm: 325.4, weightKgM: 365.25, volumeLitersM: 83.16 }
   },
+  '18"': {
+    '10S':     { nps: '18"', dnMm: 450, odMm: 457.2, schedule: '10S', wallMm: 4.78, idMm: 447.6, weightKgM: 53.34, volumeLitersM: 157.36 },
+    '30':      { nps: '18"', dnMm: 450, odMm: 457.2, schedule: '30', wallMm: 7.92, idMm: 441.4, weightKgM: 87.77, volumeLitersM: 153.02 },
+    '40/STD':  { nps: '18"', dnMm: 450, odMm: 457.2, schedule: '40/STD', wallMm: 9.53, idMm: 438.1, weightKgM: 105.16, volumeLitersM: 150.74 },
+    '80/XS':   { nps: '18"', dnMm: 450, odMm: 457.2, schedule: '80/XS', wallMm: 19.05, idMm: 419.1, weightKgM: 205.74, volumeLitersM: 137.95 },
+    '160':     { nps: '18"', dnMm: 450, odMm: 457.2, schedule: '160', wallMm: 45.24, idMm: 366.7, weightKgM: 459.39, volumeLitersM: 105.61 }
+  },
+  '20"': {
+    '10S':     { nps: '20"', dnMm: 500, odMm: 508.0, schedule: '10S', wallMm: 5.54, idMm: 496.9, weightKgM: 68.61, volumeLitersM: 193.93 },
+    '20':      { nps: '20"', dnMm: 500, odMm: 508.0, schedule: '20', wallMm: 9.53, idMm: 488.9, weightKgM: 117.15, volumeLitersM: 187.73 },
+    '40/STD':  { nps: '20"', dnMm: 500, odMm: 508.0, schedule: '40/STD', wallMm: 9.53, idMm: 488.9, weightKgM: 117.15, volumeLitersM: 187.73 },
+    '80/XS':   { nps: '20"', dnMm: 500, odMm: 508.0, schedule: '80/XS', wallMm: 20.62, idMm: 466.8, weightKgM: 248.01, volumeLitersM: 171.13 },
+    '160':     { nps: '20"', dnMm: 500, odMm: 508.0, schedule: '160', wallMm: 50.01, idMm: 408.0, weightKgM: 564.81, volumeLitersM: 130.74 }
+  },
   '24"': {
     '10S':     { nps: '24"', dnMm: 600, odMm: 609.6, schedule: '10S', wallMm: 6.35, idMm: 596.9, weightKgM: 94.47, volumeLitersM: 279.82 },
     '20':      { nps: '24"', dnMm: 600, odMm: 609.6, schedule: '20', wallMm: 9.53, idMm: 590.5, weightKgM: 140.98, volumeLitersM: 273.84 },
@@ -113,5 +134,26 @@ export const PIPE_SCHEDULE_CATALOG: Record<string, Record<string, PipeScheduleSp
     '80/XS':   { nps: '24"', dnMm: 600, odMm: 609.6, schedule: '80/XS', wallMm: 17.48, idMm: 574.6, weightKgM: 255.20, volumeLitersM: 259.34 },
     '120':     { nps: '24"', dnMm: 600, odMm: 609.6, schedule: '120', wallMm: 46.02, idMm: 517.6, weightKgM: 639.63, volumeLitersM: 210.42 },
     '160':     { nps: '24"', dnMm: 600, odMm: 609.6, schedule: '160', wallMm: 59.54, idMm: 490.5, weightKgM: 807.56, volumeLitersM: 188.95 }
+  },
+  '30"': {
+    '10S':     { nps: '30"', dnMm: 750, odMm: 762.0, schedule: '10S', wallMm: 7.92, idMm: 746.2, weightKgM: 147.16, volumeLitersM: 437.33 },
+    '20':      { nps: '30"', dnMm: 750, odMm: 762.0, schedule: '20', wallMm: 9.53, idMm: 742.9, weightKgM: 176.84, volumeLitersM: 433.47 },
+    '30':      { nps: '30"', dnMm: 750, odMm: 762.0, schedule: '30', wallMm: 12.70, idMm: 736.6, weightKgM: 234.66, volumeLitersM: 426.13 },
+    'STD':     { nps: '30"', dnMm: 750, odMm: 762.0, schedule: 'STD', wallMm: 9.53, idMm: 742.9, weightKgM: 176.84, volumeLitersM: 433.47 },
+    'XS':      { nps: '30"', dnMm: 750, odMm: 762.0, schedule: 'XS', wallMm: 12.70, idMm: 736.6, weightKgM: 234.66, volumeLitersM: 426.13 }
+  },
+  '36"': {
+    '10S':     { nps: '36"', dnMm: 900, odMm: 914.4, schedule: '10S', wallMm: 7.92, idMm: 898.6, weightKgM: 176.95, volumeLitersM: 634.18 },
+    '20':      { nps: '36"', dnMm: 900, odMm: 914.4, schedule: '20', wallMm: 9.53, idMm: 895.3, weightKgM: 212.68, volumeLitersM: 629.53 },
+    'STD':     { nps: '36"', dnMm: 900, odMm: 914.4, schedule: 'STD', wallMm: 9.53, idMm: 895.3, weightKgM: 212.68, volumeLitersM: 629.53 },
+    'XS':      { nps: '36"', dnMm: 900, odMm: 914.4, schedule: 'XS', wallMm: 12.70, idMm: 889.0, weightKgM: 282.42, volumeLitersM: 620.69 }
+  },
+  '42"': {
+    'STD':     { nps: '42"', dnMm: 1050, odMm: 1066.8, schedule: 'STD', wallMm: 9.53, idMm: 1047.7, weightKgM: 248.53, volumeLitersM: 862.05 },
+    'XS':      { nps: '42"', dnMm: 1050, odMm: 1066.8, schedule: 'XS', wallMm: 12.70, idMm: 1041.4, weightKgM: 330.18, volumeLitersM: 851.68 }
+  },
+  '48"': {
+    'STD':     { nps: '48"', dnMm: 1200, odMm: 1219.2, schedule: 'STD', wallMm: 9.53, idMm: 1200.1, weightKgM: 284.38, volumeLitersM: 1131.11 },
+    'XS':      { nps: '48"', dnMm: 1200, odMm: 1219.2, schedule: 'XS', wallMm: 12.70, idMm: 1193.8, weightKgM: 377.93, volumeLitersM: 1119.23 }
   }
 };

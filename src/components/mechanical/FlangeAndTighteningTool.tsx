@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { FLANGE_DATA, FlangeSpec } from '../../lib/norms/asme/asmeB165';
 import { VALVE_CATALOG, VALVE_FACE_TO_FACE_ASME_B1610 } from '../../lib/data/mechanical/valves';
-import { GASKET_CATALOG, SPIRAL_WOUND_DIMENSIONS_B1620 } from '../../lib/data/mechanical/gaskets';
+import { GASKET_CATALOG } from '../../lib/data/mechanical/gaskets';
 import { PIPE_SCHEDULE_CATALOG } from '../../lib/data/mechanical/pipeSchedules';
-import { generateStarSequence, PCC1_PASSES, TIGHTENING_GUIDELINES } from '../../lib/data/mechanical/tightening';
-import { Disc, Shield, Wrench, Layers, ArrowRight, CheckCircle2, Info, ChevronRight } from 'lucide-react';
+import { PCC1_PASSES, TIGHTENING_GUIDELINES } from '../../lib/data/mechanical/tightening';
+import { Disc, Shield, Wrench, Layers, CheckCircle2, Info, ChevronRight, Activity } from 'lucide-react';
+
+import { InteractiveFlangeDiagram } from './InteractiveFlangeDiagram';
+import { ValveVisualizer } from './ValveVisualizer';
+import { GasketVisualizer } from './GasketVisualizer';
 
 export const FlangeAndTighteningTool: React.FC = () => {
   const [subTab, setSubTab] = useState<'flanges_tightening' | 'valves' | 'gaskets' | 'pipe_schedules'>('flanges_tightening');
@@ -24,7 +28,6 @@ export const FlangeAndTighteningTool: React.FC = () => {
   const npsOptions = Object.keys(FLANGE_DATA[selectedRating] || {});
   const currentFlangeSpec: FlangeSpec | undefined = FLANGE_DATA[selectedRating]?.[selectedNps];
 
-  const starSequence = currentFlangeSpec ? generateStarSequence(currentFlangeSpec.holesCount) : [];
   const activePass = PCC1_PASSES[activePassIndex];
 
   // Helper to calculate torque for current pass
@@ -224,82 +227,26 @@ export const FlangeAndTighteningTool: React.FC = () => {
                 </div>
               </div>
 
-              {/* Flange Tightening Visualizer SVG Diagram */}
-              <div className="lg:col-span-7 p-5 rounded-2xl bg-surface border border-line space-y-4 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between border-b border-line pb-3 mb-4">
-                    <div>
-                      <h3 className="text-base font-black text-ink font-display flex items-center gap-2">
-                        <Disc size={20} className="text-amber-500" />
-                        <span>Diagrama de Apriete en Estrella (Star Pattern)</span>
-                      </h3>
-                      <p className="text-xs text-ink-soft">Orden numérico de torqueamiento para {currentFlangeSpec.holesCount} pernos</p>
-                    </div>
-                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-surface-2 text-ink">
-                      ASME PCC-1
-                    </span>
+              {/* Flange Tightening Visualizer Interactive SVG Diagram */}
+              <div className="lg:col-span-7 p-5 rounded-2xl bg-surface border border-line space-y-4">
+                <div className="flex items-center justify-between border-b border-line pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-ink font-display flex items-center gap-2">
+                      <Disc size={20} className="text-amber-500" />
+                      <span>Mapa Interactivo de Secuencia de Apriete (Star Pattern)</span>
+                    </h3>
+                    <p className="text-xs text-ink-soft">Haz clic en reproducir o selecciona un perno para ver su torque y copa requerida</p>
                   </div>
-
-                  {/* SVG Canvas for Flange */}
-                  <div className="relative w-full aspect-square max-w-[360px] mx-auto bg-slate-950 rounded-2xl p-4 flex items-center justify-center border border-slate-800 shadow-inner">
-                    <svg viewBox="0 0 400 400" className="w-full h-full">
-                      {/* Outer Flange Circle */}
-                      <circle cx="200" cy="200" r="180" fill="#0B2239" stroke="#1e293b" strokeWidth="4" />
-                      
-                      {/* Bolt Circle Diameter (BCD) Line */}
-                      <circle cx="200" cy="200" r="130" fill="none" stroke="#f59e0b" strokeWidth="1.5" strokeDasharray="4 4" />
-                      
-                      {/* Inner Pipe Circle */}
-                      <circle cx="200" cy="200" r="75" fill="#020617" stroke="#334155" strokeWidth="3" />
-                      <text x="200" y="195" textAnchor="middle" fill="#94a3b8" fontSize="12" fontWeight="bold">PIPE NPS</text>
-                      <text x="200" y="215" textAnchor="middle" fill="#f59e0b" fontSize="14" fontWeight="black">{currentFlangeSpec.nps}</text>
-
-                      {/* Render Bolt Holes */}
-                      {Array.from({ length: currentFlangeSpec.holesCount }).map((_, holeIdx) => {
-                        const boltNumber = holeIdx + 1;
-                        const angleRad = (holeIdx * (360 / currentFlangeSpec.holesCount) - 90) * (Math.PI / 180);
-                        const cx = 200 + 130 * Math.cos(angleRad);
-                        const cy = 200 + 130 * Math.sin(angleRad);
-
-                        // Find step order in star sequence
-                        const stepOrder = starSequence.indexOf(boltNumber) + 1;
-
-                        return (
-                          <g key={holeIdx} className="transition-all cursor-pointer hover:opacity-90">
-                            {/* Bolt Hole Outer Ring */}
-                            <circle cx={cx} cy={cy} r="18" fill="#1e293b" stroke="#f59e0b" strokeWidth="2" />
-                            {/* Bolt Hole Center */}
-                            <circle cx={cx} cy={cy} r="14" fill="#020617" />
-                            {/* Bolt Number (Top) */}
-                            <text x={cx} y={cy - 2} textAnchor="middle" dominantBaseline="middle" fill="#ffffff" fontSize="11" fontWeight="bold">
-                              #{boltNumber}
-                            </text>
-                            {/* Step Order (Bottom Accent) */}
-                            <text x={cx} y={cy + 8} textAnchor="middle" dominantBaseline="middle" fill="#f59e0b" fontSize="9" fontWeight="black">
-                              P{stepOrder}
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </svg>
-                  </div>
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/30 font-mono">
+                    ASME PCC-1
+                  </span>
                 </div>
 
-                {/* Sequence Table Legend */}
-                <div className="p-4 rounded-xl bg-surface-2 border border-line space-y-2">
-                  <h4 className="text-xs font-bold text-ink uppercase flex items-center justify-between">
-                    <span>Secuencia Numérica Exacta (Paso a Paso)</span>
-                    <span className="text-amber-500 font-mono font-bold">{currentFlangeSpec.holesCount} Pernos</span>
-                  </h4>
-                  <div className="flex flex-wrap gap-1.5 text-xs font-mono">
-                    {starSequence.map((boltNum, stepIdx) => (
-                      <span key={stepIdx} className="px-2 py-1 rounded-md bg-surface border border-line text-ink font-bold">
-                        <span className="text-amber-500 text-[10px] mr-1">P{stepIdx + 1}:</span>
-                        Perno #{boltNum}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <InteractiveFlangeDiagram
+                  flangeSpec={currentFlangeSpec}
+                  rating={selectedRating}
+                  activePassIndex={activePassIndex}
+                />
               </div>
             </div>
           ) : (
@@ -352,6 +299,9 @@ export const FlangeAndTighteningTool: React.FC = () => {
                       API / ASME Certified
                     </span>
                   </div>
+
+                  {/* SVG Technical Cross Section Diagram for Valve */}
+                  <ValveVisualizer valve={valve} />
 
                   <p className="text-sm text-ink-soft leading-relaxed">{valve.description}</p>
 
@@ -450,7 +400,10 @@ export const FlangeAndTighteningTool: React.FC = () => {
                     </span>
                   </div>
 
-                  <p className="text-xs text-ink-soft leading-relaxed">{gasket.description}</p>
+                  {/* SVG Technical Construction Diagram for Gasket */}
+                  <GasketVisualizer gasket={gasket} />
+
+                  <p className="text-xs text-ink-soft leading-relaxed pt-2">{gasket.description}</p>
                 </div>
 
                 <div className="space-y-3 pt-3 border-t border-line">

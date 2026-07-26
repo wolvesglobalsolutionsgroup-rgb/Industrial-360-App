@@ -1,7 +1,12 @@
 import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 
 export async function seedDemoData(force = false): Promise<{ success: boolean; message: string }> {
+  if (!auth.currentUser) {
+    console.warn("Carga de datos demo cancelada: Usuario en modo demo local sin permisos de escritura en Firestore.");
+    return { success: false, message: "Modo demo local: Se requiere usuario autenticado para escribir en Firestore." };
+  }
+
   try {
     // Check if projects AND tasks already exist unless forced
     if (!force) {
