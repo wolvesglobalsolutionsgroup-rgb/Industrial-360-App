@@ -13,7 +13,7 @@ export interface PendingOfflineOperation {
   errorMessage?: string;
 }
 
-const DB_NAME = 'SEMAX_FIELD_OFFLINE_DB';
+const DB_NAME = 'IC360_FIELD_OFFLINE_DB';
 const DB_VERSION = 1;
 const STORE_NAME = 'pending_field_operations';
 
@@ -83,7 +83,7 @@ export async function queueOfflineOperation(
   }
 
   // Dispatch custom event so components can refresh offline queue counts
-  window.dispatchEvent(new CustomEvent('semax-offline-queue-changed'));
+  window.dispatchEvent(new CustomEvent('ic360-offline-queue-changed'));
 
   return item;
 }
@@ -148,7 +148,7 @@ export async function flushOfflineQueue(): Promise<{ synced: number; failed: num
     }
   }
 
-  window.dispatchEvent(new CustomEvent('semax-offline-queue-changed'));
+  window.dispatchEvent(new CustomEvent('ic360-offline-queue-changed'));
   return { synced: syncedCount, failed: failedCount };
 }
 
@@ -158,15 +158,15 @@ export function initOfflineAutoSync() {
 
   // Auto-sync when coming back online
   window.addEventListener('online', () => {
-    console.log('[SEMAX Offline Service] Network connection restored. Flushing queue...');
+    console.log('[IC360 Offline Service] Network connection restored. Flushing queue...');
     flushOfflineQueue().catch(console.error);
   });
 
   // Listen for background sync trigger from Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data && event.data.type === 'SEMAX_TRIGGER_SYNC') {
-        console.log('[SEMAX Service Worker] Background sync message received.');
+      if (event.data && event.data.type === 'IC360_TRIGGER_SYNC') {
+        console.log('[IC360 Service Worker] Background sync message received.');
         flushOfflineQueue().catch(console.error);
       }
     });
