@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import { collection, query, onSnapshot, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { queueOfflineOperation } from '../lib/offlineSync';
 
 export default function FieldReports() {
   const { currentProject } = useProject();
@@ -173,21 +174,37 @@ export default function FieldReports() {
       return;
     }
     setIsSubmitting(true);
+    const reportData = {
+      projectId: currentProject.id,
+      date: reportDate,
+      weather,
+      personnelCount: Number(personnelCount),
+      notes,
+      slumpTest: slumpTest ? Number(slumpTest) : null,
+      temperature: temperature ? Number(temperature) : null,
+      equipmentSerial,
+      location,
+      imagePreview,
+      aiAnalysis,
+    };
+
     try {
-      await addDoc(collection(db, 'field_reports'), {
-        projectId: currentProject.id,
-        date: reportDate,
-        weather,
-        personnelCount: Number(personnelCount),
-        notes,
-        slumpTest: slumpTest ? Number(slumpTest) : null,
-        temperature: temperature ? Number(temperature) : null,
-        equipmentSerial,
-        location,
-        imagePreview, // Ensure image is saved too
-        aiAnalysis,
-        timestamp: serverTimestamp()
-      });
+      if (!navigator.onLine) {
+        // Queue offline for automatic background sync when network returns
+        await queueOfflineOperation('field_reports', 'create', reportData);
+        alert("Modo Sin Conexión: Reporte guardado localmente. Se sincronizará automáticamente al recuperar la conexión.");
+      } else {
+        try {
+          await addDoc(collection(db, 'field_reports'), {
+            ...reportData,
+            timestamp: serverTimestamp()
+          });
+        } catch (err) {
+          // Fallback to offline queue if network fails
+          console.warn("Error enviando reporte en línea, guardando en cola offline:", err);
+          await queueOfflineOperation('field_reports', 'create', reportData);
+        }
+      }
       setSubmitted(true);
       setNotes('');
       setSlumpTest('');

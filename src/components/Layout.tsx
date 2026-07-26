@@ -4,11 +4,13 @@ import {
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
   MessageSquare, Mic, Box, LogOut, Calculator, Settings as SettingsIcon,
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
-  Database, BookOpen, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown, Truck, ArrowLeftRight, Building
+  Database, BookOpen, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown, Truck, ArrowLeftRight, Building,
+  Wifi, WifiOff, RefreshCw
 } from 'lucide-react';
 import { auth, logout } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useProject, CORPORATE_PORTFOLIO_PROJECT } from '../ProjectContext';
+import { getPendingOfflineOperations, flushOfflineQueue } from '../lib/offlineSync';
 
 const coreOperativoItems = [
   { path: '/', label: 'Dashboard Ejecutivo', icon: LayoutDashboard },
@@ -60,6 +62,37 @@ export default function Layout() {
   const [isMobile, setIsMobile] = useState(false);
   const { projects, currentProject, setCurrentProject } = useProject();
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [pendingQueueCount, setPendingQueueCount] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  // Sync offline queue counter and network state
+  useEffect(() => {
+    const handleOnlineStatus = () => setIsOnline(navigator.onLine);
+    const updateQueue = async () => {
+      const pending = await getPendingOfflineOperations();
+      setPendingQueueCount(pending.length);
+    };
+
+    updateQueue();
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+    window.addEventListener('semax-offline-queue-changed', updateQueue);
+
+    return () => {
+      window.removeEventListener('online', handleOnlineStatus);
+      window.removeEventListener('offline', handleOnlineStatus);
+      window.removeEventListener('semax-offline-queue-changed', updateQueue);
+    };
+  }, []);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    await flushOfflineQueue();
+    const pending = await getPendingOfflineOperations();
+    setPendingQueueCount(pending.length);
+    setIsSyncing(false);
+  };
 
   // Handle window resize to detect mobile view
   useEffect(() => {
@@ -258,6 +291,44 @@ export default function Layout() {
                 </>
               )}
             </div>
+          </div>
+
+          {/* Offline / Background Sync Indicator */}
+          <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+              isOnline 
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                : 'bg-amber-50 border-amber-300 text-amber-900 animate-pulse'
+            }`}>
+              {isOnline ? (
+                <>
+                  <Wifi size={13} className="text-emerald-600" />
+                  <span className="hidden sm:inline">En Línea</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff size={13} className="text-amber-600" />
+                  <span>Modo Offline</span>
+                </>
+              )}
+              {pendingQueueCount > 0 && (
+                <span className="bg-amber-500 text-white font-bold px-1.5 py-0.2 rounded-full text-[10px]">
+                  {pendingQueueCount} pend.
+                </span>
+              )}
+            </div>
+
+            {pendingQueueCount > 0 && (
+              <button
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                title="Sincronizar datos de campo pendientes"
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium bg-[#0B2239] text-white hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <RefreshCw size={13} className={isSyncing ? 'animate-spin' : ''} />
+                <span className="hidden md:inline">Sincronizar</span>
+              </button>
+            )}
           </div>
         </header>
         

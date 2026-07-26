@@ -22,7 +22,8 @@ import {
   Cpu, 
   Droplets,
   HardHat,
-  Thermometer
+  Thermometer,
+  FileText
 } from 'lucide-react';
 
 // ==========================================
@@ -438,6 +439,171 @@ const REBAR_DATA: RebarSpec[] = [
   { designation: 'N° 11 (1-3/8")', nominalDiamMm: 35.8, nominalDiamInches: '1-3/8"', weightKgPerMeter: 7.907, lapLengthMeters: 1.50 }
 ];
 
+// 4. LINE CLASS SPECIFICATION DECODER (PDVSA / ASME B31.3 / NACE)
+export interface LineClassInfo {
+  code: string;
+  ratingClass: string;
+  material: string;
+  service: string;
+  nace: boolean;
+  corrosionAllowanceMm: number;
+  corrosionAllowanceInches: string;
+  maxPressPsi: number;
+  standardRef: string;
+}
+
+export const LINE_CLASS_PRESETS: Record<string, LineClassInfo> = {
+  'A1A': {
+    code: 'A1A',
+    ratingClass: '150#',
+    material: 'Acero al Carbono (ASTM A106 Gr. B / A53 Gr. B / API 5L Gr. B)',
+    service: 'Servicio General / Hidrocarburos No Corrosivos (Sweet Service)',
+    nace: false,
+    corrosionAllowanceMm: 1.5,
+    corrosionAllowanceInches: '1/16" (1.5 mm)',
+    maxPressPsi: 285,
+    standardRef: 'PDVSA / ASME B16.5 / ASME B31.3'
+  },
+  'A1B': {
+    code: 'A1B',
+    ratingClass: '150#',
+    material: 'Acero al Carbono (ASTM A106 Gr. B / NACE Tested)',
+    service: 'Servicio Amargo (Sour Service / H2S / CO2)',
+    nace: true,
+    corrosionAllowanceMm: 3.0,
+    corrosionAllowanceInches: '1/8" (3.0 mm)',
+    maxPressPsi: 285,
+    standardRef: 'PDVSA / NACE MR0175 / ISO 15156 / ASME B31.3'
+  },
+  'B1A': {
+    code: 'B1A',
+    ratingClass: '300#',
+    material: 'Acero al Carbono (ASTM A106 Gr. B / API 5L X52)',
+    service: 'Servicio General / Presión Intermedia',
+    nace: false,
+    corrosionAllowanceMm: 1.5,
+    corrosionAllowanceInches: '1/16" (1.5 mm)',
+    maxPressPsi: 740,
+    standardRef: 'PDVSA / ASME B16.5 / ASME B31.3'
+  },
+  'B1B': {
+    code: 'B1B',
+    ratingClass: '300#',
+    material: 'Acero al Carbono (ASTM A106 Gr. B / API 5L X52 NACE)',
+    service: 'Servicio Amargo (Sour Service / H2S / CO2)',
+    nace: true,
+    corrosionAllowanceMm: 3.0,
+    corrosionAllowanceInches: '1/8" (3.0 mm)',
+    maxPressPsi: 740,
+    standardRef: 'PDVSA / NACE MR0175 / ISO 15156 / ASME B31.3'
+  },
+  'D1A': {
+    code: 'D1A',
+    ratingClass: '600#',
+    material: 'Acero al Carbono High Yield (API 5L X52 / X60 / A106 Gr. B)',
+    service: 'Servicio General / Alta Presión',
+    nace: false,
+    corrosionAllowanceMm: 1.5,
+    corrosionAllowanceInches: '1/16" (1.5 mm)',
+    maxPressPsi: 1480,
+    standardRef: 'PDVSA / ASME B16.5 / ASME B31.3'
+  },
+  'F1A': {
+    code: 'F1A',
+    ratingClass: '1500#',
+    material: 'Acero al Carbono Forjado / API 5L X65 / A106 Gr. C',
+    service: 'Servicio General / Muy Alta Presión (Cabezales / Inyección)',
+    nace: false,
+    corrosionAllowanceMm: 1.5,
+    corrosionAllowanceInches: '1/16" (1.5 mm)',
+    maxPressPsi: 3705,
+    standardRef: 'PDVSA / ASME B16.5 / ASME B31.3'
+  }
+};
+
+export function decodeLineCode(rawCode: string): LineClassInfo {
+  const clean = rawCode.trim().toUpperCase();
+  if (LINE_CLASS_PRESETS[clean]) {
+    return LINE_CLASS_PRESETS[clean];
+  }
+
+  const ratingChar = clean.charAt(0);
+  const matChar = clean.charAt(1);
+  const servChar = clean.charAt(2);
+
+  let ratingClass = '150#';
+  let maxPressPsi = 285;
+  switch (ratingChar) {
+    case 'A': ratingClass = '150#'; maxPressPsi = 285; break;
+    case 'B': ratingClass = '300#'; maxPressPsi = 740; break;
+    case 'C': ratingClass = '400#'; maxPressPsi = 990; break;
+    case 'D': ratingClass = '600#'; maxPressPsi = 1480; break;
+    case 'E': ratingClass = '900#'; maxPressPsi = 2220; break;
+    case 'F': ratingClass = '1500#'; maxPressPsi = 3705; break;
+    case 'H': ratingClass = '2500#'; maxPressPsi = 6170; break;
+    default: ratingClass = '150#'; maxPressPsi = 285; break;
+  }
+
+  let material = 'Acero al Carbono (ASTM A106 Gr. B / API 5L)';
+  switch (matChar) {
+    case '1': material = 'Acero al Carbono (ASTM A106 Gr. B / A53 / API 5L)'; break;
+    case '2': material = 'Acero de Baja Aleación Cr-Mo (ASTM A335 P11/P22)'; break;
+    case '3': material = 'Acero Inoxidable Austenítico (ASTM A312 TP304/304L)'; break;
+    case '4': material = 'Acero Inoxidable Austenítico (ASTM A312 TP316/316L)'; break;
+    case '5': material = 'Acero Dúplex / Super Dúplex (UNS S31803 / S32750)'; break;
+    case '6': material = 'Aleación de Níquel / Inconel 625'; break;
+    default: material = 'Acero al Carbono (Especial)'; break;
+  }
+
+  let service = 'Servicio General';
+  let nace = false;
+  let corrosionAllowanceMm = 1.5;
+  let corrosionAllowanceInches = '1/16" (1.5 mm)';
+
+  switch (servChar) {
+    case 'A':
+      service = 'Servicio General / Hidrocarburos Dulces';
+      nace = false;
+      corrosionAllowanceMm = 1.5;
+      corrosionAllowanceInches = '1/16" (1.5 mm)';
+      break;
+    case 'B':
+      service = 'Servicio Amargo (Sour Service / H2S / CO2)';
+      nace = true;
+      corrosionAllowanceMm = 3.0;
+      corrosionAllowanceInches = '1/8" (3.0 mm)';
+      break;
+    case 'C':
+      service = 'Servicio Ácido / Corrosivo Severo';
+      nace = true;
+      corrosionAllowanceMm = 4.5;
+      corrosionAllowanceInches = '3/16" (4.5 mm)';
+      break;
+    case 'D':
+      service = 'Servicio Criogénico / Baja Temperatura (ASTM A333 Gr. 6)';
+      nace = false;
+      corrosionAllowanceMm = 1.5;
+      corrosionAllowanceInches = '1/16" (1.5 mm)';
+      break;
+    default:
+      service = 'Servicio Específico de Proceso';
+      corrosionAllowanceMm = 1.5;
+      break;
+  }
+
+  return {
+    code: clean || 'A1A',
+    ratingClass,
+    material,
+    service,
+    nace,
+    corrosionAllowanceMm,
+    corrosionAllowanceInches,
+    maxPressPsi,
+    standardRef: nace ? 'PDVSA / NACE MR0175 / ASME B31.3' : 'PDVSA / ASME B16.5 / B31.3'
+  };
+}
+
 export default function EngineeringTools() {
   const [activeMainTab, setActiveMainTab] = useState<
     | 'piping'
@@ -458,6 +624,39 @@ export default function EngineeringTools() {
   const [valveClassSelect, setValveClassSelect] = useState<string>('150#');
   const [activeTorquePass, setActiveTorquePass] = useState<number>(1);
   const [assemblyType, setAssemblyType] = useState<'flange_flange' | 'flange_gate_valve' | 'flange_butterfly'>('flange_flange');
+
+  // Line Class Decoder State
+  const [customLineCode, setCustomLineCode] = useState<string>('A1A');
+  const [syncAppliedMsg, setSyncAppliedMsg] = useState<string>('A1A -> Clase 150# | Ca: 1.5mm');
+
+  // Active decoded Line Class object
+  const currentDecodedLineClass = decodeLineCode(customLineCode);
+
+  // Apply Line Class decoded properties to Barlow calculator & Flange/Valve search
+  const applyLineClassToCalculators = (code: string) => {
+    const clean = code.trim().toUpperCase() || 'A1A';
+    setCustomLineCode(clean);
+    const decoded = decodeLineCode(clean);
+
+    // Auto-fill ANSI Class for Flange and Valve lookup if present in dataset
+    const availableFlangeClasses = Object.keys(FLANGE_DATA);
+    if (availableFlangeClasses.includes(decoded.ratingClass)) {
+      setFlangeClassSelect(decoded.ratingClass);
+      setValveClassSelect(decoded.ratingClass);
+      const availableNps = Object.keys(FLANGE_DATA[decoded.ratingClass] || {});
+      if (!availableNps.includes(flangeNpsSelect)) {
+        setFlangeNpsSelect(availableNps[0] || '4"');
+      }
+    }
+
+    // Auto-fill Corrosion Allowance in Barlow Calculator
+    setCorrosionAllowanceMm(decoded.corrosionAllowanceMm);
+
+    // Auto-fill reference pressure in Barlow calculator
+    setPipePressPsi(decoded.maxPressPsi);
+
+    setSyncAppliedMsg(`${decoded.code} -> Clase ${decoded.ratingClass} | Ca: ${decoded.corrosionAllowanceMm}mm | Presión Ref: ${decoded.maxPressPsi} psi`);
+  };
 
   // Barlow Pipe thickness calc state
   const [pipePressPsi, setPipePressPsi] = useState<number>(600);
@@ -703,6 +902,142 @@ export default function EngineeringTools() {
       {/* ========================================== */}
       {activeMainTab === 'piping' && (
         <div className="space-y-6">
+          {/* DECODIFICADOR DE ESPECIFICACIONES DE LÍNEA (PIPE / LINE CLASS DECODER) - PDVSA / ASME */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <FileText size={20} className="text-[#0B2239]" />
+                  Decodificador de Especificaciones de Línea (Pipe / Line Class Decoder)
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Estándar PDVSA / ASME B31.3 / NACE MR0175. Traduce la nomenclatura de tuberías y auto-rellena herramientas de ingeniería.
+                </p>
+              </div>
+              {syncAppliedMsg && (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold">
+                  <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                  <span>Sincronizado: {syncAppliedMsg}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Selection and Inputs */}
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+              {/* Preset Buttons */}
+              <div className="md:col-span-8 space-y-1.5">
+                <label className="block text-xs font-bold text-gray-700 uppercase">
+                  Códigos Estándar Frecuentes (PDVSA / ASME):
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {['A1A', 'A1B', 'B1A', 'B1B', 'D1A', 'F1A'].map((code) => {
+                    const isSelected = (customLineCode.toUpperCase() === code);
+                    return (
+                      <button
+                        key={code}
+                        type="button"
+                        onClick={() => applyLineClassToCalculators(code)}
+                        className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all ${
+                          isSelected
+                            ? 'bg-[#0B2239] text-white shadow-md ring-2 ring-emerald-500'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200'
+                        }`}
+                      >
+                        {code}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Custom Code Input */}
+              <div className="md:col-span-4 space-y-1.5">
+                <label className="block text-xs font-bold text-gray-700 uppercase">
+                  Escribir Código Personalizado:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={customLineCode}
+                    onChange={(e) => {
+                      const val = e.target.value.toUpperCase();
+                      setCustomLineCode(val);
+                      if (val.length >= 3) {
+                        applyLineClassToCalculators(val);
+                      }
+                    }}
+                    placeholder="Ej: A1A, B1B, D1A"
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono font-bold text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => applyLineClassToCalculators(customLineCode)}
+                    className="px-4 py-2 bg-[#F4C400] text-[#131A22] font-black rounded-xl text-xs hover:bg-[#D9AC00] transition-colors shadow-sm"
+                  >
+                    Decodificar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Translation Output Grid */}
+            <div className="p-5 bg-slate-900 text-white rounded-2xl space-y-4 font-mono text-xs border border-slate-800">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                <span className="text-xs uppercase font-bold text-emerald-400">
+                  Traducción Automática de Especificación: <span className="text-amber-300 text-sm">{currentDecodedLineClass.code}</span>
+                </span>
+                <span className="text-[11px] text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full border border-slate-700">
+                  {currentDecodedLineClass.standardRef}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+                  <span className="text-slate-400 block text-[11px] mb-1 font-sans font-bold uppercase">Clase ANSI / Presión</span>
+                  <span className="text-base font-black text-amber-400">{currentDecodedLineClass.ratingClass}</span>
+                  <span className="block text-[10px] text-slate-400 mt-0.5">Rating ~ {currentDecodedLineClass.maxPressPsi} psi</span>
+                </div>
+
+                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+                  <span className="text-slate-400 block text-[11px] mb-1 font-sans font-bold uppercase">Material de Tubería</span>
+                  <span className="text-xs font-bold text-white block leading-tight">{currentDecodedLineClass.material}</span>
+                </div>
+
+                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+                  <span className="text-slate-400 block text-[11px] mb-1 font-sans font-bold uppercase">Servicio de Proceso</span>
+                  <span className="text-xs font-bold text-white block leading-tight">{currentDecodedLineClass.service}</span>
+                  {currentDecodedLineClass.nace && (
+                    <span className="inline-block mt-1 px-1.5 py-0.5 bg-rose-900/80 text-rose-200 text-[9px] font-sans font-bold rounded">
+                      NACE MR0175 Req.
+                    </span>
+                  )}
+                </div>
+
+                <div className="p-3 bg-slate-800/80 rounded-xl border border-slate-700">
+                  <span className="text-slate-400 block text-[11px] mb-1 font-sans font-bold uppercase">Margen de Corrosión (Ca)</span>
+                  <span className="text-base font-black text-emerald-400">{currentDecodedLineClass.corrosionAllowanceMm} mm</span>
+                  <span className="block text-[10px] text-slate-400 mt-0.5">Equivalente: {currentDecodedLineClass.corrosionAllowanceInches}</span>
+                </div>
+              </div>
+
+              <div className="p-3 bg-[#0B2239] border border-blue-800/50 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs font-sans">
+                <div className="flex items-center gap-2">
+                  <Zap size={15} className="text-[#F4C400]" />
+                  <span className="text-slate-200">
+                    Sincronización Automática Activa: Los valores de <strong>Clase ANSI ({currentDecodedLineClass.ratingClass})</strong> y <strong>Margen de Corrosión ({currentDecodedLineClass.corrosionAllowanceMm} mm)</strong> se transfieren automáticamente a la Calculadora Barlow y Buscador de Bridas/Válvulas.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => applyLineClassToCalculators(currentDecodedLineClass.code)}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs transition-colors shrink-0"
+                >
+                  Re-Aplicar Parámetros
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Flange & Stud Bolt Matrix */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-6">
