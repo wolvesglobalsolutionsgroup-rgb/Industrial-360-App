@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
@@ -11,6 +11,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { useProject } from '../ProjectContext';
 import { ROLE_LABELS } from './ProtectedRoute';
 import TopContextBar from './TopContextBar';
+import PageSkeleton from './ui/PageSkeleton';
 
 const coreOperativoItems = [
   { path: '/', label: 'Dashboard Ejecutivo', icon: LayoutDashboard },
@@ -203,7 +204,9 @@ export default function Layout() {
         {/* Router Outlet Container */}
         <div className="flex-1 overflow-auto p-4 md:p-8">
           <div className="max-w-7xl mx-auto h-full">
-            <Outlet />
+            <Suspense fallback={<PageSkeleton />}>
+              <Outlet />
+            </Suspense>
           </div>
         </div>
       </main>
