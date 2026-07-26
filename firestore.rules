@@ -17,7 +17,7 @@ service cloud.firestore {
     function getUserRole() {
       return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         ? getUserData().role
-        : 'superadmin'; // Default fallback para admin principal
+        : 'none';
     }
 
     function isSuperadmin() {
@@ -134,8 +134,10 @@ service cloud.firestore {
 
       // Subcolecciones directas de Organización
       match /client_portals/{portalId} {
-        allow read: if true;
-        allow write: if isAuthenticated();
+        // La exposición pública se debe realizar mediante una función que entregue
+        // una vista limitada y un enlace con token temporal; nunca el documento base.
+        allow read: if isAuthenticated();
+        allow write: if isGerente();
       }
 
       match /engineering_calcs/{calcId} {
@@ -148,7 +150,15 @@ service cloud.firestore {
     // ===============================================================
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      // Cada usuario solo puede crear o editar su propio perfil. Los roles se
+      // administran desde un entorno de confianza (Admin SDK), no desde el cliente.
+      allow create: if isAuthenticated()
+        && request.auth.uid == userId
+        && !('role' in request.resource.data);
+      allow update: if isAuthenticated()
+        && request.auth.uid == userId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      allow delete: if isSuperadmin();
     }
 
     match /projects/{projectId} {
@@ -188,7 +198,8 @@ service cloud.firestore {
     }
 
     match /routes/{routeId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isSupervisor();
     }
 
     match /siho_ptw/{ptwId} {
@@ -227,7 +238,8 @@ service cloud.firestore {
     }
 
     match /interop_imports/{importId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isGerente();
+      allow write: if isSupervisor();
     }
 
     match /dossier_compilations/{dossierId} {
@@ -241,7 +253,7 @@ service cloud.firestore {
     }
 
     match /client_portals/{portalId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow write: if isGerente();
     }
 

@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { assertAllowedGeminiModel, enforceGeminiRateLimit, requireFirebaseUser } from './security';
 
 export interface GeminiProxyRequest {
   prompt?: string;
@@ -15,6 +16,7 @@ export async function handleGeminiProxy(reqBody: GeminiProxyRequest) {
   }
 
   const ai = new GoogleGenAI({ apiKey });
+  assertAllowedGeminiModel(reqBody.model);
   const modelName = reqBody.model || 'gemini-2.5-flash';
 
   let contents = reqBody.contents;
@@ -42,24 +44,24 @@ export async function handleGeminiProxy(reqBody: GeminiProxyRequest) {
 
 // HTTPS Cloud Function endpoint export style (Firebase Functions compatible)
 export const callGeminiProxy = async (req: any, res: any) => {
-  // CORS Handling
-  res.set('Access-Control-Allow-Origin', '*');
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
   }
 
   try {
+    const user = await requireFirebaseUser(req.headers.authorization);
+    enforceGeminiRateLimit(user.uid);
     const result = await handleGeminiProxy(req.body || {});
     res.status(200).json(result);
   } catch (error: any) {
-    const is429 = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('Quota exceeded');
+    const status = error?.status;
+    const is429 = status === 429 || error?.message?.includes('429') || error?.message?.includes('Quota exceeded');
     if (is429) {
       console.warn('Gemini Proxy Quota Limit Exceeded:', error?.message);
       res.status(429).json({ error: error?.message || 'Quota exceeded for Gemini API.' });
+    } else if (status === 400 || status === 401) {
+      res.status(status).json({ error: error?.message || 'Unauthorized request.' });
     } else {
       console.error('Gemini Proxy Error:', error);
       res.status(500).json({ error: error?.message || 'Error executing Gemini request on server.' });

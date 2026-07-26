@@ -8,10 +8,16 @@ export interface GeminiRequestOptions {
 
 export async function callGeminiProxy(options: GeminiRequestOptions): Promise<{ text: string; raw?: any }> {
   try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('Debes iniciar sesión para usar Gemini.');
+    }
+    const token = await user.getIdToken();
     const response = await fetch('/api/callGeminiProxy', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify(options),
     });
@@ -40,3 +46,4 @@ export async function callGeminiProxy(options: GeminiRequestOptions): Promise<{ 
     };
   }
 }
+import { auth } from '../firebase';
