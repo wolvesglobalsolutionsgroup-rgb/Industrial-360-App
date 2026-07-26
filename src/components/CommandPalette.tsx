@@ -1,0 +1,169 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  Search, LayoutDashboard, FolderKanban, CheckSquare, DollarSign, FileCheck2, 
+  MapPin, ShieldAlert, Flame, Wrench, FileArchive, BookOpen, Cpu, BrainCircuit, 
+  Settings, UserCheck, X, Sparkles, Command, LucideIcon
+} from 'lucide-react';
+
+interface CommandItem {
+  id: string;
+  title: string;
+  category: string;
+  path: string;
+  icon: LucideIcon;
+}
+
+const COMMAND_ITEMS: CommandItem[] = [
+  { id: 'dash', title: 'Dashboard Principal', category: 'Navegación', path: '/dashboard', icon: LayoutDashboard },
+  { id: 'proj', title: 'Proyectos & Obras', category: 'Gestión', path: '/projects', icon: FolderKanban },
+  { id: 'tasks', title: 'Control de Tareas Kanban', category: 'Gestión', path: '/tasks', icon: CheckSquare },
+  { id: 'expenses', title: 'Costos & Compras (Opex/Capex)', category: 'Finanzas', path: '/expenses', icon: DollarSign },
+  { id: 'valuations', title: 'Valuaciones de Obra', category: 'Finanzas', path: '/valuations', icon: FileCheck2 },
+  { id: 'field', title: 'Partes Diarios de Campo', category: 'Operaciones', path: '/field-reports', icon: MapPin },
+  { id: 'logistics', title: 'Mapa Logístico GPS & Rutas', category: 'Operaciones', path: '/logistics', icon: MapPin },
+  { id: 'ptw', title: 'Permisos de Trabajo SIHO (PTW)', category: 'Seguridad', path: '/siho-ptw', icon: ShieldAlert },
+  { id: 'welding', title: 'Control QA/QC Soldadura (Juntas)', category: 'Calidad', path: '/qaqc-welding', icon: Flame },
+  { id: 'ili', title: 'Integridad & Corrida de Porcinos ILI', category: 'Calidad', path: '/integrity-ili', icon: ShieldAlert },
+  { id: 'tools', title: 'Calculadoras de Ingeniería (ASME/API)', category: 'Ingeniería', path: '/tools', icon: Wrench },
+  { id: 'hot-tap', title: 'Hot Tap & Stopple (PAMS)', category: 'Ingeniería', path: '/hot-tap', icon: Flame },
+  { id: 'docs', title: 'Gestión Documental', category: 'Documentos', path: '/documents', icon: FileArchive },
+  { id: 'dossier', title: 'Cierre & Dossier de Calidad', category: 'Documentos', path: '/modulos/cierre', icon: BookOpen },
+  { id: 'interop', title: 'Interoperabilidad (Primavera/SAP)', category: 'Sistemas', path: '/modulos/interoperabilidad', icon: Cpu },
+  { id: 'brain', title: 'Project Brain (Asistente IA)', category: 'Inteligencia', path: '/project-brain', icon: BrainCircuit },
+  { id: 'portal', title: 'Portal de Clientes', category: 'Configuración', path: '/client-portal-builder', icon: UserCheck },
+  { id: 'settings', title: 'Ajustes del Sistema & Marca', category: 'Configuración', path: '/settings', icon: Settings },
+];
+
+export function CommandPalette() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const navigate = useNavigate();
+
+  // Keyboard shortcut listener (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsOpen(prev => !prev);
+      }
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
+  // Filtered commands
+  const filteredCommands = COMMAND_ITEMS.filter(cmd => 
+    cmd.title.toLowerCase().includes(search.toLowerCase()) ||
+    cmd.category.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Keyboard navigation inside list
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev + 1) % (filteredCommands.length || 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex(prev => (prev - 1 + filteredCommands.length) % (filteredCommands.length || 1));
+    } else if (e.key === 'Enter' && filteredCommands[selectedIndex]) {
+      e.preventDefault();
+      navigate(filteredCommands[selectedIndex].path);
+      setIsOpen(false);
+      setSearch('');
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-slate-950/60 backdrop-blur-md transition-all">
+      <div 
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col"
+        onKeyDown={handleKeyDown}
+      >
+        {/* Search Header */}
+        <div className="flex items-center px-4 py-3.5 border-b border-slate-200 dark:border-slate-800 gap-3">
+          <Search size={18} className="text-slate-400 shrink-0" />
+          <input 
+            type="text" 
+            autoFocus
+            placeholder="Buscar módulo, herramienta o sección... (ej: 'Hot Tap', 'Dossier')"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setSelectedIndex(0);
+            }}
+            className="w-full bg-transparent border-none outline-none text-xs sm:text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400"
+          />
+          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-lg">
+            <Command size={10} /> K
+          </span>
+          <button 
+            onClick={() => setIsOpen(false)}
+            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Results List */}
+        <div className="max-h-80 overflow-y-auto p-2 space-y-1">
+          {filteredCommands.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400 font-medium">
+              No se encontraron resultados para "{search}"
+            </div>
+          ) : (
+            filteredCommands.map((cmd, idx) => {
+              const Icon = cmd.icon;
+              const isSelected = idx === selectedIndex;
+
+              return (
+                <button
+                  key={cmd.id}
+                  onClick={() => {
+                    navigate(cmd.path);
+                    setIsOpen(false);
+                    setSearch('');
+                  }}
+                  onMouseEnter={() => setSelectedIndex(idx)}
+                  className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                    isSelected 
+                      ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold' 
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-xl ${isSelected ? 'bg-amber-500 text-slate-950' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                      <Icon size={16} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold block">{cmd.title}</span>
+                      <span className="text-[10px] text-slate-400 uppercase font-mono font-semibold">{cmd.category}</span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">{cmd.path}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        {/* Footer info */}
+        <div className="bg-slate-50 dark:bg-slate-900/90 border-t border-slate-100 dark:border-slate-800/80 px-4 py-2.5 flex justify-between items-center text-[10px] text-slate-400 font-mono">
+          <span>Industrial Control 360 • Búsqueda Rápida</span>
+          <div className="flex items-center gap-2">
+            <span>↑↓ para navegar</span>
+            <span>↵ para seleccionar</span>
+            <span>ESC para cerrar</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
