@@ -1,1 +1,139 @@
 @import "tailwindcss";
+
+@theme {
+  /* Brand palette: slate/navy industrial */
+  --color-brand-50: #e7edf2;
+  --color-brand-100: #c6d2df;
+  --color-brand-200: #9aafc5;
+  --color-brand-300: #6e8baa;
+  --color-brand-400: #4d6e94;
+  --color-brand-500: #0b2239;
+  --color-brand-600: #091c2e;
+  --color-brand-700: #071524;
+  --color-brand-800: #050f1a;
+  --color-brand-900: #03090f;
+
+  /* Accent WGS orange */
+  --color-brand-accent: #ff6b00;
+  --color-brand-accent-50: #fff3e6;
+  --color-brand-accent-100: #ffe0bf;
+  --color-brand-accent-200: #ffc68a;
+  --color-brand-accent-500: #ff6b00;
+  --color-brand-accent-600: #e06000;
+  --color-brand-accent-700: #cc5500;
+
+  /* Semantic surfaces */
+  --color-bg: #f5f4f0;
+  --color-surface: #ffffff;
+  --color-surface-2: #f1f5f9;
+  --color-elevated: #e8edf2;
+  --color-ink: #0f172a;
+  --color-ink-soft: #64748b;
+  --color-ink-faint: #94a3b8;
+  --color-line: #e2e8f0;
+
+  /* Feedback colors */
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-info: #0284c7;
+
+  /* Shadows consistentes */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-soft: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-lift: 0 20px 50px rgba(15, 23, 42, 0.14), 0 6px 16px rgba(15, 23, 42, 0.07);
+  --shadow-brand: 0 10px 28px rgba(11, 34, 57, 0.32);
+
+  /* Radii */
+  --radius-xl: 1rem;
+  --radius-2xl: 1.25rem;
+  --radius-pill: 999px;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+
+  /* Easing signature */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Glass effect for topbar */
+.glass {
+  background: color-mix(in oklab, var(--color-bg) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+}
+
+/* Card base */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-card);
+}
+
+/* Input base */
+.input-base {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  padding: 0.6rem 1rem;
+  color: var(--color-ink);
+  border-radius: var(--radius-xl);
+  outline: none;
+  transition: border-color 0.18s var(--ease-spring), box-shadow 0.18s var(--ease-spring);
+}
+.input-base:focus {
+  border-color: var(--color-brand-500);
+  box-shadow: 0 0 0 4px rgba(11, 34, 57, 0.16);
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer { 100% { transform: translateX(100%); } }
+.skeleton {
+  position: relative; overflow: hidden; background: var(--color-surface-2);
+}
+.skeleton::after {
+  content: ""; position: absolute; inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent);
+  animation: shimmer 1.5s infinite;
+}
+
+/* Ambient background */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(60rem 42rem at 92% -14%, rgba(11, 34, 57, 0.06), transparent 60%),
+    radial-gradient(48rem 40rem at -10% 110%, rgba(255, 107, 0, 0.05), transparent 55%);
+}
+
+/* Reduce motion support */
+[data-reduce-motion="true"] *, [data-reduce-motion="true"] *::before, [data-reduce-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* Brand gradient */
+.brand-gradient {
+  background-image: linear-gradient(140deg, #0b2239 0%, #1a3a5c 52%, #244b73 100%);
+}
+
+/* Text gradient */
+.text-gradient {
+  background-image: linear-gradient(135deg, #0b2239 0%, #244b73 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Focus ring */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-brand-500);
+}
+
+/* Scrollbar custom */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+

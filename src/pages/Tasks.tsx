@@ -218,7 +218,7 @@ export default function Tasks() {
 
       if (targetStatus === 'bloqueada') {
         updateData.blockedReason = reason || task.blockedReason || 'Restricción de campo reportada por supervisor';
-      } else if (targetStatus !== 'bloqueada') {
+      } else {
         updateData.blockedReason = '';
       }
 
@@ -802,8 +802,8 @@ Genera una respuesta ejecutiva, estructurada con puntos de acción para el geren
                           animate={{ opacity: isDragging ? 0.4 : 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.95 }}
                           draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('taskId', task.id);
+                          onDragStart={(e: any) => {
+                            e.dataTransfer?.setData('taskId', task.id);
                             setDraggedTaskId(task.id);
                           }}
                           onDragEnd={() => setDraggedTaskId(null)}

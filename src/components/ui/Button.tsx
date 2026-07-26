@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader2 } from 'lucide-react';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'accent';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'accent' | 'success';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
@@ -23,12 +23,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   const baseStyles = 'inline-flex items-center justify-center font-bold transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none';
   
   const variantStyles = {
-    primary: 'bg-[#0B2239] hover:bg-slate-800 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 shadow-sm hover:shadow-md active:scale-[0.99]',
-    secondary: 'bg-slate-100 hover:bg-slate-200 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 active:scale-[0.99]',
-    outline: 'border border-slate-200 dark:border-slate-700 bg-transparent hover:bg-slate-100/80 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 active:scale-[0.99]',
-    ghost: 'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300',
-    danger: 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md active:scale-[0.99]',
-    accent: 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black shadow-sm hover:shadow-md active:scale-[0.99]',
+    primary: 'bg-brand-500 hover:bg-brand-600 text-white shadow-sm hover:shadow-md active:scale-[0.99]',
+    secondary: 'bg-surface-2 hover:bg-elevated text-ink active:scale-[0.99]',
+    outline: 'border border-line bg-transparent hover:bg-surface-2 text-ink active:scale-[0.99]',
+    ghost: 'bg-transparent hover:bg-surface-2 text-ink-soft hover:text-ink',
+    danger: 'bg-error hover:bg-red-700 text-white shadow-sm hover:shadow-md active:scale-[0.99]',
+    success: 'bg-success hover:bg-emerald-700 text-white shadow-sm hover:shadow-md active:scale-[0.99]',
+    accent: 'bg-brand-accent hover:bg-brand-accent-600 text-white font-black shadow-sm hover:shadow-md active:scale-[0.99]',
   };
 
   const sizeStyles = {

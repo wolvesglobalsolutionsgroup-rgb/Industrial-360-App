@@ -9,23 +9,18 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(({
   children,
   className = '',
   hoverEffect = false,
-  glass = true,
+  glass = false,
   style,
   ...props
 }, ref) => {
-  const base = 'rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-sm shadow-slate-200/50 dark:shadow-none overflow-hidden transition-all duration-200';
-  const bg = glass 
-    ? 'backdrop-blur-xl bg-white/85 dark:bg-slate-900/85' 
-    : 'bg-white dark:bg-slate-900';
-  const hover = hoverEffect 
-    ? 'hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md' 
-    : '';
+  const hoverClass = hoverEffect ? 'hover:shadow-md transition-all duration-200' : '';
+  const glassClass = glass ? 'glass' : '';
 
   return (
     <div
       ref={ref}
-      style={{ borderRadius: 'var(--theme-radius, 1.25rem)', ...style }}
-      className={`${base} ${bg} ${hover} ${className}`}
+      style={{ borderRadius: 'var(--radius-2xl)', ...style }}
+      className={`card overflow-hidden ${glassClass} ${hoverClass} ${className}`}
       {...props}
     >
       {children}

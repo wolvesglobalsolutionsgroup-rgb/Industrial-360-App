@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   Building, HardHat, ChevronDown, Wifi, WifiOff, RefreshCw, 
   UserCheck, Bell, Palette, Check, Sparkles, CheckCircle2, AlertTriangle, ShieldCheck,
-  Sun, Moon
+  Sun, Moon, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { useProject, CORPORATE_PORTFOLIO_PROJECT, UserRole } from '../ProjectContext';
 import { ROLE_LABELS } from './ProtectedRoute';
@@ -88,12 +88,14 @@ export default function TopContextBar({
       <div className="flex items-center gap-3">
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-slate-300 transition-colors focus:outline-none"
-          title={isSidebarOpen ? "Ocultar menú" : "Mostrar menú"}
+          className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors focus:outline-none"
+          title={isSidebarOpen ? "Colapsar menú" : "Expandir menú"}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          {isSidebarOpen ? (
+            <PanelLeftClose size={20} className="text-slate-600 dark:text-slate-300" />
+          ) : (
+            <PanelLeftOpen size={20} className="text-brand-500 dark:text-emerald-400" />
+          )}
         </button>
         
         {/* Active Organization & Project Selector */}

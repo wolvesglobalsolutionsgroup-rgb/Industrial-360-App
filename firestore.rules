@@ -17,30 +17,27 @@ service cloud.firestore {
     function getUserRole() {
       return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         ? getUserData().role
-        : 'superadmin'; // Default fallback para admin principal
+        : null; // Denegar — solo usuarios con documento tienen acceso
     }
 
     function isSuperadmin() {
-      return isAuthenticated() && (
-        getUserRole() == 'superadmin' ||
-        (request.auth.token.email == "wolvesglobalsolutionsgroup@gmail.com" && request.auth.token.email_verified == true)
-      );
+      return isAuthenticated() && getUserRole() == 'superadmin';
     }
 
     function isGerente() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente']);
+      return isAuthenticated() && (getUserRole() == 'superadmin' || getUserRole() == 'gerente');
     }
 
     function isSupervisor() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor']);
+      return isAuthenticated() && (getUserRole() == 'superadmin' || getUserRole() == 'gerente' || getUserRole() == 'supervisor');
     }
 
     function isInspector() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector']);
+      return isAuthenticated() && (getUserRole() == 'superadmin' || getUserRole() == 'gerente' || getUserRole() == 'supervisor' || getUserRole() == 'inspector');
     }
 
     function isCampo() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']);
+      return isAuthenticated() && (getUserRole() == 'superadmin' || getUserRole() == 'gerente' || getUserRole() == 'supervisor' || getUserRole() == 'inspector' || getUserRole() == 'campo');
     }
 
     function isCliente() {
@@ -227,7 +224,8 @@ service cloud.firestore {
     }
 
     match /interop_imports/{importId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isSupervisor();
     }
 
     match /dossier_compilations/{dossierId} {
