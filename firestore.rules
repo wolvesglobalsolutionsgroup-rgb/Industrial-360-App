@@ -141,13 +141,14 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Legacy Collections (Compatibilidad Directa)
+    // Legacy Collections (Desactivadas - Se exige jerarquía /organizations/{orgId})
     // ===============================================================
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }
 
+    /*
     match /projects/{projectId} {
       allow read: if isAuthenticated();
       allow create, update: if isGerente();
@@ -246,5 +247,6 @@ service cloud.firestore {
     match /engineering_calcs/{calcId} {
       allow read, write: if isAuthenticated();
     }
+    */
   }
 }

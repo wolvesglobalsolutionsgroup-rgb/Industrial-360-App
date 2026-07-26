@@ -17,11 +17,13 @@ interface GasReadings {
   calibratedAt: string;
 }
 
+export type PTWType = 'caliente' | 'frio' | 'espacio_confinado' | 'izamiento' | 'excavacion' | 'radiografia' | 'altura' | 'electrico';
+
 interface PTW {
   id?: string;
   projectId: string;
   code: string;
-  type: 'frio' | 'caliente' | 'espacio_confinado' | 'izamiento' | 'excavacion';
+  type: PTWType;
   location: string;
   contractor: string;
   supervisor: string;
@@ -247,15 +249,23 @@ async function generateSha256Hash(dataString: string): Promise<string> {
   const getTypeBadge = (type: PTW['type']) => {
     switch(type) {
       case 'caliente':
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-red-100 text-red-800 border border-red-200"><Flame size={12}/> Trabajo en Caliente</span>;
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-red-100 dark:bg-red-950/80 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800"><Flame size={12}/> Tipo A: Trabajo en Caliente</span>;
+      case 'frio':
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-100 dark:bg-blue-950/80 text-blue-800 dark:text-blue-300 border border-blue-200 dark:border-blue-800"><ShieldCheck size={12}/> Tipo B: Trabajo en Frío</span>;
       case 'espacio_confinado':
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200"><Wind size={12}/> Espacio Confinado</span>;
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-purple-100 dark:bg-purple-950/80 text-purple-800 dark:text-purple-300 border border-purple-200 dark:border-purple-800"><Wind size={12}/> Tipo C: Espacio Confinado</span>;
       case 'izamiento':
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200"><HardHat size={12}/> Izamiento Crítico</span>;
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800"><HardHat size={12}/> Tipo D: Izamiento Crítico</span>;
       case 'excavacion':
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200"><AlertTriangle size={12}/> Excavación</span>;
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-orange-100 dark:bg-orange-950/80 text-orange-800 dark:text-orange-300 border border-orange-200 dark:border-orange-800"><AlertTriangle size={12}/> Tipo E: Excavación y Zanjas</span>;
+      case 'radiografia':
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-pink-100 dark:bg-pink-950/80 text-pink-800 dark:text-pink-300 border border-pink-200 dark:border-pink-800"><Sparkles size={12}/> Tipo F: Radiografía Industrial</span>;
+      case 'altura':
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-100 dark:bg-indigo-950/80 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800"><Calendar size={12}/> Tipo G: Trabajos en Altura</span>;
+      case 'electrico':
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-yellow-100 dark:bg-yellow-950/80 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800"><Lock size={12}/> Tipo H: Eléctrico / LOTO</span>;
       default:
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200"><ShieldCheck size={12}/> Trabajo en Frío</span>;
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-800 border border-slate-200"><ShieldCheck size={12}/> PTS Estándar</span>;
     }
   };
 
@@ -733,11 +743,14 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                 <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Tipo de Trabajo a Ejecutar</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
-                    { id: 'caliente', label: 'Trabajo en Caliente', icon: Flame, color: 'text-red-600 border-red-300 bg-red-50' },
-                    { id: 'espacio_confinado', label: 'Espacio Confinado', icon: Wind, color: 'text-purple-600 border-purple-300 bg-purple-50' },
-                    { id: 'frio', label: 'Trabajo en Frío', icon: ShieldCheck, color: 'text-blue-600 border-blue-300 bg-blue-50' },
-                    { id: 'izamiento', label: 'Izamiento Crítico', icon: HardHat, color: 'text-amber-600 border-amber-300 bg-amber-50' },
-                    { id: 'excavacion', label: 'Excavación profunda', icon: AlertTriangle, color: 'text-orange-600 border-orange-300 bg-orange-50' },
+                    { id: 'caliente', label: 'Tipo A: Trabajo en Caliente', icon: Flame, color: 'text-red-600 border-red-300 bg-red-50' },
+                    { id: 'frio', label: 'Tipo B: Trabajo en Frío', icon: ShieldCheck, color: 'text-blue-600 border-blue-300 bg-blue-50' },
+                    { id: 'espacio_confinado', label: 'Tipo C: Espacio Confinado', icon: Wind, color: 'text-purple-600 border-purple-300 bg-purple-50' },
+                    { id: 'izamiento', label: 'Tipo D: Izamiento Crítico', icon: HardHat, color: 'text-amber-600 border-amber-300 bg-amber-50' },
+                    { id: 'excavacion', label: 'Tipo E: Excavación y Zanjas', icon: AlertTriangle, color: 'text-orange-600 border-orange-300 bg-orange-50' },
+                    { id: 'radiografia', label: 'Tipo F: Radiografía Industrial', icon: Sparkles, color: 'text-pink-600 border-pink-300 bg-pink-50' },
+                    { id: 'altura', label: 'Tipo G: Trabajos en Altura', icon: Calendar, color: 'text-indigo-600 border-indigo-300 bg-indigo-50' },
+                    { id: 'electrico', label: 'Tipo H: Eléctrico / LOTO', icon: Lock, color: 'text-yellow-600 border-yellow-300 bg-yellow-50' },
                   ].map((t) => {
                     const IconComp = t.icon;
                     const isSel = newType === t.id;

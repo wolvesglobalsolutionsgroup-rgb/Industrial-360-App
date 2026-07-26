@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { collection, query, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { db, auth, handleFirestoreError, OperationType } from './firebase';
 
 export type UserRole = 'superadmin' | 'gerente' | 'supervisor' | 'inspector' | 'campo' | 'cliente_readonly';
 
@@ -141,8 +141,28 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     if (saved && ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo', 'cliente_readonly'].includes(saved)) {
       return saved;
     }
-    return 'superadmin';
+    return 'campo';
   });
+
+  // Fetch real user role from Firestore on auth change
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user?.uid) {
+        getDoc(doc(db, 'users', user.uid)).then(snap => {
+          if (snap.exists()) {
+            const role = snap.data().role;
+            if (['superadmin', 'gerente', 'supervisor', 'inspector', 'campo', 'cliente_readonly'].includes(role)) {
+              setUserRoleState(role);
+              localStorage.setItem('ic360_userRole', role);
+            }
+          }
+        }).catch(err => {
+          console.warn('Error al leer rol real desde Firestore:', err);
+        });
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(CORPORATE_PORTFOLIO_PROJECT);
