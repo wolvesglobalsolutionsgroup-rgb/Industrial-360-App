@@ -125,7 +125,7 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside 
-        className={`fixed md:relative top-0 left-0 h-full bg-white dark:bg-slate-900 flex flex-col shadow-xl md:shadow-xs z-30 transition-all duration-300 ease-in-out overflow-hidden border-r border-gray-200/80 dark:border-slate-800 ${
+        className={`fixed md:relative top-0 left-0 h-full bg-white dark:bg-slate-900 flex flex-col shadow-xl md:shadow-xs z-30 transition-all duration-300 ease-in-out overflow-hidden border-r border-gray-200/80 dark:border-slate-800 print:hidden ${
           isMobile 
             ? `w-72 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
             : `${isSidebarOpen ? 'w-72' : 'w-0 border-r-0'}`
