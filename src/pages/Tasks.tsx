@@ -115,11 +115,14 @@ export default function Tasks() {
   const xerFileInputRef = useRef<HTMLInputElement>(null);
   const bc3FileInputRef = useRef<HTMLInputElement>(null);
 
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+
   const handleSeedDemo = async () => {
     setIsSeeding(true);
     const res = await seedDemoData(true);
     setIsSeeding(false);
-    alert(res.message);
+    setSeedMessage(res.message);
+    setTimeout(() => setSeedMessage(null), 5000);
   };
 
   // Subscribe to Firestore Tasks
@@ -449,6 +452,13 @@ export default function Tasks() {
           </Button>
         </div>
       </div>
+
+      {seedMessage && (
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-sm font-semibold flex items-center justify-between animate-fade-in">
+          <span>{seedMessage}</span>
+          <button onClick={() => setSeedMessage(null)} className="text-emerald-500 hover:text-emerald-700 font-bold">✕</button>
+        </div>
+      )}
 
       {/* Metric Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -46,11 +46,14 @@ export default function Projects() {
   const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
 
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+
   const handleSeedDemo = async () => {
     setIsSeeding(true);
     const res = await seedDemoData(true);
     setIsSeeding(false);
-    alert(res.message);
+    setSeedMessage(res.message);
+    setTimeout(() => setSeedMessage(null), 5000);
   };
 
   const [form, setForm] = useState({

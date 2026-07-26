@@ -45,9 +45,10 @@ import {
 
 import { StatusBadge } from '../components/ui/StatusBadge';
 import { Button } from '../components/ui/Button';
+import { FlangeAndTighteningTool } from '../components/mechanical/FlangeAndTighteningTool';
 
 export default function EngineeringTools() {
-  const [activeTab, setActiveTab] = useState<'norms' | 'pdvsa_coder' | 'field_tools'>('norms');
+  const [activeTab, setActiveTab] = useState<'norms' | 'mechanical' | 'pdvsa_coder' | 'field_tools'>('mechanical');
 
   // =========================================================================
   // STATE FOR TAB 1: NORMATIVE CALCULATORS
@@ -233,7 +234,19 @@ export default function EngineeringTools() {
           </div>
 
           {/* Quick Nav Tabs */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shrink-0">
+          <div className="flex flex-wrap items-center bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700/80 shrink-0 gap-1">
+            <button
+              onClick={() => setActiveTab('mechanical')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
+                activeTab === 'mechanical'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Disc size={15} className="text-amber-500" />
+              <span>Mecánica & Torques B16.5</span>
+            </button>
+
             <button
               onClick={() => setActiveTab('norms')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${
@@ -272,6 +285,13 @@ export default function EngineeringTools() {
           </div>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* TAB: MECHANICAL COMPONENT CATALOG & TIGHTENING TOOL                        */}
+      {/* ========================================================================= */}
+      {activeTab === 'mechanical' && (
+        <FlangeAndTighteningTool />
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 1: NORMATIVE CALCULATORS                                               */}

@@ -167,8 +167,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const q = query(collection(db, 'projects'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) {
-        // Auto-seed demo data if collection is completely empty
-        seedDemoData(false).then(() => {
+        // Auto-seed demo data if collection is empty
+        seedDemoData(true).then(() => {
           setIsLoading(false);
         });
         return;

@@ -3,11 +3,12 @@ import { db } from '../firebase';
 
 export async function seedDemoData(force = false): Promise<{ success: boolean; message: string }> {
   try {
-    // Check if projects already exist unless forced
+    // Check if projects AND tasks already exist unless forced
     if (!force) {
-      const snap = await getDocs(collection(db, 'projects'));
-      if (!snap.empty) {
-        return { success: true, message: 'La base de datos ya contiene proyectos registrados.' };
+      const snapProjects = await getDocs(collection(db, 'projects'));
+      const snapTasks = await getDocs(collection(db, 'tasks'));
+      if (!snapProjects.empty && !snapTasks.empty) {
+        return { success: true, message: 'La base de datos ya contiene proyectos y partidas WBS.' };
       }
     }
 
