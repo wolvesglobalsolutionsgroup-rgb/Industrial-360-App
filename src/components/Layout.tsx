@@ -4,12 +4,13 @@ import {
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
   MessageSquare, Mic, Box, LogOut, Calculator, Settings as SettingsIcon,
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
-  Database, BookOpen, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown, Truck, ArrowLeftRight, Building,
-  Wifi, WifiOff, RefreshCw
+  Database, Plug, Network, BrainCircuit, Briefcase, Menu, X, MapPin, ChevronDown, Truck, ArrowLeftRight, Building,
+  Wifi, WifiOff, RefreshCw, UserCheck
 } from 'lucide-react';
 import { auth, logout } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { useProject, CORPORATE_PORTFOLIO_PROJECT } from '../ProjectContext';
+import { useProject, CORPORATE_PORTFOLIO_PROJECT, UserRole } from '../ProjectContext';
+import { ROLE_LABELS } from './ProtectedRoute';
 import { getPendingOfflineOperations, flushOfflineQueue } from '../lib/offlineSync';
 
 const coreOperativoItems = [
@@ -60,8 +61,9 @@ export default function Layout() {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
-  const { projects, currentProject, setCurrentProject } = useProject();
+  const { projects, currentProject, setCurrentProject, currentOrganization, userRole, setUserRole } = useProject();
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
+  const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingQueueCount, setPendingQueueCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -106,9 +108,7 @@ export default function Layout() {
       }
     };
 
-    // Initial check
     handleResize();
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -167,12 +167,12 @@ export default function Layout() {
         <div className="w-72 flex flex-col h-full">
           <div className="p-6 flex items-center justify-between border-b border-gray-100 shrink-0">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold shrink-0">
-                IC
+              <div className="w-8 h-8 bg-amber-500 text-slate-950 font-black rounded-lg flex items-center justify-center shrink-0 shadow-xs">
+                SP
               </div>
               <div className="overflow-hidden">
-                <h1 className="text-lg font-bold tracking-tight text-gray-900 truncate">Industrial Control 360</h1>
-                <p className="text-[10px] text-emerald-600 font-semibold uppercase tracking-widest">Enterprise Edition</p>
+                <h1 className="text-sm font-bold tracking-tight text-gray-900 truncate">{currentOrganization.name}</h1>
+                <p className="text-[10px] text-emerald-700 font-bold uppercase tracking-widest">{currentOrganization.taxId || 'MULTI-TENANT SYSTEM'}</p>
               </div>
             </div>
             {isMobile && (
@@ -198,7 +198,7 @@ export default function Layout() {
                 <img src={user.photoURL || ''} alt="User" className="w-10 h-10 rounded-full border border-gray-200 shrink-0" referrerPolicy="no-referrer" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">{user.displayName}</p>
-                  <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  <p className="text-xs text-emerald-700 font-semibold truncate">{ROLE_LABELS[userRole] || userRole}</p>
                 </div>
               </div>
               <button 
@@ -217,7 +217,7 @@ export default function Layout() {
       <main className="flex-1 flex flex-col min-w-0 bg-gray-50/50 relative h-full overflow-hidden">
         {/* Top Header */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 shrink-0 shadow-sm z-10">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
               className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500"
@@ -230,13 +230,13 @@ export default function Layout() {
             <div className="relative">
               <button 
                 onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
-                className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors"
+                className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors text-xs font-medium"
               >
-                <HardHat size={16} className="text-emerald-600" />
-                <span className="text-sm font-medium text-gray-700 max-w-[150px] sm:max-w-[200px] truncate">
+                <HardHat size={15} className="text-emerald-600 shrink-0" />
+                <span className="text-gray-700 max-w-[130px] sm:max-w-[200px] truncate font-semibold">
                   {currentProject ? currentProject.name : 'Seleccionar Proyecto'}
                 </span>
-                <ChevronDown size={16} className="text-gray-500" />
+                <ChevronDown size={14} className="text-gray-500" />
               </button>
               
               {isProjectMenuOpen && (
@@ -245,7 +245,6 @@ export default function Layout() {
                   <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2 max-h-80 overflow-y-auto">
                     <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Modo de Selección</div>
                     
-                    {/* Default Corporate Portfolio option */}
                     <button
                       onClick={() => {
                         setCurrentProject(CORPORATE_PORTFOLIO_PROJECT);
@@ -261,7 +260,7 @@ export default function Layout() {
                       <span className="truncate">🏢 PORTAFOLIO CORPORATIVO (TODOS LOS PROYECTOS)</span>
                     </button>
 
-                    <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Proyectos Activos</div>
+                    <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Proyectos de la Organización</div>
                     {projects.length === 0 ? (
                       <div className="px-4 py-3 text-xs text-gray-500">No hay proyectos. Crea uno en Gestión de Proyectos.</div>
                     ) : (
@@ -287,6 +286,46 @@ export default function Layout() {
                         + Gestionar Proyectos
                       </Link>
                     </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Role Selector Badge (Testing / Demo) */}
+            <div className="relative hidden sm:block">
+              <button
+                onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 rounded-lg text-xs font-semibold transition-colors"
+                title="Cambiar rol activo de usuario para simulación"
+              >
+                <UserCheck size={14} className="text-amber-700" />
+                <span>Rol: {ROLE_LABELS[userRole] || userRole}</span>
+                <ChevronDown size={13} className="text-amber-700" />
+              </button>
+
+              {isRoleMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsRoleMenuOpen(false)}></div>
+                  <div className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-2">
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                      Simular Rol de Usuario
+                    </div>
+                    {(Object.keys(ROLE_LABELS) as UserRole[]).map((roleKey) => (
+                      <button
+                        key={roleKey}
+                        onClick={() => {
+                          setUserRole(roleKey);
+                          setIsRoleMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-3.5 py-2 text-xs transition-colors ${
+                          userRole === roleKey 
+                            ? 'bg-amber-50 text-amber-900 font-bold' 
+                            : 'text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {ROLE_LABELS[roleKey]}
+                      </button>
+                    ))}
                   </div>
                 </>
               )}

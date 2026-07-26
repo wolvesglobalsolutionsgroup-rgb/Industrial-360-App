@@ -2,185 +2,217 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // ===============================================================
     // Helper Functions
     // ===============================================================
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      return isAuthenticated() && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        (request.auth.token.email == "wolvesglobalsolutionsgroup@gmail.com" && request.auth.token.email_verified == true));
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    function hasOnlyAllowedFields(fields) {
-      return request.resource.data.keys().hasOnly(fields);
-    }
-    
-    function isValidEmail(email) {
-      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    function getUserRole() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? getUserData().role
+        : 'superadmin'; // Default fallback para admin principal
     }
 
-    // ===============================================================
-    // Domain Validators
-    // ===============================================================
-    function isValidUser(data) {
-      return hasOnlyAllowedFields(['name', 'email', 'role']) &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.email is string && isValidEmail(data.email) &&
-             data.role in ['admin', 'engineer', 'viewer'];
+    function isSuperadmin() {
+      return isAuthenticated() && (
+        getUserRole() == 'superadmin' ||
+        (request.auth.token.email == "wolvesglobalsolutionsgroup@gmail.com" && request.auth.token.email_verified == true)
+      );
     }
 
-    function isValidProject(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() < 150 &&
-             data.description is string && data.description.size() < 1000 &&
-             data.budget is number && data.budget >= 0 &&
-             data.advancePercent is number && data.advancePercent >= 0 && data.advancePercent <= 100 &&
-             data.startDate is string &&
-             data.status in ['planning', 'active', 'completed', 'on_hold'] &&
-             data.ownerId is string &&
-             (!('knowledgeContext' in data) || data.knowledgeContext is map);
+    function isGerente() {
+      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente']);
     }
 
-    function isValidTask(data) {
-      return data.projectId is string &&
-             (!('code' in data) || (data.code is string && data.code.size() < 50)) &&
-             data.name is string && data.name.size() > 0 && data.name.size() < 200 &&
-             data.unit is string && data.unit.size() > 0 && data.unit.size() < 20 &&
-             data.plannedQuantity is number && data.plannedQuantity >= 0 &&
-             data.executedQuantity is number && data.executedQuantity >= 0 &&
-             data.unitCost is number && data.unitCost >= 0;
+    function isSupervisor() {
+      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor']);
     }
 
-    function isValidFieldReport(data) {
-      return data.projectId is string &&
-             data.date is string &&
-             (!('slumpTest' in data) || (data.slumpTest == null || data.slumpTest is number)) &&
-             (!('temperature' in data) || (data.temperature == null || data.temperature is number)) &&
-             (!('equipmentSerial' in data) || data.equipmentSerial is string) &&
-             data.ownerId is string;
+    function isInspector() {
+      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector']);
     }
 
-    function isValidValuation(data) {
-      return data.projectId is string &&
-             data.number is number &&
-             data.grossAmount is number &&
-             data.netAmount is number &&
-             data.status in ['Borrador', 'Pendiente', 'Aprobada', 'Pagada'] &&
-             data.ownerId is string;
+    function isCampo() {
+      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']);
     }
 
-    function isValidDocument(data) {
-      return data.projectId is string &&
-             data.name is string &&
-             data.category in ['Planos', 'Especificaciones', 'Presupuestos', 'Normas SIHO', 'Otros'];
+    function isCliente() {
+      return isAuthenticated();
     }
 
     // ===============================================================
-    // Rules
+    // Multi-Tenancy Hierarchy: /organizations/{orgId}
     // ===============================================================
-    match /{document=**} {
-      allow read, write: if false;
+    match /organizations/{orgId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperadmin();
+
+      match /projects/{projId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isGerente();
+        allow delete: if isSuperadmin();
+
+        // Subcolecciones de Proyecto
+        match /tasks/{taskId} {
+          allow read: if isAuthenticated();
+          allow write: if isSupervisor();
+        }
+
+        match /field_reports/{reportId} {
+          allow read: if isAuthenticated();
+          allow write: if isCampo();
+        }
+
+        match /valuations/{valuationId} {
+          allow read: if isAuthenticated();
+          allow write: if isGerente();
+        }
+
+        match /documents/{documentId} {
+          allow read: if isAuthenticated();
+          allow write: if isSupervisor();
+        }
+
+        match /expenses/{expenseId} {
+          allow read: if isAuthenticated();
+          allow write: if isGerente();
+        }
+
+        match /inventory/{itemId} {
+          allow read: if isAuthenticated();
+          allow write: if isSupervisor();
+        }
+
+        match /siho_ptw/{ptwId} {
+          allow read: if isAuthenticated();
+          allow write: if isCampo();
+        }
+
+        match /weld_joints/{jointId} {
+          allow read: if isAuthenticated();
+          allow write: if isInspector();
+        }
+
+        match /ndt_reports/{reportId} {
+          allow read: if isAuthenticated();
+          allow write: if isInspector();
+        }
+
+        match /ili_runs/{runId} {
+          allow read: if isAuthenticated();
+          allow write: if isInspector();
+        }
+
+        match /standby_claims/{claimId} {
+          allow read: if isAuthenticated();
+          allow write: if isGerente();
+        }
+
+        match /moc_requests/{mocId} {
+          allow read: if isAuthenticated();
+          allow write: if isGerente();
+        }
+
+        match /fleet_equipment/{equipId} {
+          allow read: if isAuthenticated();
+          allow write: if isSupervisor();
+        }
+
+        match /dossier_compilations/{dossierId} {
+          allow read: if isAuthenticated();
+          allow write: if isGerente();
+        }
+      }
     }
 
+    // ===============================================================
+    // Legacy Collections (Compatibilidad Directa)
+    // ===============================================================
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && 
-                    ((isOwner(userId) && request.resource.data.role == 'viewer') || isAdmin());
-      allow update: if isAuthenticated() && 
-                    ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
-      allow delete: if isAdmin();
-    }
-
-    match /projects/{projectId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidProject(request.resource.data) && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isAuthenticated() && isValidProject(request.resource.data) && 
-                    (resource.data.ownerId == request.auth.uid || isAdmin());
-      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
-    }
-
-    match /tasks/{taskId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidTask(request.resource.data);
-      allow update: if isAuthenticated() && isValidTask(request.resource.data);
-      allow delete: if isAuthenticated();
-    }
-
-    match /field_reports/{reportId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidFieldReport(request.resource.data);
-      allow update: if isAuthenticated() && isValidFieldReport(request.resource.data);
-      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
-    }
-
-    match /valuations/{valuationId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidValuation(request.resource.data);
-      allow update: if isAuthenticated() && isValidValuation(request.resource.data);
-      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
-    }
-
-    match /documents/{documentId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidDocument(request.resource.data);
-      allow update: if isAuthenticated() && isValidDocument(request.resource.data);
-      allow delete: if isAuthenticated();
-    }
-
-    match /expenses/{expenseId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidExpense(request.resource.data) && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isAuthenticated() && isValidExpense(request.resource.data) && 
-                    (resource.data.ownerId == request.auth.uid || isAdmin());
-      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
-    }
-
-    match /inventory/{itemId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidInventoryItem(request.resource.data);
-      allow update: if isAuthenticated() && isValidInventoryItem(request.resource.data);
-      allow delete: if isAuthenticated();
-    }
-
-    match /routes/{routeId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated();
     }
 
-    match /siho_ptw/{ptwId} {
+    match /projects/{projectId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isGerente();
+      allow delete: if isSuperadmin();
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+      allow write: if isSupervisor();
+    }
+
+    match /field_reports/{reportId} {
+      allow read: if isAuthenticated();
+      allow write: if isCampo();
+    }
+
+    match /valuations/{valuationId} {
+      allow read: if isAuthenticated();
+      allow write: if isGerente();
+    }
+
+    match /documents/{documentId} {
+      allow read: if isAuthenticated();
+      allow write: if isSupervisor();
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated();
+      allow write: if isGerente();
+    }
+
+    match /inventory/{itemId} {
+      allow read: if isAuthenticated();
+      allow write: if isSupervisor();
+    }
+
+    match /routes/{routeId} {
       allow read, write: if isAuthenticated();
+    }
+
+    match /siho_ptw/{ptwId} {
+      allow read: if isAuthenticated();
+      allow write: if isCampo();
     }
 
     match /weld_joints/{jointId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isInspector();
     }
 
     match /ndt_reports/{reportId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isInspector();
     }
 
     match /ili_runs/{runId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isInspector();
     }
 
     match /standby_claims/{claimId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isGerente();
     }
 
     match /moc_requests/{mocId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isGerente();
     }
 
     match /fleet_equipment/{equipId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isSupervisor();
     }
 
     match /interop_imports/{importId} {
@@ -188,12 +220,13 @@ service cloud.firestore {
     }
 
     match /dossier_compilations/{dossierId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isGerente();
     }
 
     match /settings/{settingId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isGerente();
     }
   }
 }

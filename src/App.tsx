@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Projects from './pages/Projects';
@@ -62,15 +63,44 @@ export default function App() {
           }>
             <Route index element={<Dashboard />} />
             <Route path="projects" element={<Projects />} />
-            <Route path="tasks" element={<Tasks />} />
+            
+            {/* Rutas con Protección de Rol */}
+            <Route path="tasks" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor']} moduleName="WBS / Planificación">
+                <Tasks />
+              </ProtectedRoute>
+            } />
+            <Route path="valuations" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Valuaciones y Facturación">
+                <Valuations />
+              </ProtectedRoute>
+            } />
+            <Route path="expenses" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Gestión de Costos y Gastos">
+                <Expenses />
+              </ProtectedRoute>
+            } />
+            <Route path="budget-details" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Detalles Presupuestarios">
+                <BudgetDetails />
+              </ProtectedRoute>
+            } />
+            <Route path="siho-ptw" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']} moduleName="Módulo SIHO-A y Permisos PTW">
+                <SihoPtw />
+              </ProtectedRoute>
+            } />
+            <Route path="qa-qc-welding" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector']} moduleName="Control de Calidad y Juntas de Soldadura">
+                <QaQcWelding />
+              </ProtectedRoute>
+            } />
+
+            {/* Rutas adicionales de operación */}
             <Route path="field-reports" element={<FieldReports />} />
             <Route path="documents" element={<Documents />} />
-            <Route path="valuations" element={<Valuations />} />
             <Route path="logistics" element={<LogisticsMap />} />
             <Route path="inventory" element={<Inventory />} />
-            <Route path="expenses" element={<Expenses />} />
-            <Route path="siho-ptw" element={<SihoPtw />} />
-            <Route path="qa-qc-welding" element={<QaQcWelding />} />
             <Route path="modulos/ili-pigging" element={<IntegrityIli />} />
             <Route path="modulos/standby-moc" element={<StandbyMoc />} />
             <Route path="modulos/flota" element={<FleetEquipment />} />
@@ -84,7 +114,6 @@ export default function App() {
             <Route path="bim" element={<BIMViewer />} />
             <Route path="settings" element={<Settings />} />
             <Route path="progress-details" element={<ProgressDetails />} />
-            <Route path="budget-details" element={<BudgetDetails />} />
             <Route path="personnel-details" element={<PersonnelDetails />} />
             <Route path="alerts-details" element={<AlertsDetails />} />
             <Route path="modulos/:id" element={<ModulePlaceholder />} />
