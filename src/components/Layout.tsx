@@ -4,7 +4,8 @@ import {
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
   MessageSquare, Mic, Box, LogOut, Calculator, Settings as SettingsIcon,
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
-  Database, Plug, Network, BrainCircuit, Briefcase, X, MapPin, Truck, ArrowLeftRight, Globe
+  Database, Plug, Network, BrainCircuit, Briefcase, X, MapPin, Truck, ArrowLeftRight, Globe,
+  PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { useAppAuthState, logout } from '../firebase';
 
@@ -89,7 +90,7 @@ export default function Layout() {
 
   const renderNavGroup = (title: string, items: any[]) => (
     <div className="mb-6">
-      <h3 className="px-4 text-[11px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2">{title}</h3>
+      <h3 className={`px-4 text-[11px] font-bold text-ink-faint uppercase tracking-wider mb-2 ${!isSidebarOpen && !isMobile ? 'text-center px-0' : ''}`}>{!isSidebarOpen && !isMobile ? '' : title}</h3>
       <div className="space-y-1 px-2">
         {items.map((item) => {
           const Icon = item.icon;
@@ -101,12 +102,12 @@ export default function Layout() {
               onClick={handleLinkClick}
               className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-sm ${
                 isActive 
-                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold shadow-2xs' 
-                  : 'text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
-              }`}
+                  ? 'bg-brand-500/10 text-brand-600 font-bold' 
+                  : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
+              } ${!isSidebarOpen && !isMobile ? 'justify-center px-0' : ''}`}
             >
-              <Icon size={18} className={isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-slate-500'} />
-              <span className="truncate">{item.label}</span>
+              <Icon size={18} className={isActive ? 'text-brand-500' : 'text-ink-faint'} />
+              <span className={`truncate ${!isSidebarOpen && !isMobile ? 'hidden' : ''}`}>{item.label}</span>
             </Link>
           );
         })}
@@ -115,7 +116,7 @@ export default function Layout() {
   );
 
   return (
-    <div className="flex h-screen bg-[var(--theme-bg-app)] text-gray-900 dark:text-slate-100 font-sans overflow-hidden transition-colors duration-200">
+    <div className="flex h-screen bg-bg text-ink font-sans overflow-hidden transition-colors duration-200">
       {/* Mobile Overlay */}
       {isMobile && isSidebarOpen && (
         <div 
@@ -126,32 +127,41 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside 
-        className={`fixed md:relative top-0 left-0 h-full bg-white dark:bg-slate-900 flex flex-col shadow-xl md:shadow-xs z-30 transition-all duration-300 ease-in-out overflow-hidden border-r border-gray-200/80 dark:border-slate-800 print:hidden ${
+        className={`fixed md:relative top-0 left-0 h-full bg-surface flex flex-col shadow-xl md:shadow-xs z-30 transition-all duration-300 ease-in-out overflow-hidden border-r border-line print:hidden ${
           isMobile 
             ? `w-72 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`
-            : `${isSidebarOpen ? 'w-72' : 'w-0 border-r-0'}`
+            : `${isSidebarOpen ? 'w-72' : 'w-[72px]'}`
         }`}
       >
         <div className="w-72 flex flex-col h-full">
           {/* Organization Header */}
-          <div className="p-5 flex items-center justify-between border-b border-gray-100 dark:border-slate-800 shrink-0">
+          <div className="p-5 flex items-center justify-between border-b border-line shrink-0">
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-9 h-9 bg-emerald-600 text-white font-black rounded-xl flex items-center justify-center shrink-0 shadow-md text-sm">
+              <div className="w-9 h-9 bg-brand-500 text-white font-black rounded-xl flex items-center justify-center shrink-0 shadow-md text-sm">
                 IC
               </div>
-              <div className="overflow-hidden">
-                <h1 className="text-sm font-bold tracking-tight text-gray-900 dark:text-slate-100 truncate">
+              <div className={`overflow-hidden ${!isSidebarOpen && !isMobile ? 'hidden' : ''}`}>
+                <h1 className="text-sm font-display font-bold tracking-tight text-ink truncate">
                   {currentOrganization.name}
                 </h1>
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest truncate">
+                <p className="text-[10px] text-brand-500 font-bold uppercase tracking-widest truncate">
                   {currentOrganization.taxId || 'CONTRATISTA REGISTRADA'}
                 </p>
               </div>
             </div>
+            {!isMobile && (
+              <button 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className="p-1.5 text-ink-faint hover:text-ink hover:bg-surface-2 rounded-lg transition-colors shrink-0"
+                title={isSidebarOpen ? "Colapsar menú" : "Expandir menú"}
+              >
+                {isSidebarOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+              </button>
+            )}
             {isMobile && (
               <button 
                 onClick={() => setIsSidebarOpen(false)}
-                className="p-2 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-xl shrink-0"
+                className="p-2 text-ink-faint hover:bg-surface-2 rounded-xl shrink-0"
               >
                 <X size={20} />
               </button>
@@ -168,25 +178,25 @@ export default function Layout() {
 
           {/* User Profile Info Footer */}
           {user && (
-            <div className="p-4 border-t border-gray-200 dark:border-slate-800 shrink-0 bg-gray-50/50 dark:bg-slate-900/50">
+            <div className="p-4 border-t border-line shrink-0">
               <div className="flex items-center gap-3 mb-3">
                 <img 
                   src={user.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${user.displayName || 'User'}`} 
                   alt="User" 
-                  className="w-9 h-9 rounded-full border border-gray-200 dark:border-slate-700 shrink-0" 
+                  className="w-9 h-9 rounded-full border border-line shrink-0" 
                   referrerPolicy="no-referrer" 
                 />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-900 dark:text-slate-100 truncate">{user.displayName || user.email}</p>
-                  <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold truncate">{ROLE_LABELS[userRole] || userRole}</p>
+                <div className={`flex-1 min-w-0 ${!isSidebarOpen && !isMobile ? 'hidden' : ''}`}>
+                  <p className="text-xs font-bold text-ink truncate">{user.displayName || user.email}</p>
+                  <p className="text-[11px] text-brand-500 font-semibold truncate">{ROLE_LABELS[userRole] || userRole}</p>
                 </div>
               </div>
               <button 
                 onClick={logout}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-xl transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
               >
                 <LogOut size={15} />
-                Cerrar Sesión
+                <span className={!isSidebarOpen && !isMobile ? 'hidden' : ''}>Cerrar Sesión</span>
               </button>
             </div>
           )}
@@ -195,11 +205,13 @@ export default function Layout() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 bg-transparent relative h-full overflow-hidden">
-        {/* Top Context Bar */}
-        <TopContextBar 
-          isSidebarOpen={isSidebarOpen} 
-          setIsSidebarOpen={setIsSidebarOpen} 
-        />
+        {/* Top Context Bar — glass sticky */}
+        <div className="sticky top-0 z-20">
+          <TopContextBar 
+            isSidebarOpen={isSidebarOpen} 
+            setIsSidebarOpen={setIsSidebarOpen} 
+          />
+        </div>
         
         {/* Router Outlet Container */}
         <div className="flex-1 overflow-auto p-4 md:p-8">

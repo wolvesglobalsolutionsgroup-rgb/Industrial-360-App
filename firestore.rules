@@ -17,30 +17,27 @@ service cloud.firestore {
     function getUserRole() {
       return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         ? getUserData().role
-        : 'superadmin'; // Default fallback para admin principal
+        : null; // Denegar si no existe documento de usuario
     }
 
     function isSuperadmin() {
-      return isAuthenticated() && (
-        getUserRole() == 'superadmin' ||
-        (request.auth.token.email == "wolvesglobalsolutionsgroup@gmail.com" && request.auth.token.email_verified == true)
-      );
+      return isAuthenticated() && getUserRole() == 'superadmin';
     }
 
     function isGerente() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente']);
+      return isAuthenticated() && (getUserRole() == 'superadmin' || getUserRole() == 'gerente');
     }
 
     function isSupervisor() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor']);
+      return isAuthenticated() && (getUserRole() == 'superadmin' || getUserRole() == 'gerente' || getUserRole() == 'supervisor');
     }
 
     function isInspector() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector']);
+      return isAuthenticated() && (getUserRole() == 'superadmin' || getUserRole() == 'gerente' || getUserRole() == 'supervisor' || getUserRole() == 'inspector');
     }
 
     function isCampo() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']);
+      return isAuthenticated() && (getUserRole() == 'superadmin' || getUserRole() == 'gerente' || getUserRole() == 'supervisor' || getUserRole() == 'inspector' || getUserRole() == 'campo');
     }
 
     function isCliente() {
@@ -134,6 +131,7 @@ service cloud.firestore {
 
       // Subcolecciones directas de Organización
       match /client_portals/{portalId} {
+        // Intencionalmente público — portales compartidos con clientes externos sin autenticación
         allow read: if true;
         allow write: if isAuthenticated();
       }
@@ -227,7 +225,8 @@ service cloud.firestore {
     }
 
     match /interop_imports/{importId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated() && request.auth.uid != null;
+      allow write: if isSupervisor();
     }
 
     match /dossier_compilations/{dossierId} {
@@ -241,6 +240,7 @@ service cloud.firestore {
     }
 
     match /client_portals/{portalId} {
+      // Intencionalmente público — portales compartidos con clientes externos sin autenticación
       allow read: if true;
       allow write: if isGerente();
     }

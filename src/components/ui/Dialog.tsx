@@ -48,16 +48,16 @@ export function Dialog({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 15 }}
             transition={{ type: 'spring', duration: 0.4 }}
-            className={`relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-3xl p-6 overflow-hidden z-10 space-y-4 ${className}`}
+            className={`relative w-full max-w-lg bg-surface border border-line shadow-2xl rounded-3xl p-6 overflow-hidden z-10 space-y-4 ${className}`}
           >
             {/* Header */}
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100 dark:border-slate-800">
-              <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white truncate">
+            <div className="flex justify-between items-center pb-2 border-b border-line">
+              <h2 className="text-base sm:text-lg font-black text-ink truncate">
                 {title}
               </h2>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-xl hover:bg-slate-155 text-slate-400 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+                className="p-1.5 rounded-xl hover:bg-surface-2 text-ink-faint hover:text-ink transition-colors cursor-pointer"
               >
                 <X size={18} />
               </button>

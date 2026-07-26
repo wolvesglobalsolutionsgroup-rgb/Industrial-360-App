@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   Building, HardHat, ChevronDown, Wifi, WifiOff, RefreshCw, 
   UserCheck, Bell, Palette, Check, Sparkles, CheckCircle2, AlertTriangle, ShieldCheck,
-  Sun, Moon
+  Sun, Moon, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { useProject, CORPORATE_PORTFOLIO_PROJECT, UserRole } from '../ProjectContext';
 import { ROLE_LABELS } from './ProtectedRoute';
@@ -84,23 +84,21 @@ export default function TopContextBar({
   };
 
   return (
-    <header className="h-16 border-b border-gray-200/80 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between px-4 shrink-0 shadow-xs z-20 transition-colors duration-200 print:hidden">
+    <header className="h-16 border-b border-line glass flex items-center justify-between px-4 shrink-0 shadow-xs z-20 transition-colors duration-200 print:hidden">
       <div className="flex items-center gap-3">
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-800 text-gray-600 dark:text-slate-300 transition-colors focus:outline-none"
+          className="p-2 rounded-xl hover:bg-surface-2 text-ink-faint hover:text-ink transition-colors focus:outline-none"
           title={isSidebarOpen ? "Ocultar menú" : "Mostrar menú"}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-          </svg>
+          {isSidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
         </button>
         
         {/* Active Organization & Project Selector */}
         <div className="relative flex items-center gap-2">
           {/* Active Org Badge */}
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-200">
-            <Building size={14} className="text-emerald-600 shrink-0" />
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-surface-2 border border-line rounded-xl text-xs font-bold text-ink-soft">
+            <Building size={14} className="text-brand-500 shrink-0" />
             <span className="truncate max-w-[150px]">{currentOrganization.name}</span>
           </div>
 
@@ -108,9 +106,9 @@ export default function TopContextBar({
           <div className="relative">
             <button 
               onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
-              className="flex items-center gap-2 bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 px-3 py-1.5 rounded-xl transition-colors text-xs font-semibold text-gray-800 dark:text-slate-100 shadow-2xs"
+              className="flex items-center gap-2 bg-surface-2 hover:bg-elevated border border-line px-3 py-1.5 rounded-xl transition-colors text-xs font-semibold text-ink shadow-2xs"
             >
-              <HardHat size={15} className="text-emerald-600 shrink-0" />
+              <HardHat size={15} className="text-brand-500 shrink-0" />
               <span className="max-w-[140px] sm:max-w-[220px] truncate">
                 {currentProject ? currentProject.name : 'Seleccionar Proyecto'}
               </span>
