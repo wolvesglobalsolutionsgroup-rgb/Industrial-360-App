@@ -183,75 +183,121 @@ export default function IntegrityIli() {
     };
   });
 
-  // Native Parser for ROSOFT Excel / CSV files
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // Function to calculate clock needle position on 360 degree dial
+  const getClockNeedlePosition = (clockStr: string) => {
+    if (!clockStr) return { topPct: '25%', leftPct: '50%' };
+    const parts = clockStr.split(':').map(p => parseInt(p, 10));
+    const h = parts[0] || 12;
+    const m = parts[1] || 0;
+    const totalHours = (h % 12) + m / 60;
+    const angleRad = (totalHours * 30 - 90) * (Math.PI / 180);
+    const r = 36; // radius percentage from center
+    const top = 50 + r * Math.sin(angleRad);
+    const left = 50 + r * Math.cos(angleRad);
+    return { topPct: `${top.toFixed(1)}%`, leftPct: `${left.toFixed(1)}%` };
+  };
+
+  // Parser para archivos de reporte ILI ROSEN (.csv / .txt)
+  const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (!file) return;
 
-    setUploadMessage('Procesando corrida ILI ROSOFT...');
+    setUploadMessage('Procesando corrida de inspección ILI ROSEN...');
     const reader = new FileReader();
-
-    reader.onload = (evt) => {
+    reader.onload = (e) => {
       try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
-
-        if (data.length === 0) {
-          setUploadMessage('El archivo no contiene filas de datos.');
+        const text = e.target?.result as string;
+        const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+        if (lines.length < 2) {
+          setUploadMessage('El archivo no contiene suficientes registros.');
           return;
         }
 
-        const parsedAnomalies: Anomaly[] = data.map((row, index) => {
-          const getVal = (keys: string[], defaultVal: any) => {
-            for (const k of keys) {
-              const matchedKey = Object.keys(row).find(rk => rk.trim().toUpperCase() === k.toUpperCase());
-              if (matchedKey && row[matchedKey] !== '') return row[matchedKey];
-            }
-            return defaultVal;
-          };
+        // Detectar delimitador (coma o tabulación)
+        const delimiter = lines[0].includes('\t') ? '\t' : ',';
+        const headers = lines[0].split(delimiter).map(h => h.trim().toUpperCase().replace(/"/g, ''));
 
-          const kp = Number(getVal(['KP', 'DIST', 'DISTANCE', 'DIST_KM'], (index + 1) * 2.5));
-          const depth = Number(getVal(['WL %', 'WL', 'DEPTH_%', 'DEPTH_PCT', 'SEVERITY'], 25));
-          const typeVal = String(getVal(['TYPE', 'ANOMALY_TYPE', 'CLASSIFICATION'], 'Metal Loss'));
-          const intExt = String(getVal(['INTERNAL/EXTERNAL', 'ORIENTATION', 'INT_EXT'], 'External')).toLowerCase().includes('int') ? 'Internal' : 'External';
+        // Obtener índices de columnas dinámicamente
+        const idxDist = headers.indexOf('DIST') !== -1 ? headers.indexOf('DIST') : headers.indexOf('KP');
+        const idxType = headers.indexOf('TYPE');
+        const idxInternal = headers.indexOf('INTERNAL') !== -1 ? headers.indexOf('INTERNAL') : headers.indexOf('INT_EXT');
+        const idxWl = headers.indexOf('WL') !== -1 ? headers.indexOf('WL') : headers.indexOf('WL %');
+        const idxLen = headers.indexOf('LEN') !== -1 ? headers.indexOf('LEN') : headers.indexOf('LENGTH_MM');
+        const idxWid = headers.indexOf('WID') !== -1 ? headers.indexOf('WID') : headers.indexOf('WIDTH_MM');
+        const idxOclock = headers.indexOf('O_CLOCK') !== -1 ? headers.indexOf('O_CLOCK') : headers.indexOf('CLOCK');
+        const idxJjNo = headers.indexOf('JJ_NO') !== -1 ? headers.indexOf('JJ_NO') : headers.indexOf('WELD_NO');
+        const idxJjDist = headers.indexOf('JJ_DIST') !== -1 ? headers.indexOf('JJ_DIST') : headers.indexOf('WELD_DIST');
+        const idxEasting = headers.indexOf('EASTING') !== -1 ? headers.indexOf('EASTING') : headers.indexOf('UTM_E');
+        const idxNorthing = headers.indexOf('NORTHING') !== -1 ? headers.indexOf('NORTHING') : headers.indexOf('UTM_N');
+        const idxCp = headers.indexOf('CRITERIO PC (-MV)') !== -1 ? headers.indexOf('CRITERIO PC (-MV)') : headers.indexOf('CP');
 
-          return {
-            id: String(getVal(['ID', 'ANOMALY_ID', 'NO'], `ANO-IMP-${index + 101}`)),
-            kp: Number(kp.toFixed(3)),
-            clockPosition: String(getVal(['O_CLOCK', 'CLOCK', 'POSITION'], '06:00')),
-            depthPercent: Math.min(100, Math.max(1, depth)),
-            lengthMm: Number(getVal(['LEN', 'LENGTH_MM', 'L_MM'], 120)),
-            widthMm: Number(getVal(['WID', 'WIDTH_MM', 'W_MM'], 50)),
-            type: typeVal.includes('Dent') ? 'Dent' : (typeVal.includes('Gouge') ? 'Gouge' : 'Metal Loss'),
-            internalExternal: intExt,
-            nominalWT: Number(getVal(['NOMINAL_WT', 'WT', 'WT_MM'], 12.7)),
-            pipeDiameter: Number(getVal(['PIPE_DIAMETER', 'OD', 'DIAMETER'], 16)),
-            smys: Number(getVal(['SMYS', 'GRADE'], 52000)),
-            maop: Number(getVal(['MAOP', 'PRESSURE'], 1100)),
-            status: depth >= 40 ? 'Atención Prioritaria' : 'Inconclusa',
-            upstreamWeldNo: String(getVal(['JJ_NO', 'WELD_NO', 'JOINT'], `JJ-${index + 100}`)),
-            upstreamWeldDistMm: Number(getVal(['JJ_DIST', 'WELD_DIST', 'DIST_WELD'], 1500)),
-            easting: Number(getVal(['EASTING', 'UTM_E', 'X'], 380000 + index * 100)),
-            northing: Number(getVal(['NORTHING', 'UTM_N', 'Y'], 980000 - index * 50)),
-            cpPotentialMv: intExt === 'External' && depth >= 40 ? -750 : -940
-          };
-        });
+        const parsedAnomalies: Anomaly[] = [];
+        // Procesar filas (saltando cabeceras y filas de nombres repetidos)
+        for (let i = 1; i < lines.length; i++) {
+          const cols = lines[i].split(delimiter).map(c => c.trim().replace(/"/g, ''));
+          if (cols.length < Math.min(headers.length, 3)) continue;
 
-        setAnomalies(parsedAnomalies);
-        if (parsedAnomalies.length > 0) {
-          setSelectedAnomaly(parsedAnomalies[0]);
+          // Saltar fila de subtítulos de ROSEN si coincide con el nombre de la columna
+          if (idxDist !== -1 && cols[idxDist]?.toUpperCase() === 'DIST') continue;
+
+          const type = idxType !== -1 ? cols[idxType] : 'Metal Loss';
+          // Filtrar solo tipos relevantes de anomalías para el visor (Metal Loss, Dent, Corrosion, Gouge)
+          if (type && !['METAL LOSS', 'CORROSION', 'DENT', 'GOUGE', 'CORROSIÓN', 'PÉRDIDA DE METAL'].includes(type.toUpperCase())) {
+            continue;
+          }
+
+          const wlVal = idxWl !== -1 ? parseFloat(cols[idxWl]) || 0 : 0;
+          if (wlVal === 0 && idxWl !== -1) continue; // Ignorar si no hay pérdida
+
+          const isInternal = idxInternal !== -1 
+            ? (cols[idxInternal]?.toUpperCase() === 'Y' || cols[idxInternal]?.toUpperCase() === 'INTERNAL' || cols[idxInternal]?.toUpperCase() === 'INT')
+            : false;
+
+          const cpRaw = idxCp !== -1 && cols[idxCp] ? parseFloat(cols[idxCp]) : 0;
+
+          parsedAnomalies.push({
+            id: `ANO-IMP-${100 + parsedAnomalies.length}`,
+            kp: idxDist !== -1 ? Math.abs(parseFloat(cols[idxDist]) || 0) : Number(((i + 1) * 1.8).toFixed(3)),
+            clockPosition: (idxOclock !== -1 && cols[idxOclock]) ? cols[idxOclock] : '12:00',
+            depthPercent: wlVal || 25,
+            lengthMm: idxLen !== -1 ? parseFloat(cols[idxLen]) || 120 : 120,
+            widthMm: idxWid !== -1 ? parseFloat(cols[idxWid]) || 50 : 50,
+            type: 'Metal Loss',
+            internalExternal: isInternal ? 'Internal' : 'External',
+            nominalWT: 12.7,
+            pipeDiameter: 16,
+            smys: 52000,
+            maop: 1100,
+            status: (wlVal || 25) >= 40 ? 'Atención Prioritaria' : 'Inconclusa',
+            // Campos extendidos reales
+            easting: idxEasting !== -1 ? parseFloat(cols[idxEasting]) || 381300 : 381300 + parsedAnomalies.length * 120,
+            northing: idxNorthing !== -1 ? parseFloat(cols[idxNorthing]) || 979350 : 979350 - parsedAnomalies.length * 90,
+            cpPotentialMv: cpRaw ? -Math.abs(cpRaw) : -940,
+            upstreamWeldNo: (idxJjNo !== -1 && cols[idxJjNo]) ? cols[idxJjNo] : `JJ-${100 + parsedAnomalies.length}`,
+            upstreamWeldDistMm: idxJjDist !== -1 ? parseFloat(cols[idxJjDist]) || 0 : 1200
+          });
         }
-        setUploadMessage(`¡Éxito! ${parsedAnomalies.length} anomalías ILI importadas correctamente.`);
+
+        // Ordenar por severidad de pérdida de metal (WL) descendente para ver las críticas primero
+        parsedAnomalies.sort((a, b) => b.depthPercent - a.depthPercent);
+
+        if (parsedAnomalies.length > 0) {
+          setAnomalies(parsedAnomalies);
+          setSelectedAnomaly(parsedAnomalies[0]);
+          setUploadMessage(`¡Éxito! Se han importado ${parsedAnomalies.length} anomalías de corrosión reales del reporte.`);
+          alert(`¡Éxito! Se han importado ${parsedAnomalies.length} anomalías de corrosión reales del reporte.`);
+        } else {
+          setUploadMessage('No se encontraron registros de pérdida de metal (Metal Loss) válidos.');
+          alert('No se encontraron registros de pérdida de metal (Metal Loss) válidos.');
+        }
       } catch (err: any) {
-        console.error('Error procesando corrida ILI:', err);
-        setUploadMessage(`Error leyendo el archivo: ${err.message || 'Formato no soportado.'}`);
+        console.error('Error importando ROSEN CSV:', err);
+        setUploadMessage('Ocurrió un error al procesar el archivo CSV/TXT.');
+        alert('Ocurrió un error al procesar el archivo CSV/TXT.');
       }
     };
-
-    reader.readAsBinaryString(file);
+    reader.readAsText(file);
+    if (event.target) event.target.value = '';
   };
 
   // ASME B31G (Original) vs. RSTRENG (Modified B31G 0.85d/t) Calculation Engine
@@ -362,17 +408,24 @@ export default function IntegrityIli() {
         <div className="flex items-center gap-2">
           <input 
             type="file" 
+            id="ili-file-input"
             ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            accept=".csv, .xlsx, .xls" 
+            onChange={handleFileImport} 
+            accept=".csv,.txt" 
             className="hidden" 
           />
           <button 
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (fileInputRef.current) {
+                fileInputRef.current.click();
+              } else {
+                document.getElementById('ili-file-input')?.click();
+              }
+            }}
             className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-[#0B2239] font-extrabold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition-all shadow-md cursor-pointer"
           >
             <Upload size={16} />
-            <span>Importar Corrida ROSOFT (.xlsx / .csv)</span>
+            <span>Importar Corrida ROSEN (CSV)</span>
           </button>
         </div>
       </div>
@@ -564,14 +617,20 @@ export default function IntegrityIli() {
                           <span className="text-[11px] text-emerald-400 font-mono font-bold">WT {selectedAnomaly.nominalWT}mm</span>
                           
                           {/* Anomaly Indicator Dot */}
-                          <div 
-                            className="absolute w-4 h-4 rounded-full bg-red-500 animate-pulse border-2 border-white shadow-lg"
-                            style={{
-                              top: selectedAnomaly.clockPosition.startsWith('04') || selectedAnomaly.clockPosition.startsWith('06') ? '70%' : '25%',
-                              left: selectedAnomaly.clockPosition.startsWith('04') ? '75%' : '50%',
-                            }}
-                            title={`Anomalía en ${selectedAnomaly.clockPosition}`}
-                          />
+                          {(() => {
+                            const pos = getClockNeedlePosition(selectedAnomaly.clockPosition);
+                            return (
+                              <div 
+                                className="absolute w-4 h-4 rounded-full bg-red-500 animate-pulse border-2 border-white shadow-lg"
+                                style={{
+                                  top: pos.topPct,
+                                  left: pos.leftPct,
+                                  transform: 'translate(-50%, -50%)'
+                                }}
+                                title={`Anomalía en ${selectedAnomaly.clockPosition} o'clock (${selectedAnomaly.internalExternal})`}
+                              />
+                            );
+                          })()}
                         </div>
                       </div>
                       <span className="text-xs font-mono text-emerald-400 bg-slate-900 border border-slate-800 px-3.5 py-1 rounded-full">
