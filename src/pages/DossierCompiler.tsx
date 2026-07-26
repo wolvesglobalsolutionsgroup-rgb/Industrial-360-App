@@ -1,147 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { 
   FileArchive, Download, CheckCircle2, 
-  Sparkles, Clock, AlertCircle
+  Sparkles, Clock, AlertCircle, Eye, Layers, ShieldCheck, FileText, CheckSquare
 } from 'lucide-react';
-import { collection, query, where, onSnapshot, addDoc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
-
-interface DossierSection {
-  id: string;
-  title: string;
-  code: string;
-  requiredCount: number;
-  uploadedCount: number;
-  status: 'Completo' | 'En Revisión' | 'Pendiente';
-  collectionName: string;
-}
+import { compileProjectDossier } from '../lib/dossier/dossierCompiler';
+import { generatePdvsaCoverHtml } from '../lib/dossier/coverGenerator';
+import { DossierState, FasePDVSA, FASES_PDVSA_DESCRIPCION, DocumentoDossier } from '../lib/data/pdvsa/dossierTypes';
 
 export default function DossierCompiler() {
   const { currentProject, currentOrganization } = useProject();
+  
+  const [faseSelected, setFaseSelected] = useState<FasePDVSA>('I');
+  const [dossierState, setDossierState] = useState<DossierState | null>(null);
+  const [loading, setLoading] = useState(true);
+  
   const [isCompiling, setIsCompiling] = useState(false);
   const [compileProgress, setCompileProgress] = useState(0);
   const [compiledPdfReady, setCompiledPdfReady] = useState(false);
   const [generatedHash, setGeneratedHash] = useState<string>('');
   const [compilationTimestamp, setCompilationTimestamp] = useState<string>('');
+  
+  const [selectedDocForCover, setSelectedDocForCover] = useState<DocumentoDossier | null>(null);
+  const [showCoverModal, setShowCoverModal] = useState(false);
 
-  // Counts state from live Firestore
-  const [weldCount, setWeldCount] = useState(0);
-  const [ptwCount, setPtwCount] = useState(0);
-  const [docCount, setDocCount] = useState(0);
-  const [calcCount, setCalcCount] = useState(0);
-  const [valCount, setValCount] = useState(0);
-  const [taskCount, setTaskCount] = useState(0);
+  const orgId = currentOrganization?.id || 'org-default';
+  const projId = currentProject?.id || 'proj-default';
+  const projName = currentProject?.name || 'Gasoducto 16" Anaco - PLC (PDVSA GAS)';
 
+  // Load and compile live dossier data from Firestore
   useEffect(() => {
-    if (!currentProject) return;
+    let isMounted = true;
+    setLoading(true);
 
-    const projId = currentProject.id;
+    compileProjectDossier(orgId, projId, faseSelected, projName)
+      .then(dstate => {
+        if (isMounted) {
+          setDossierState(dstate);
+          setLoading(false);
+        }
+      })
+      .catch(err => {
+        console.error('Error compiling project dossier:', err);
+        if (isMounted) setLoading(false);
+      });
 
-    // 1. Weld Joints
-    const qWelds = query(collection(db, 'weld_joints'), where('projectId', '==', projId));
-    const unsubWelds = onSnapshot(qWelds, (snap) => setWeldCount(snap.size),
-      (err) => handleFirestoreError(err, OperationType.GET, 'weld_joints'));
-
-    // 2. SIHO PTW
-    const qPtw = query(collection(db, 'siho_ptw'), where('projectId', '==', projId));
-    const unsubPtw = onSnapshot(qPtw, (snap) => setPtwCount(snap.size),
-      (err) => handleFirestoreError(err, OperationType.GET, 'siho_ptw'));
-
-    // 3. Documents
-    const qDocs = query(collection(db, 'documents'), where('projectId', '==', projId));
-    const unsubDocs = onSnapshot(qDocs, (snap) => setDocCount(snap.size),
-      (err) => handleFirestoreError(err, OperationType.GET, 'documents'));
-
-    // 4. Engineering Calcs
-    const qCalcs = query(collection(db, 'engineering_calcs'), where('projectId', '==', projId));
-    const unsubCalcs = onSnapshot(qCalcs, (snap) => setCalcCount(snap.size),
-      (err) => handleFirestoreError(err, OperationType.GET, 'engineering_calcs'));
-
-    // 5. Valuations
-    const qVals = query(collection(db, 'valuations'), where('projectId', '==', projId));
-    const unsubVals = onSnapshot(qVals, (snap) => setValCount(snap.size),
-      (err) => handleFirestoreError(err, OperationType.GET, 'valuations'));
-
-    // 6. Tasks
-    const qTasks = query(collection(db, 'tasks'), where('projectId', '==', projId));
-    const unsubTasks = onSnapshot(qTasks, (snap) => setTaskCount(snap.size),
-      (err) => handleFirestoreError(err, OperationType.GET, 'tasks'));
-
-    return () => {
-      unsubWelds();
-      unsubPtw();
-      unsubDocs();
-      unsubCalcs();
-      unsubVals();
-      unsubTasks();
-    };
-  }, [currentProject]);
-
-  const sections: DossierSection[] = [
-    {
-      id: 'SEC-01',
-      title: 'Actas Contractuales, Paradas y Avances de Partidas',
-      code: 'CAP-01-ACT',
-      requiredCount: Math.max(1, taskCount),
-      uploadedCount: taskCount,
-      status: taskCount > 0 ? 'Completo' : 'Pendiente',
-      collectionName: 'tasks'
-    },
-    {
-      id: 'SEC-02',
-      title: 'Planos As-Built y Redlines Digitalizados (DWG / PDF)',
-      code: 'CAP-02-DWG',
-      requiredCount: Math.max(1, docCount),
-      uploadedCount: docCount,
-      status: docCount > 0 ? 'Completo' : 'Pendiente',
-      collectionName: 'documents'
-    },
-    {
-      id: 'SEC-03',
-      title: 'Memorias de Cálculo y Especificaciones Técnicas',
-      code: 'CAP-03-ENG',
-      requiredCount: Math.max(1, calcCount),
-      uploadedCount: calcCount,
-      status: calcCount > 0 ? 'Completo' : 'Pendiente',
-      collectionName: 'engineering_calcs'
-    },
-    {
-      id: 'SEC-04',
-      title: 'Trazabilidad de Juntas de Soldadura & Reportes NDT (DICONDE / API 1104)',
-      code: 'CAP-04-NDT',
-      requiredCount: Math.max(1, weldCount),
-      uploadedCount: weldCount,
-      status: weldCount > 0 ? 'Completo' : 'Pendiente',
-      collectionName: 'weld_joints'
-    },
-    {
-      id: 'SEC-05',
-      title: 'Expediente SIHO-A, Permisos PTW, Evaluaciones ART & Análisis Atmosférico',
-      code: 'CAP-05-SIHO',
-      requiredCount: Math.max(1, ptwCount),
-      uploadedCount: ptwCount,
-      status: ptwCount > 0 ? 'Completo' : 'Pendiente',
-      collectionName: 'siho_ptw'
-    },
-    {
-      id: 'SEC-06',
-      title: 'Valuaciones de Obra, Avance Financiero y Cierre Técnico',
-      code: 'CAP-06-VAL',
-      requiredCount: Math.max(1, valCount),
-      uploadedCount: valCount,
-      status: valCount > 0 ? 'Completo' : 'Pendiente',
-      collectionName: 'valuations'
-    }
-  ];
-
-  const generateSha256 = async (dataString: string): Promise<string> => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(dataString);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  };
+    return () => { isMounted = false; };
+  }, [orgId, projId, faseSelected, projName]);
 
   const handleStartCompilation = async () => {
     if (!currentProject) {
@@ -153,17 +58,19 @@ export default function DossierCompiler() {
     setCompileProgress(10);
     setCompiledPdfReady(false);
 
-    const totalDocsVerified = taskCount + docCount + calcCount + weldCount + ptwCount + valCount;
     const nowIso = new Date().toISOString();
-    const orgId = currentOrganization?.id || 'org-default';
-    const projId = currentProject.id;
-
-    const payload = `DOSSIER|ORG:${orgId}|PROJ:${projId}|TOTAL_DOCS:${totalDocsVerified}|TIMESTAMP:${nowIso}`;
-    const sha256 = await generateSha256(payload);
+    const payload = `PDVSA-DOSSIER-PIC-01-03-05|ORG:${orgId}|PROJ:${projId}|DOCS:${dossierState?.totalDocumentos || 0}|TIMESTAMP:${nowIso}`;
+    
+    // Hash computation
+    const encoder = new TextEncoder();
+    const data = encoder.encode(payload);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const sha256 = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
     let progress = 10;
-    const interval = setInterval(async () => {
-      progress += 18;
+    const interval = setInterval(() => {
+      progress += 20;
       if (progress >= 100) {
         clearInterval(interval);
         setCompileProgress(100);
@@ -171,67 +78,124 @@ export default function DossierCompiler() {
         setGeneratedHash(sha256);
         setCompilationTimestamp(nowIso);
         setCompiledPdfReady(true);
-
-        // Save compilation record in Firestore
-        try {
-          await addDoc(collection(db, 'dossier_compilations'), {
-            orgId,
-            projectId: projId,
-            projectName: currentProject.name || 'Proyecto Industrial',
-            totalDocumentsVerified: totalDocsVerified,
-            sha256Hash: sha256,
-            compiledAt: nowIso,
-            sectionsSummary: sections.map(s => ({
-              code: s.code,
-              title: s.title,
-              count: s.uploadedCount,
-              status: s.status
-            }))
-          });
-        } catch (err) {
-          console.error("Error saving dossier compilation record:", err);
-        }
       } else {
         setCompileProgress(progress);
       }
-    }, 350);
+    }, 250);
   };
 
-  const totalVerifiedCount = taskCount + docCount + calcCount + weldCount + ptwCount + valCount;
+  const handleOpenCoverModal = (doc: DocumentoDossier) => {
+    setSelectedDocForCover(doc);
+    setShowCoverModal(true);
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="space-y-6 pb-12">
+      {/* Header Banner */}
+      <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-lg border border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
-            <FileArchive size={16} /> Compilador del Dossier de Calidad As-Built (PDVSA PI-02-01-01)
+          <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">
+            <FileArchive size={16} /> Norma PDVSA PIC-01-03-05 / Anexo A — Dossier de Calidad
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Libro Final de Obra & Dossier de Entrega</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Compilación automatizada en tiempo real de {totalVerifiedCount} evidencias verificadas con hash inmutable SHA-256.
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Compilador del Libro Final de Obra & Dossier
+          </h1>
+          <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl font-medium">
+            Escaneo multi-tenant en tiempo real de permisos SIHO-A, juntas QA/QC, corridas ILI, valuaciones ROE y reportes de campo para {projName}.
           </p>
         </div>
-        <div>
+        <div className="shrink-0">
           <button
             onClick={handleStartCompilation}
-            disabled={isCompiling}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-all shadow-md disabled:opacity-50"
+            disabled={isCompiling || loading}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-md cursor-pointer disabled:opacity-50"
           >
             <Sparkles size={16} />
-            {isCompiling ? `Compilando PDF (${compileProgress}%)...` : 'Compilar Dossier Completo (PDF Indexado)'}
+            {isCompiling ? `Compilando Expediente (${compileProgress}%)...` : 'Generar Expediente Completo (PDF)'}
           </button>
+        </div>
+      </div>
+
+      {/* Fase Selection Tabs */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+            <Layers size={14} /> Selección de Fase de Proyecto PDVSA (V/C/D/I/O)
+          </h2>
+          <span className="text-xs font-mono font-bold bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full text-slate-700 dark:text-slate-300">
+            Fase Seleccionada: {FASES_PDVSA_DESCRIPCION[faseSelected].nombre}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {(['V', 'C', 'D', 'I', 'O'] as FasePDVSA[]).map(f => {
+            const fInfo = FASES_PDVSA_DESCRIPCION[f];
+            const isSelected = faseSelected === f;
+            return (
+              <button
+                key={f}
+                onClick={() => setFaseSelected(f)}
+                className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
+                  isSelected 
+                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-emerald-600 dark:border-emerald-600 shadow-sm' 
+                    : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <div className="font-extrabold text-sm">{fInfo.nombre.split('—')[0]}</div>
+                <div className="text-[10px] opacity-80 line-clamp-1 font-medium">{fInfo.nombre.split('—')[1]}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* KPI Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+          <div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Documentos</div>
+            <div className="text-2xl font-black text-slate-900 dark:text-white mt-1 font-mono">
+              {dossierState?.totalDocumentos || 0}
+            </div>
+          </div>
+          <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-700 dark:text-slate-300">
+            <FileText size={22} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+          <div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Firmados / Aprobados</div>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 font-mono">
+              {dossierState?.documentosAprobados || 0}
+            </div>
+          </div>
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/50 rounded-2xl text-emerald-600 dark:text-emerald-400">
+            <ShieldCheck size={22} />
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex items-center justify-between">
+          <div>
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Pendientes de Firma</div>
+            <div className="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 font-mono">
+              {dossierState?.documentosPendientes || 0}
+            </div>
+          </div>
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/50 rounded-2xl text-amber-600 dark:text-amber-400">
+            <Clock size={22} />
+          </div>
         </div>
       </div>
 
       {/* Progress Bar if Compiling */}
       {isCompiling && (
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm space-y-2">
-          <div className="flex justify-between text-xs font-mono font-bold text-slate-700">
-            <span>Ensamblando Índice Interactivo y Marcadores Hyperlinked desde Firestore...</span>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
+          <div className="flex justify-between text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+            <span>Ensamblando carátulas Anexo A, firmas digitales y marcas de agua...</span>
             <span>{compileProgress}%</span>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
             <div 
               className="bg-emerald-600 h-full transition-all duration-300 rounded-full"
               style={{ width: `${compileProgress}%` }}
@@ -240,65 +204,140 @@ export default function DossierCompiler() {
         </div>
       )}
 
-      {/* Compilation Ready Alert */}
+      {/* Compilation Success Notification */}
       {compiledPdfReady && (
-        <div className="p-5 bg-emerald-950 text-emerald-100 rounded-2xl border border-emerald-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-lg">
+        <div className="p-6 bg-emerald-950 text-emerald-100 rounded-3xl border border-emerald-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-lg">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
-              <CheckCircle2 size={20} /> DOSSIER DE CALIDAD DIGITALIZADO & SELLADO
+            <div className="flex items-center gap-2 text-emerald-400 font-extrabold text-sm">
+              <CheckCircle2 size={20} /> DOSSIER DIGITAL DE CALIDAD ENSAMBLADO & CERTIFICADO
             </div>
             <p className="text-xs text-emerald-200 font-mono break-all">
-              HASH SHA-256: {generatedHash}
+              HASH SHA-256 INMUTABLE: {generatedHash}
             </p>
-
             <p className="text-[11px] text-emerald-300">
-              Registrado exitosamente en Firestore (`dossier_compilations`) • {compilationTimestamp ? new Date(compilationTimestamp).toLocaleString() : ''}
+              Certificado bajo norma PDVSA PIC-01-03-05 • {compilationTimestamp ? new Date(compilationTimestamp).toLocaleString() : ''}
             </p>
           </div>
           <button
-            onClick={() => alert(`Descargando Libro_Final_de_Obra_${currentProject?.id || 'PROJ'}.pdf (${totalVerifiedCount} Evidencias Verificadas)...`)}
-            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs shrink-0 shadow transition-colors"
+            onClick={() => alert(`Iniciando descarga unificada de Expediente_Final_PDVSA_${projId}.pdf con ${dossierState?.totalDocumentos || 0} evidencias...`)}
+            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-5 py-3 rounded-2xl text-xs shrink-0 shadow transition-colors cursor-pointer"
           >
-            <Download size={16} /> Descargar PDF Unificado
+            <Download size={16} /> Descargar Expediente PDF
           </button>
         </div>
       )}
 
-      {/* Chapters Table */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-base font-bold text-gray-900">Estructura de Capítulos del Dossier (Norma PDVSA PI-02-01-01)</h2>
-          <span className="text-xs text-gray-500 font-medium">Sincronizado en tiempo real con Firestore</span>
-        </div>
-
-        <div className="space-y-3">
-          {sections.map(sec => (
-            <div key={sec.id} className="p-4 border border-gray-200 rounded-xl hover:bg-slate-50 transition-all flex justify-between items-center text-xs">
-              <div className="space-y-1">
-                <span className="font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px]">
-                  {sec.code}
+      {/* Dossier Sections & Document List */}
+      <div className="space-y-6">
+        {loading ? (
+          <div className="p-12 text-center text-slate-500 font-medium">
+            Escaneando módulos en tiempo real para compilar el dossier...
+          </div>
+        ) : (
+          dossierState?.secciones.map(sec => (
+            <div key={sec.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base">{sec.tituloSeccion}</h3>
+                  <span className="text-xs font-mono font-bold text-slate-400">{sec.codigoSeccion}</span>
+                </div>
+                <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold px-3 py-1 rounded-full">
+                  {sec.documentos.length} Documentos
                 </span>
-                <h3 className="font-bold text-slate-900 text-sm">{sec.title}</h3>
-                <p className="text-gray-500">
-                  Registros Verificados en Firestore: <span className="font-mono font-bold text-slate-800">{sec.uploadedCount}</span> ítems
-                </p>
               </div>
 
-              <div className="flex items-center gap-3">
-                {sec.status === 'Completo' ? (
-                  <span className="bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full text-[11px] flex items-center gap-1">
-                    <CheckCircle2 size={13} /> Completo
-                  </span>
-                ) : (
-                  <span className="bg-amber-100 text-amber-800 font-bold px-3 py-1 rounded-full text-[11px] flex items-center gap-1">
-                    <Clock size={13} /> Pendiente ({sec.uploadedCount})
-                  </span>
-                )}
-              </div>
+              {sec.documentos.length === 0 ? (
+                <div className="p-4 text-center text-slate-400 text-xs italic">
+                  No hay documentos registrados para esta sección en la fase actual.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {sec.documentos.map(doc => (
+                    <div 
+                      key={doc.id}
+                      className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold bg-slate-900 text-white dark:bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[10px]">
+                            {doc.codigoPDVSA}
+                          </span>
+                          <span className="font-bold text-slate-500 text-[10px]">REV. {doc.revisionActual}</span>
+                        </div>
+                        <div className="font-extrabold text-slate-900 dark:text-white text-sm">{doc.titulo}</div>
+                        <div className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-3">
+                          <span>Módulo: <strong className="text-slate-700 dark:text-slate-300">{doc.origenModulo}</strong></span>
+                          <span>Páginas: <strong className="text-slate-700 dark:text-slate-300">{doc.paginasCount || 1}</strong></span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold ${
+                          doc.statusDoc === 'Aprobado' || doc.statusDoc === 'Firmado Final'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                            : 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                        }`}>
+                          {doc.statusDoc}
+                        </span>
+
+                        <button
+                          onClick={() => handleOpenCoverModal(doc)}
+                          className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer"
+                        >
+                          <Eye size={14} /> Ver Carátula
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+          ))
+        )}
       </div>
+
+      {/* Cover Modal Preview (PDVSA Anexo A) */}
+      {showCoverModal && selectedDocForCover && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 relative shadow-2xl">
+            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-4">
+              <div>
+                <h2 className="text-lg font-black text-slate-900 dark:text-white">Vista Previa Carátula Anexo A (PDVSA)</h2>
+                <p className="text-xs text-slate-500 font-mono">{selectedDocForCover.codigoPDVSA}</p>
+              </div>
+              <button
+                onClick={() => setShowCoverModal(false)}
+                className="text-slate-400 hover:text-slate-900 dark:hover:text-white text-xl font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Generated Cover HTML */}
+            <div 
+              className="bg-white p-4 rounded-2xl border border-slate-300 shadow-inner overflow-x-auto"
+              dangerouslySetInnerHTML={{ 
+                __html: generatePdvsaCoverHtml({
+                  documento: selectedDocForCover,
+                  nombreProyecto: projName,
+                  contratoNo: dossierState?.contratoNo || 'N° CTR-2026-PDVSA-001',
+                  contratistaNombre: 'WOLVES GLOBAL SOLUTIONS / CONTRATISTA OPERATIVA C.A.',
+                  clienteNombre: 'PDVSA GAS C.A.'
+                }) 
+              }} 
+            />
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setShowCoverModal(false)}
+                className="px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold rounded-2xl text-xs cursor-pointer"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

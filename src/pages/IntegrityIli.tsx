@@ -216,92 +216,138 @@ export default function IntegrityIli() {
     return { topPct: `${top.toFixed(1)}%`, leftPct: `${left.toFixed(1)}%` };
   };
 
-  // Parser for ROSEN ILI Reports (.xlsx, .csv)
+  // Smart Column Aliases Map (Spanish / English ILI Vendors)
+  const COLUMN_ALIASES: Record<string, string[]> = {
+    distance: ['DIST', 'KP', 'DISTANCE', 'DIST_KM', 'KM', 'PROGRESIVA', 'PROGRESIVA (KM)', 'KILOMETRAJE', 'ESTACIÓN', 'DISTANCIA', 'PROGRESIVA_KM'],
+    depth: ['WL', 'WL %', 'WL (%)', 'WL%', 'DEPTH_%', 'DEPTH_PCT', 'SEVERITY', 'PROFUNDIDAD', '% PROFUNDIDAD', '%PERDIDA', 'PERDIDA %', 'PERDIDA_PCT', 'PROFUNDIDAD_%', '% PROF'],
+    length: ['LEN', 'LENGTH_MM', 'L_MM', 'LENGTH', 'LONGITUD', 'LONG (MM)', 'LONG_MM', 'LARGO (MM)', 'LONGITUD_MM'],
+    width: ['WID', 'WIDTH_MM', 'W_MM', 'WIDTH', 'ANCHO', 'ANCHO (MM)', 'DIMENSIÓN', 'ANCHO_MM'],
+    type: ['TYPE', 'ANOMALY_TYPE', 'CLASSIFICATION', 'TIPO', 'CLASIFICACIÓN', 'DEFECTO', 'INDICACIÓN', 'TIPO_DEFECTO'],
+    clock: ['O_CLOCK', 'CLOCK', 'POSITION', 'HORA', 'POSICIÓN', 'RELOJ', 'ORIENTACIÓN', 'POSICION'],
+    internalExternal: ['INTERNAL', 'INT_EXT', 'INTERNAL/EXTERNAL', 'ORIENTATION', 'UBICACIÓN', 'CARA', 'INT_EXT_LOC'],
+    easting: ['EASTING', 'UTM_E', 'X', 'ESTE', 'COORDENADA ESTE', 'X_UTM', 'COORD_X'],
+    northing: ['NORTHING', 'UTM_N', 'Y', 'NORTE', 'COORDENADA NORTE', 'Y_UTM', 'COORD_Y'],
+    weldNo: ['JJ_NO', 'WELD_NO', 'JUNTA', 'NUMERO JUNTA', 'N° JUNTA', 'JUNTA N°', 'NO_JUNTA', 'JUNTA_ANTERIOR'],
+    weldDist: ['JJ_DIST', 'WELD_DIST', 'DIST_JUNTA', 'DISTANCIA JUNTA', 'DIST_JUNTA_MM'],
+    cp: ['CRITERIO PC (-MV)', 'CP', 'POTENCIAL_PC', 'PC_MV', 'CP_MV', 'POTENCIAL', 'PC (MV)', 'POTENCIAL_MV'],
+    description: ['DESCRIPTION', 'DESCRIPCION', 'OBSERVACIONES', 'COMENTARIO', 'NOTAS'],
+    diameter: ['DIAMETRO', 'DIAMETER', 'D', 'OD', 'NPS'],
+    thickness: ['ESPESOR', 'WALL', 'WT', 'THICKNESS', 'ESP (MM)', 'ESPESOR_MM'],
+  };
+
+  function detectColumns(headers: string[]): Record<string, string> {
+    const detected: Record<string, string> = {};
+    for (const [field, aliases] of Object.entries(COLUMN_ALIASES)) {
+      for (const header of headers) {
+        if (!header) continue;
+        const h = header.toString().trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        for (const alias of aliases) {
+          const a = alias.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+          if (h === a || h.includes(a) || a.includes(h)) {
+            detected[field] = header;
+            break;
+          }
+        }
+        if (detected[field]) break;
+      }
+    }
+    return detected;
+  }
+
+  // Smart Parser for ILI Reports (.xlsx, .xls, .csv) with multi-sheet scan
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setUploadMessage('Procesando corrida de inspección ILI ROSEN...');
-    const fileName = file.name.toLowerCase();
+    setUploadMessage(`Analizando libro de inspección ILI: ${file.name}...`);
 
-    const processRowObjects = (rows: Record<string, any>[]) => {
-      const getVal = (row: Record<string, any>, possibleKeys: string[], defaultVal: any = '') => {
-        const rowKeys = Object.keys(row);
-        for (const pKey of possibleKeys) {
-          const match = rowKeys.find(rk => rk.trim().toUpperCase() === pKey.toUpperCase());
-          if (match !== undefined && row[match] !== '' && row[match] !== null) {
-            return row[match];
-          }
-        }
-        return defaultVal;
-      };
-
-      const parsedAnomalies: Anomaly[] = [];
-
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const distRaw = getVal(row, ['DIST', 'KP', 'DISTANCE', 'DIST_KM', 'KM'], null);
-        if (distRaw === null || String(distRaw).trim().toUpperCase() === 'DIST') continue;
-
-        const typeVal = String(getVal(row, ['TYPE', 'ANOMALY_TYPE', 'CLASSIFICATION', 'TIPO'], 'Metal Loss')).trim();
-        const wlRaw = getVal(row, ['WL', 'WL %', 'WL (%)', 'WL%', 'DEPTH_%', 'DEPTH_PCT', 'SEVERITY', 'PROFUNDIDAD'], null);
-        const wlVal = wlRaw !== null ? Math.abs(parseFloat(String(wlRaw)) || 0) : 0;
-
-        if (wlVal === 0 && !typeVal.toUpperCase().includes('DENT')) continue;
-
-        const intExtRaw = String(getVal(row, ['INTERNAL', 'INT_EXT', 'INTERNAL/EXTERNAL', 'ORIENTATION', 'UBICACIÓN'], 'External')).toUpperCase();
-        const isInternal = intExtRaw === 'Y' || intExtRaw.includes('INT');
-        const cpRaw = getVal(row, ['CRITERIO PC (-MV)', 'CP', 'POTENCIAL_PC', 'PC_MV', 'CP_MV'], null);
-
-        const dist = Math.abs(parseFloat(String(distRaw)) || Number(((i + 1) * 1.5).toFixed(3)));
-
-        parsedAnomalies.push({
-          id: `ANO-IMP-${100 + parsedAnomalies.length}`,
-          kp: dist,
-          clockPosition: String(getVal(row, ['O_CLOCK', 'CLOCK', 'POSITION', 'HORA'], '12:00')).trim(),
-          depthPercent: wlVal || 25,
-          lengthMm: parseFloat(String(getVal(row, ['LEN', 'LENGTH_MM', 'L_MM', 'LENGTH'], 120))) || 120,
-          widthMm: parseFloat(String(getVal(row, ['WID', 'WIDTH_MM', 'W_MM', 'WIDTH'], 50))) || 50,
-          type: typeVal.toUpperCase().includes('DENT') ? 'Dent' : 'Metal Loss',
-          internalExternal: isInternal ? 'Internal' : 'External',
-          nominalWT: 12.7,
-          pipeDiameter: 16,
-          smys: 52000,
-          maop: 1100,
-          status: (wlVal || 25) >= 40 ? 'Atención Prioritaria' : 'Inconclusa',
-          easting: parseFloat(String(getVal(row, ['EASTING', 'UTM_E', 'X'], 381300 + parsedAnomalies.length * 120))),
-          northing: parseFloat(String(getVal(row, ['NORTHING', 'UTM_N', 'Y'], 979350 - parsedAnomalies.length * 90))),
-          cpPotentialMv: cpRaw !== null ? -Math.abs(parseFloat(String(cpRaw))) : -940,
-          upstreamWeldNo: String(getVal(row, ['JJ_NO', 'WELD_NO', 'JUNTA'], `JJ-${100 + parsedAnomalies.length}`)),
-          upstreamWeldDistMm: parseFloat(String(getVal(row, ['JJ_DIST', 'WELD_DIST'], 1200))) || 1200
-        });
-      }
-
-      parsedAnomalies.sort((a, b) => b.depthPercent - a.depthPercent);
-
-      if (parsedAnomalies.length > 0) {
-        setAnomalies(parsedAnomalies);
-        setSelectedAnomaly(parsedAnomalies[0]);
-        setUploadMessage(`¡Éxito! Importadas ${parsedAnomalies.length} anomalías de ${file.name}.`);
-      } else {
-        setUploadMessage('No se encontraron registros de anomalías válidos.');
-      }
+    const parseNum = (val: any, fallback: number = 0): number => {
+      if (val === null || val === undefined || val === '') return fallback;
+      const cleanStr = String(val).replace(',', '.').trim();
+      const num = parseFloat(cleanStr);
+      return isNaN(num) ? fallback : num;
     };
 
-    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const jsonRows: Record<string, any>[] = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
-          processRowObjects(jsonRows);
-        } catch (err) {
-          setUploadMessage('Error al procesar el archivo Excel ROSEN.');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+
+        let bestAnomalies: Anomaly[] = [];
+        let bestSheetName = '';
+        let bestCols: Record<string, string> = {};
+
+        for (const sheetName of workbook.SheetNames) {
+          const sheet = workbook.Sheets[sheetName];
+          const jsonRows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+          if (jsonRows.length === 0) continue;
+
+          const sampleHeaders = Object.keys(jsonRows[0] || {});
+          const cols = detectColumns(sampleHeaders);
+
+          if (Object.keys(cols).length >= 2) {
+            const sheetAnomalies: Anomaly[] = [];
+
+            jsonRows.forEach((row, i) => {
+              const distRaw = cols.distance ? row[cols.distance] : null;
+              if (distRaw === null || distRaw === undefined || String(distRaw).trim() === '') return;
+
+              const dist = parseNum(distRaw, (i + 1) * 0.5);
+              const depthPct = cols.depth ? parseNum(row[cols.depth], 0) : 0;
+              const typeStr = cols.type ? String(row[cols.type]).trim() : 'Metal Loss';
+              const intExtRaw = cols.internalExternal ? String(row[cols.internalExternal]).toUpperCase() : 'EXTERNAL';
+              const isInternal = intExtRaw.includes('INT') || intExtRaw === 'I' || intExtRaw === 'Y';
+
+              const lenMm = cols.length ? parseNum(row[cols.length], 120) : 120;
+              const widMm = cols.width ? parseNum(row[cols.width], 60) : 60;
+              const cpVal = cols.cp ? parseNum(row[cols.cp], 0) : 0;
+
+              sheetAnomalies.push({
+                id: `ANO-IMP-${100 + sheetAnomalies.length}`,
+                kp: dist,
+                clockPosition: cols.clock && row[cols.clock] ? String(row[cols.clock]).trim() : '12:00',
+                depthPercent: Math.abs(depthPct),
+                lengthMm: lenMm,
+                widthMm: widMm,
+                type: typeStr.toUpperCase().includes('DENT') ? 'Dent' : 'Metal Loss',
+                internalExternal: isInternal ? 'Internal' : 'External',
+                nominalWT: cols.thickness ? parseNum(row[cols.thickness], 12.7) : 12.7,
+                pipeDiameter: cols.diameter ? parseNum(row[cols.diameter], 16) : 16,
+                smys: 52000,
+                maop: 1100,
+                status: Math.abs(depthPct) >= 40 ? 'Atención Prioritaria' : 'Inconclusa',
+                easting: cols.easting ? parseNum(row[cols.easting], 381300 + sheetAnomalies.length * 120) : 381300 + sheetAnomalies.length * 120,
+                northing: cols.northing ? parseNum(row[cols.northing], 979350 - sheetAnomalies.length * 90) : 979350 - sheetAnomalies.length * 90,
+                cpPotentialMv: cpVal ? -Math.abs(cpVal) : -940,
+                upstreamWeldNo: cols.weldNo && row[cols.weldNo] ? String(row[cols.weldNo]) : `JJ-${100 + sheetAnomalies.length}`,
+                upstreamWeldDistMm: cols.weldDist ? parseNum(row[cols.weldDist], 1200) : 1200
+              });
+            });
+
+            if (sheetAnomalies.length > bestAnomalies.length) {
+              bestAnomalies = sheetAnomalies;
+              bestSheetName = sheetName;
+              bestCols = cols;
+            }
+          }
         }
-      };
-      reader.readAsArrayBuffer(file);
-    }
+
+        if (bestAnomalies.length > 0) {
+          bestAnomalies.sort((a, b) => b.depthPercent - a.depthPercent);
+          setAnomalies(bestAnomalies);
+          setSelectedAnomaly(bestAnomalies[0]);
+          const colList = Object.keys(bestCols).join(', ');
+          setUploadMessage(`¡Éxito! Importadas ${bestAnomalies.length} anomalías de la hoja "${bestSheetName}" (${file.name}). Campos mapeados: ${colList}.`);
+        } else {
+          setUploadMessage(`Atención: No se detectaron columnas de inspección ILI en el libro "${file.name}". Asegúrate de que las columnas tengan encabezados como DIST/KP y PROFUNDIDAD/WL.`);
+        }
+      } catch (err) {
+        console.error('Error procesando archivo ILI:', err);
+        setUploadMessage('Error al procesar el archivo Excel. Verifica el formato del libro.');
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   // Run official ASME B31G Calculator
@@ -360,10 +406,10 @@ export default function IntegrityIli() {
           />
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 bg-[#0B2239] hover:bg-slate-800 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 font-extrabold px-5 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 font-extrabold px-5 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
           >
             <Upload size={16} />
-            <span>Importar Corrida ROSEN (.xlsx)</span>
+            <span>Importar Corrida ILI (.xlsx)</span>
           </button>
         </div>
       </div>
