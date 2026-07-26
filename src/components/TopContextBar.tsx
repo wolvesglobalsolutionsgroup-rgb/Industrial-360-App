@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Building, HardHat, ChevronDown, Wifi, WifiOff, RefreshCw, 
-  UserCheck, Bell, Palette, Check, Sparkles, CheckCircle2, AlertTriangle, ShieldCheck
+  UserCheck, Bell, Palette, Check, Sparkles, CheckCircle2, AlertTriangle, ShieldCheck,
+  Sun, Moon
 } from 'lucide-react';
 import { useProject, CORPORATE_PORTFOLIO_PROJECT, UserRole } from '../ProjectContext';
 import { ROLE_LABELS } from './ProtectedRoute';
@@ -33,6 +34,8 @@ export default function TopContextBar({
     setDensity, 
     borderRadius, 
     setBorderRadius, 
+    isDarkMode,
+    toggleMode,
     activeTheme 
   } = useTheme();
 
@@ -212,79 +215,110 @@ export default function TopContextBar({
         </div>
       </div>
 
-      {/* Right Controls: Theme Selector, Notifications, Online/Offline Sync */}
-      <div className="flex items-center gap-3">
+      {/* Right Controls: Light/Dark Toggle, Theme Selector, Notifications, Online/Offline Sync */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Quick Light / Dark Mode Toggle Button */}
+        <button
+          onClick={toggleMode}
+          className="p-2 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 text-amber-600 dark:text-amber-400 transition-all flex items-center justify-center cursor-pointer shadow-xs"
+          title={isDarkMode ? "Cambiar a Modo Claro" : "Cambiar a Modo Oscuro"}
+        >
+          {isDarkMode ? <Sun size={18} className="text-amber-400 animate-spin-slow" /> : <Moon size={18} className="text-indigo-600" />}
+        </button>
+
         {/* Quick Theme Selector Button */}
         <div className="relative">
           <button
             onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
-            className="p-2 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 transition-colors flex items-center gap-1.5"
+            className="p-2 rounded-xl bg-gray-50 dark:bg-slate-800 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
             title="Selector de Tema y Apariencia"
           >
             <Palette size={16} className="text-emerald-600 dark:text-emerald-400" />
-            <span className="text-xs font-semibold hidden md:inline">{activeTheme.name}</span>
+            <span className="text-xs font-bold hidden md:inline">{activeTheme.name}</span>
           </button>
 
           {isThemeMenuOpen && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setIsThemeMenuOpen(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-2xl z-30 p-4 space-y-4 text-xs">
-                <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-2">
-                  <span className="font-bold text-gray-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <Sparkles size={14} className="text-amber-500" /> Temas & Estilo de Interfaz
+              <div className="absolute top-full right-0 mt-2 w-84 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-3xl shadow-2xl z-30 p-4 space-y-4 text-xs backdrop-blur-xl">
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-slate-800 pb-2.5">
+                  <span className="font-extrabold text-gray-900 dark:text-slate-100 flex items-center gap-2">
+                    <Sparkles size={15} className="text-amber-500" /> Temas & Paletas de Color
                   </span>
-                  <span className="text-[10px] text-gray-400 dark:text-slate-500 uppercase font-mono">UX-1 Presets</span>
+                  <button
+                    onClick={toggleMode}
+                    className="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    {isDarkMode ? <Sun size={12} className="text-amber-400" /> : <Moon size={12} className="text-indigo-600" />}
+                    <span>{isDarkMode ? 'Modo Oscuro' : 'Modo Claro'}</span>
+                  </button>
                 </div>
 
-                {/* Presets Grid */}
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase">Presets de Color</label>
-                  {(Object.keys(THEME_PRESETS) as ThemePresetId[]).map((pKey) => {
-                    const presetObj = THEME_PRESETS[pKey];
-                    const isSelected = preset === pKey;
-                    return (
-                      <button
-                        key={pKey}
-                        onClick={() => setPreset(pKey)}
-                        className={`w-full flex items-center justify-between p-2.5 rounded-xl border transition-all text-left ${
-                          isSelected
-                            ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 font-bold text-gray-900 dark:text-slate-100'
-                            : 'border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800 text-gray-700 dark:text-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2.5">
-                          {/* Color Swatch Dots */}
-                          <div className="flex items-center -space-x-1">
-                            <span className="w-3.5 h-3.5 rounded-full border border-white" style={{ backgroundColor: presetObj.colors.colorPrimary }}></span>
-                            <span className="w-3.5 h-3.5 rounded-full border border-white" style={{ backgroundColor: presetObj.colors.colorSecondary }}></span>
-                          </div>
-                          <div>
-                            <span className="block font-semibold">{presetObj.name}</span>
-                          </div>
-                        </div>
-                        {isSelected && <Check size={14} className="text-emerald-600 dark:text-emerald-400 shrink-0" />}
-                      </button>
-                    );
-                  })}
+                {/* Presets List categorized */}
+                <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                  <div>
+                    <label className="block text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">
+                      Paletas de Color Disponibles
+                    </label>
+                    <div className="space-y-1.5">
+                      {(Object.keys(THEME_PRESETS) as ThemePresetId[]).map((pKey) => {
+                        const presetObj = THEME_PRESETS[pKey];
+                        const isSelected = preset === pKey;
+                        return (
+                          <button
+                            key={pKey}
+                            onClick={() => {
+                              setPreset(pKey);
+                            }}
+                            className={`w-full flex items-center justify-between p-2.5 rounded-2xl border transition-all text-left cursor-pointer ${
+                              isSelected
+                                ? 'border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40 font-bold text-gray-900 dark:text-slate-100 shadow-2xs'
+                                : 'border-gray-200/80 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/80 text-gray-700 dark:text-slate-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              {/* Swatch dots */}
+                              <div className="flex items-center -space-x-1 shrink-0">
+                                <span className="w-4 h-4 rounded-full border border-white dark:border-slate-800 shadow-2xs" style={{ backgroundColor: presetObj.colors.bgApp }}></span>
+                                <span className="w-4 h-4 rounded-full border border-white dark:border-slate-800 shadow-2xs" style={{ backgroundColor: presetObj.colors.colorPrimary }}></span>
+                                <span className="w-4 h-4 rounded-full border border-white dark:border-slate-800 shadow-2xs" style={{ backgroundColor: presetObj.colors.colorSecondary }}></span>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="block font-bold text-xs">{presetObj.name}</span>
+                                  <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
+                                    presetObj.colors.isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                                  }`}>
+                                    {presetObj.colors.isDark ? 'Oscuro' : 'Claro'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            {isSelected && <Check size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Quick Density & Radius Controls */}
                 <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 dark:border-slate-800">
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1">Densidad</label>
-                    <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-xl">
+                    <label className="block text-[10px] font-extrabold text-gray-400 dark:text-slate-400 uppercase mb-1">Densidad</label>
+                    <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-2xl">
                       <button
                         onClick={() => setDensity('compact')}
-                        className={`flex-1 py-1 text-[11px] font-medium rounded-lg transition-colors ${
-                          density === 'compact' ? 'bg-white dark:bg-slate-700 font-bold shadow-xs text-gray-900 dark:text-slate-100' : 'text-gray-500'
+                        className={`flex-1 py-1 text-[11px] font-bold rounded-xl transition-colors cursor-pointer ${
+                          density === 'compact' ? 'bg-white dark:bg-slate-700 shadow-xs text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400'
                         }`}
                       >
                         Compacto
                       </button>
                       <button
                         onClick={() => setDensity('spacious')}
-                        className={`flex-1 py-1 text-[11px] font-medium rounded-lg transition-colors ${
-                          density === 'spacious' ? 'bg-white dark:bg-slate-700 font-bold shadow-xs text-gray-900 dark:text-slate-100' : 'text-gray-500'
+                        className={`flex-1 py-1 text-[11px] font-bold rounded-xl transition-colors cursor-pointer ${
+                          density === 'spacious' ? 'bg-white dark:bg-slate-700 shadow-xs text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400'
                         }`}
                       >
                         Holgado
@@ -293,20 +327,20 @@ export default function TopContextBar({
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase mb-1">Bordes</label>
-                    <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-xl">
+                    <label className="block text-[10px] font-extrabold text-gray-400 dark:text-slate-400 uppercase mb-1">Bordes</label>
+                    <div className="flex bg-gray-100 dark:bg-slate-800 p-1 rounded-2xl">
                       <button
                         onClick={() => setBorderRadius('rounded')}
-                        className={`flex-1 py-1 text-[11px] font-medium rounded-lg transition-colors ${
-                          borderRadius === 'rounded' ? 'bg-white dark:bg-slate-700 font-bold shadow-xs text-gray-900 dark:text-slate-100' : 'text-gray-500'
+                        className={`flex-1 py-1 text-[11px] font-bold rounded-xl transition-colors cursor-pointer ${
+                          borderRadius === 'rounded' ? 'bg-white dark:bg-slate-700 shadow-xs text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400'
                         }`}
                       >
                         Suaves
                       </button>
                       <button
                         onClick={() => setBorderRadius('sharp')}
-                        className={`flex-1 py-1 text-[11px] font-medium rounded-lg transition-colors ${
-                          borderRadius === 'sharp' ? 'bg-white dark:bg-slate-700 font-bold shadow-xs text-gray-900 dark:text-slate-100' : 'text-gray-500'
+                        className={`flex-1 py-1 text-[11px] font-bold rounded-xl transition-colors cursor-pointer ${
+                          borderRadius === 'sharp' ? 'bg-white dark:bg-slate-700 shadow-xs text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400'
                         }`}
                       >
                         Afilados

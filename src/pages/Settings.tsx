@@ -1,7 +1,7 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { motion } from 'motion/react';
 import { 
-  User, Building, Bell, Shield, Save, Loader2, Palette, Upload, Check, Sparkles, Layers, Square
+  User, Building, Bell, Shield, Save, Loader2, Palette, Upload, Check, Sparkles, Layers, Square, Sun, Moon
 } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -13,7 +13,7 @@ import { THEME_PRESETS, ThemePresetId } from '../theme/themePresets';
 export default function Settings() {
   const [user] = useAuthState(auth);
   const { brandKit, updateBrandKit } = useProject();
-  const { preset, setPreset, density, setDensity, borderRadius, setBorderRadius } = useTheme();
+  const { preset, setPreset, density, setDensity, borderRadius, setBorderRadius, isDarkMode, toggleMode } = useTheme();
 
   const [activeTab, setActiveTab] = useState('brand');
   const [budgetThreshold, setBudgetThreshold] = useState(90);
@@ -146,16 +146,25 @@ export default function Settings() {
                 </div>
 
                 {/* THEME PRESETS SELECTOR */}
-                <div className="space-y-4 bg-gray-50/50 dark:bg-slate-800/40 p-6 rounded-2xl border border-gray-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between">
+                <div className="space-y-6 bg-slate-50/70 dark:bg-slate-800/40 p-6 sm:p-8 rounded-3xl border border-slate-200/80 dark:border-slate-800">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
-                        <Sparkles size={16} className="text-amber-500" /> Presets de Diseño (Theming System)
+                      <h3 className="text-base font-black text-gray-900 dark:text-slate-100 flex items-center gap-2">
+                        <Sparkles size={18} className="text-amber-500" /> Presets de Diseño y Paleta de Colores
                       </h3>
-                      <p className="text-xs text-gray-500 dark:text-slate-400">
-                        Elige la paleta visual para toda la plataforma. Los cambios se reflejan inmediatamente en tiempo real.
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                        Elige la paleta visual para toda la plataforma. Los cambios se aplican en tiempo real en la UI.
                       </p>
                     </div>
+
+                    {/* Quick Light/Dark Toggle */}
+                    <button
+                      onClick={toggleMode}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold hover:shadow-md transition-all shrink-0 cursor-pointer"
+                    >
+                      {isDarkMode ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-indigo-600" />}
+                      <span>{isDarkMode ? 'Modo Oscuro Activo' : 'Modo Claro Activo'}</span>
+                    </button>
                   </div>
 
                   {/* Preset Cards Grid */}
@@ -167,29 +176,36 @@ export default function Settings() {
                         <div
                           key={pKey}
                           onClick={() => setPreset(pKey)}
-                          className={`cursor-pointer p-4 rounded-xl border-2 transition-all flex flex-col justify-between ${
+                          className={`cursor-pointer p-5 rounded-2xl border-2 transition-all flex flex-col justify-between ${
                             isSelected
-                              ? 'border-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/20 shadow-md ring-2 ring-emerald-500/20'
-                              : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-gray-300 dark:hover:border-slate-600'
+                              ? 'border-emerald-500 bg-white dark:bg-slate-900 shadow-md ring-4 ring-emerald-500/10'
+                              : 'border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-sm'
                           }`}
                         >
-                          <div className="space-y-2">
+                          <div className="space-y-2.5">
                             <div className="flex items-center justify-between">
-                              <span className="font-bold text-xs text-gray-900 dark:text-slate-100">{pObj.name}</span>
-                              {isSelected && <Check size={16} className="text-emerald-600 dark:text-emerald-400" />}
+                              <span className="font-extrabold text-xs text-gray-900 dark:text-slate-100">{pObj.name}</span>
+                              {isSelected && (
+                                <span className="bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <Check size={12} /> Activo
+                                </span>
+                              )}
                             </div>
-                            <p className="text-[11px] text-gray-500 dark:text-slate-400 line-clamp-2">{pObj.description}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed font-medium">{pObj.description}</p>
                           </div>
 
                           {/* Swatch preview */}
-                          <div className="mt-4 flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-700/50">
-                            <div className="flex items-center -space-x-1">
-                              <span className="w-4 h-4 rounded-full border border-white" style={{ backgroundColor: pObj.colors.colorPrimary }}></span>
-                              <span className="w-4 h-4 rounded-full border border-white" style={{ backgroundColor: pObj.colors.colorSecondary }}></span>
-                              <span className="w-4 h-4 rounded-full border border-white" style={{ backgroundColor: pObj.colors.colorAccent }}></span>
+                          <div className="mt-4 flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center -space-x-1.5">
+                              <span className="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-xs" style={{ backgroundColor: pObj.colors.bgApp }} title="Fondo App"></span>
+                              <span className="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-xs" style={{ backgroundColor: pObj.colors.colorPrimary }} title="Primario"></span>
+                              <span className="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-xs" style={{ backgroundColor: pObj.colors.colorSecondary }} title="Secundario"></span>
+                              <span className="w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 shadow-xs" style={{ backgroundColor: pObj.colors.colorAccent }} title="Acento"></span>
                             </div>
-                            <span className="text-[10px] font-mono uppercase text-gray-400 dark:text-slate-500">
-                              {pObj.colors.isDark ? 'Modo Oscuro' : 'Modo Claro'}
+                            <span className={`text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full ${
+                              pObj.colors.isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {pObj.colors.isDark ? 'Oscuro' : 'Claro'}
                             </span>
                           </div>
                         </div>

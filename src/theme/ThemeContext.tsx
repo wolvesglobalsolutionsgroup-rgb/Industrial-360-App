@@ -15,6 +15,8 @@ interface ThemeContextType {
   setDensity: (density: ThemeDensity) => void;
   borderRadius: ThemeBorderRadius;
   setBorderRadius: (radius: ThemeBorderRadius) => void;
+  isDarkMode: boolean;
+  toggleMode: () => void;
   activeTheme: ThemePresetDefinition;
 }
 
@@ -63,7 +65,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Compute active theme colors
-  const activePresetObj = { ...THEME_PRESETS[preset] };
+  const activePresetObj: ThemePresetDefinition = JSON.parse(JSON.stringify(THEME_PRESETS[preset] || THEME_PRESETS['arctic_glass']));
+  
   if (preset === 'contractor_brand' && brandKit) {
     activePresetObj.colors = {
       ...activePresetObj.colors,
@@ -72,6 +75,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       bgSidebar: brandKit.primaryColor || '#0B2239',
     };
   }
+
+  const isDarkMode = activePresetObj.colors.isDark;
+
+  // Function to toggle between Dark and Light mode
+  const toggleMode = () => {
+    if (isDarkMode) {
+      // Switch from dark to light preset
+      if (preset === 'midnight_executive' || preset === 'slate_industrial' || preset === 'titanium_pitch') {
+        handleSetPreset('arctic_glass');
+      } else {
+        handleSetPreset('arctic_glass');
+      }
+    } else {
+      // Switch from light to dark preset
+      if (preset === 'arctic_glass' || preset === 'sandstone_pro' || preset === 'emerald_petroleum' || preset === 'contractor_brand') {
+        handleSetPreset('midnight_executive');
+      } else {
+        handleSetPreset('midnight_executive');
+      }
+    }
+  };
 
   // Inject CSS Variables into document root
   useEffect(() => {
@@ -103,10 +127,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     if (colors.isDark) {
       root.classList.add('dark');
+      root.style.colorScheme = 'dark';
     } else {
       root.classList.remove('dark');
+      root.style.colorScheme = 'light';
     }
-  }, [preset, density, borderRadius, brandKit]);
+  }, [preset, density, borderRadius, brandKit, activePresetObj]);
 
   return (
     <ThemeContext.Provider
@@ -117,6 +143,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setDensity: handleSetDensity,
         borderRadius,
         setBorderRadius: handleSetBorderRadius,
+        isDarkMode,
+        toggleMode,
         activeTheme: activePresetObj,
       }}
     >
