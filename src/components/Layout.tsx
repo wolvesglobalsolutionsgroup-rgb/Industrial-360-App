@@ -6,8 +6,7 @@ import {
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
   Database, Plug, Network, BrainCircuit, Briefcase, X, MapPin, Truck, ArrowLeftRight, Globe
 } from 'lucide-react';
-import { auth, logout } from '../firebase';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { logout, useAppAuthState } from '../firebase';
 import { useProject } from '../ProjectContext';
 import { ROLE_LABELS } from './ProtectedRoute';
 import TopContextBar from './TopContextBar';
@@ -57,7 +56,7 @@ const inteligenciaConectividadItems = [
 ];
 
 export default function Layout() {
-  const [user] = useAuthState(auth);
+  const [user] = useAppAuthState();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);

@@ -4,8 +4,7 @@
  */
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from './firebase';
+import { useAppAuthState } from './firebase';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
@@ -43,7 +42,7 @@ import { ProjectProvider } from './ProjectContext';
 import { ThemeProvider } from './theme/ThemeContext';
 
 export default function App() {
-  const [user, loading] = useAuthState(auth);
+  const [user, loading] = useAppAuthState();
 
   if (loading) {
     return (

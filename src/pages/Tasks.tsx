@@ -2,17 +2,34 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc, where 
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { db, handleFirestoreError, OperationType, getAuthUser } from '../firebase';
 import { 
-  Plus, CheckCircle2, Circle, Upload, LayoutList, CalendarDays, Edit2, Trash2, 
-  Activity, AlertTriangle, Sparkles, X, Loader2, FileCode, Kanban as KanbanIcon, 
-  Search, Filter, ShieldAlert, ArrowRight, Layers, UserCheck, HardHat, Check, Clock, ChevronRight
+  Plus, CheckCircle2, ClipboardList, HardHat, AlertTriangle, Sparkles, X, 
+  KanbanSquare, Table2, Calendar, Search, Filter, ShieldAlert, Layers, Activity,
+  Users, Edit2, Trash2, CalendarDays, Upload, FileCode, Check, RefreshCw, ChevronRight, AlertOctagon
 } from 'lucide-react';
-import { XMLParser } from 'fast-xml-parser';
 import { motion, AnimatePresence } from 'motion/react';
-import { callGeminiProxy } from '../lib/geminiProxy';
 import { useProject } from '../ProjectContext';
+import { callGeminiStructured } from '../lib/geminiProxy';
 import { parseXerFile, parseBc3File, syncImportedTasksToFirestore } from '../lib/parsers';
+
+// DND-KIT Imports
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+  DragStartEvent,
+  DragEndEvent,
+  useDroppable
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
 
 // Import UI Primitives
 import { 
@@ -20,7 +37,6 @@ import {
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle, 
   MetricCard, 
   StatusBadge, 
   Dialog, 
@@ -32,137 +48,324 @@ import {
   TableHead, 
   TableCell, 
   EmptyState, 
-  Skeleton 
+  Skeleton,
 } from '../components/ui';
 
-export type TaskStatus = 'planificada' | 'en_campo' | 'en_revision' | 'bloqueada' | 'terminada';
-export type TaskPriority = 'critica' | 'alta' | 'media' | 'baja';
-
-export interface TaskItem {
+export interface Task {
   id: string;
   projectId: string;
-  code: string;
+  // WBS
+  wbsCode: string;          // "WBS 1.2.4"
   name: string;
-  unit: string;
+  description?: string;
+  unit: string;             // "m", "m2", "m3", "kg", "unid", "glb"
   plannedQuantity: number;
   executedQuantity: number;
   unitCost: number;
-  status: TaskStatus;
-  priority: TaskPriority;
-  frente?: string;
-  assignedTo?: string;
+  // Estado
+  status: 'planificada' | 'en_campo' | 'bloqueada' | 'terminada';
+  priority: 'baja' | 'media' | 'alta' | 'critica';
+  progressPercent: number;  // 0-100
+  // Asignación
+  assigneeId?: string;
+  assigneeName?: string;
+  crewName?: string;
+  frontName?: string;       // Frente de trabajo
+  // Fechas
   startDate?: string;
-  endDate?: string;
-  blockedReason?: string;
-  updatedAt?: string;
+  dueDate?: string;
+  completedAt?: string;
+  // Referencias
+  hasActivePtw: boolean;
+  ptwId?: string;
+  restrictionNote?: string;
+  parentTaskId?: string;    // Para subtareas
+  dependencies?: string[];   // IDs de tareas de las que depende
+  // Posición Kanban
+  columnId?: string;
+  position?: number;         // Para drag & drop
+  metadata?: {
+    ndtRequired?: boolean;
+    ndtStatus?: 'pending' | 'passed' | 'failed';
+    hasNcr?: boolean;
+    ncrId?: string;
+  };
 }
 
-const KANBAN_COLUMNS: { id: TaskStatus; title: string; subtitle: string; icon: any; color: string; border: string }[] = [
-  { 
-    id: 'planificada', 
-    title: 'Planificadas', 
-    subtitle: 'Partidas listadas en WBS', 
-    icon: Circle, 
-    color: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300', 
-    border: 'border-slate-300 dark:border-slate-700' 
-  },
-  { 
-    id: 'en_campo', 
-    title: 'En Campo / Ejecución', 
-    subtitle: 'Cuadrilla activa en sitio', 
-    icon: HardHat, 
-    color: 'bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300', 
-    border: 'border-indigo-400 dark:border-indigo-700' 
-  },
-  { 
-    id: 'en_revision', 
-    title: 'En Revisión / QA-QC', 
-    subtitle: 'Liberación e inspección', 
-    icon: Activity, 
-    color: 'bg-purple-100 dark:bg-purple-950 text-purple-800 dark:text-purple-300', 
-    border: 'border-purple-400 dark:border-purple-700' 
-  },
-  { 
-    id: 'bloqueada', 
-    title: 'Bloqueada / Restricción', 
-    subtitle: 'Permisos, clima o materiales', 
-    icon: ShieldAlert, 
-    color: 'bg-red-100 dark:bg-red-950 text-red-800 dark:text-red-300', 
-    border: 'border-red-400 dark:border-red-700' 
-  },
-  { 
-    id: 'terminada', 
-    title: 'Terminadas', 
-    subtitle: 'Cómputo 100% verificado', 
-    icon: CheckCircle2, 
-    color: 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300', 
-    border: 'border-emerald-400 dark:border-emerald-700' 
-  }
+const KANBAN_COLUMNS = [
+  { id: 'planificada', title: 'Planificadas', color: 'info' as const, icon: ClipboardList, badgeColor: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800' },
+  { id: 'en_campo', title: 'En Campo', color: 'warning' as const, icon: HardHat, badgeColor: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
+  { id: 'bloqueada', title: 'Bloqueadas', color: 'error' as const, icon: AlertTriangle, badgeColor: 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' },
+  { id: 'terminada', title: 'Terminadas / NDT', color: 'success' as const, icon: CheckCircle2, badgeColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
 ];
+
+// Sortable Task Card Item
+function SortableTaskCard({ 
+  task, 
+  onEdit, 
+  onDelete, 
+  onProgress, 
+  onAiSubtasks 
+}: { 
+  task: Task; 
+  onEdit: (t: Task) => void; 
+  onDelete: (id: string) => void; 
+  onProgress: (t: Task) => void;
+  onAiSubtasks: (t: Task) => void;
+}) {
+  const { setNodeRef, attributes, listeners, transform, isDragging } = useSortable({ id: task.id });
+
+  const style = transform ? {
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+  } : undefined;
+
+  const progress = task.progressPercent ?? (
+    task.plannedQuantity > 0 
+      ? Math.min(100, (task.executedQuantity / task.plannedQuantity) * 100) 
+      : 0
+  );
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{
+        ...style,
+        borderLeft: task.status === 'bloqueada' ? '4px solid var(--color-error)' : undefined
+      }}
+      className={`card p-4 space-y-3 cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-lift transition-all duration-200 bg-surface border border-line ${
+        isDragging ? 'opacity-40 shadow-lift rotate-2 border-brand-500' : ''
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-extrabold text-ink-soft tabular font-mono">
+          {task.wbsCode || 'WBS N/A'}
+        </span>
+        <StatusBadge 
+          status={task.priority === 'critica' ? 'Crítica' : task.priority === 'alta' ? 'Alta' : task.priority === 'media' ? 'Media' : 'Baja'}
+          variant={task.priority === 'critica' ? 'error' : task.priority === 'alta' ? 'warning' : 'info'} 
+          size="sm" 
+        />
+      </div>
+
+      <div>
+        <p className="text-xs sm:text-sm font-bold text-ink leading-tight font-display">
+          {task.name}
+        </p>
+        {task.frontName && (
+          <span className="inline-block text-[10px] font-bold text-ink-faint mt-1">
+            📍 {task.frontName}
+          </span>
+        )}
+      </div>
+
+      {/* Notice for blocked status */}
+      {task.status === 'bloqueada' && (task.restrictionNote || task.description) && (
+        <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-[11px] text-red-600 dark:text-red-400 font-bold flex items-start gap-1.5">
+          <AlertOctagon size={14} className="shrink-0 mt-0.5" />
+          <span className="line-clamp-2">{task.restrictionNote || task.description}</span>
+        </div>
+      )}
+
+      {/* Barra de progreso */}
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-[11px] tabular">
+          <span className="text-ink-faint font-medium">
+            {task.executedQuantity} / {task.plannedQuantity} {task.unit}
+          </span>
+          <span className="font-bold text-ink">
+            {progress.toFixed(0)}%
+          </span>
+        </div>
+        <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">
+          <div 
+            className={`h-full rounded-full transition-all ${
+              progress >= 100 ? 'bg-emerald-500' : task.status === 'bloqueada' ? 'bg-error' : 'bg-brand-500'
+            }`} 
+            style={{ width: `${Math.min(progress, 100)}%` }} 
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-[11px] text-ink-soft pt-2 border-t border-line">
+        <div className="flex items-center gap-1.5">
+          {task.assigneeName ? (
+            <span className="w-5 h-5 rounded-full bg-brand-500/20 text-brand-500 text-[10px] font-extrabold flex items-center justify-center">
+              {task.assigneeName.charAt(0).toUpperCase()}
+            </span>
+          ) : (
+            <Users size={14} className="text-ink-faint" />
+          )}
+          <span className="truncate max-w-[110px] font-medium">
+            {task.crewName || task.assigneeName || 'Sin asignar'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {task.hasActivePtw && <StatusBadge status="PTW" variant="warning" size="sm" />}
+          {task.metadata?.ndtRequired && <StatusBadge status="NDT" variant="info" size="sm" />}
+        </div>
+      </div>
+
+      {/* Acciones de tarjeta */}
+      <div className="flex items-center justify-between pt-1 text-xs">
+        <span className="text-[10px] font-mono font-bold text-ink-faint tabular">
+          ${((task.executedQuantity || 0) * (task.unitCost || 0)).toLocaleString('en-US')}
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={(e) => { e.stopPropagation(); onAiSubtasks(task); }}
+            className="p-1 text-brand-500 hover:bg-surface-2 rounded cursor-pointer"
+            title="Desglosar subtareas con IA"
+          >
+            <Sparkles size={14} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onProgress(task); }}
+            className="p-1 text-emerald-600 hover:bg-surface-2 rounded cursor-pointer"
+            title="Registrar avance"
+          >
+            <Activity size={14} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(task); }}
+            className="p-1 text-ink-soft hover:text-ink hover:bg-surface-2 rounded cursor-pointer"
+            title="Editar partida"
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
+            className="p-1 text-red-500 hover:bg-surface-2 rounded cursor-pointer"
+            title="Eliminar partida"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Droppable Column Component
+function KanbanColumnDroppable({ 
+  column, 
+  tasks, 
+  onEdit, 
+  onDelete, 
+  onProgress,
+  onAiSubtasks
+}: { 
+  column: typeof KANBAN_COLUMNS[0]; 
+  tasks: Task[]; 
+  onEdit: (t: Task) => void; 
+  onDelete: (id: string) => void; 
+  onProgress: (t: Task) => void;
+  onAiSubtasks: (t: Task) => void;
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.id });
+  const ColumnIcon = column.icon;
+  const columnTotalValuation = tasks.reduce((sum, t) => sum + (t.executedQuantity * t.unitCost), 0);
+
+  return (
+    <Card className={`flex flex-col h-full border transition-all ${isOver ? 'ring-2 ring-brand-500 bg-surface-2' : ''}`}>
+      <CardHeader className="pb-3 border-b border-line">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className={`p-1.5 rounded-lg border ${column.badgeColor}`}>
+              <ColumnIcon size={16} />
+            </span>
+            <h3 className="font-display font-semibold text-ink text-sm sm:text-base">{column.title}</h3>
+          </div>
+          <StatusBadge status={`${tasks.length}`} variant={column.color} size="sm" />
+        </div>
+        <div className="flex items-center justify-between mt-2 text-xs tabular font-bold text-ink-soft">
+          <span>Ejecutado:</span>
+          <span>${columnTotalValuation.toLocaleString('en-US', { minimumFractionDigits: 0 })}</span>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="flex-1 p-3">
+        <div 
+          ref={setNodeRef} 
+          className="h-full min-h-[300px] overflow-y-auto space-y-3"
+        >
+          <SortableContext items={tasks.map(t => t.id)} strategy={verticalListSortingStrategy}>
+            {tasks.map(task => (
+              <SortableTaskCard 
+                key={task.id} 
+                task={task} 
+                onEdit={onEdit} 
+                onDelete={onDelete} 
+                onProgress={onProgress}
+                onAiSubtasks={onAiSubtasks}
+              />
+            ))}
+          </SortableContext>
+          {tasks.length === 0 && (
+            <div className="h-40 border border-dashed border-line rounded-2xl flex items-center justify-center text-xs text-ink-faint">
+              Arrastra una partida aquí
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Tasks() {
   const { currentProject } = useProject();
-  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // Views
-  const [viewMode, setViewMode] = useState<'kanban' | 'list' | 'gantt'>('kanban');
-  
+  const [view, setView] = useState<'kanban' | 'table' | 'calendar'>('kanban');
+
+  // Filter & Search
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterFront, setFilterFront] = useState<string>('all');
+
   // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isProgressModalOpen, setIsProgressModalOpen] = useState(false);
-  const [isBlockReasonModalOpen, setIsBlockReasonModalOpen] = useState(false);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isAiSubtasksModalOpen, setIsAiSubtasksModalOpen] = useState(false);
 
-  // Filter States
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterPriority, setFilterPriority] = useState<string>('all');
-  const [filterFrente, setFilterFrente] = useState<string>('all');
-  const [onlyBlocked, setOnlyBlocked] = useState(false);
-
-  // Form States
-  const [newTask, setNewTask] = useState<{
-    code: string;
-    name: string;
-    unit: string;
-    plannedQuantity: string;
-    unitCost: string;
-    status: TaskStatus;
-    priority: TaskPriority;
-    frente: string;
-    assignedTo: string;
-  }>({
-    code: '',
+  // Form State
+  const [formData, setFormData] = useState<Partial<Task>>({
+    wbsCode: 'WBS 1.1',
     name: '',
+    description: '',
     unit: 'm2',
-    plannedQuantity: '',
-    unitCost: '',
+    plannedQuantity: 100,
+    unitCost: 150,
     status: 'planificada',
     priority: 'media',
-    frente: 'Frente A - Principal',
-    assignedTo: 'Ing. Supervisor'
+    frontName: 'Frente 1 - Estructura',
+    crewName: 'Cuadrilla Alfa',
+    hasActivePtw: false,
+    metadata: { ndtRequired: false }
   });
 
-  const [editingTask, setEditingTask] = useState<TaskItem | null>(null);
-  const [progressTask, setProgressTask] = useState<TaskItem | null>(null);
-  const [pendingBlockTask, setPendingBlockTask] = useState<TaskItem | null>(null);
-  const [blockReasonInput, setBlockReasonInput] = useState('');
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [progressTask, setProgressTask] = useState<Task | null>(null);
+  const [progressAdd, setProgressAdd] = useState<number>(0);
 
-  // Drag & Drop visual states
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<TaskStatus | null>(null);
+  // AI Subtasks Modal State
+  const [aiTaskTarget, setAiTaskTarget] = useState<Task | null>(null);
+  const [aiSubtasksLoading, setAiSubtasksLoading] = useState(false);
+  const [aiSubtasksResult, setAiSubtasksResult] = useState<Array<{ name: string; description: string; estimatedDays: number; resources?: string }> | null>(null);
 
-  // Progress computation input
-  const [compLength, setCompLength] = useState<number>(0);
-  const [compWidth, setCompWidth] = useState<number>(0);
-  const [compHeight, setCompHeight] = useState<number>(0);
-  const [compQuantity, setCompQuantity] = useState<number>(0);
+  // Active Drag
+  const [activeTask, setActiveTask] = useState<Task | null>(null);
 
-  // AI State
-  const [aiQuery, setAiQuery] = useState('');
-  const [aiResponse, setAiResponse] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const xerFileInputRef = useRef<HTMLInputElement>(null);
@@ -182,11 +385,32 @@ export default function Tasks() {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const tsks = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      })) as TaskItem[];
-      
+      const tsks = snapshot.docs.map(docSnap => {
+        const d = docSnap.data();
+        return {
+          id: docSnap.id,
+          projectId: d.projectId,
+          wbsCode: d.wbsCode || d.code || 'WBS 1.0',
+          name: d.name || 'Partida sin nombre',
+          description: d.description || '',
+          unit: d.unit || 'm2',
+          plannedQuantity: Number(d.plannedQuantity || 1),
+          executedQuantity: Number(d.executedQuantity || 0),
+          unitCost: Number(d.unitCost || 0),
+          status: (d.status as Task['status']) || 'planificada',
+          priority: (d.priority as Task['priority']) || 'media',
+          progressPercent: d.plannedQuantity > 0 ? (Number(d.executedQuantity || 0) / Number(d.plannedQuantity)) * 100 : 0,
+          assigneeName: d.assignedTo || d.assigneeName || '',
+          crewName: d.crewName || 'Cuadrilla Principal',
+          frontName: d.frente || d.frontName || 'Frente A',
+          hasActivePtw: Boolean(d.hasActivePtw),
+          restrictionNote: d.blockedReason || d.restrictionNote || '',
+          startDate: d.startDate,
+          dueDate: d.endDate || d.dueDate,
+          metadata: d.metadata || { ndtRequired: false }
+        } as Task;
+      });
+
       setTasks(tsks);
       setLoading(false);
     }, (error) => {
@@ -197,102 +421,112 @@ export default function Tasks() {
     return () => unsubscribe();
   }, [currentProject]);
 
-  // Handle Drag & Drop move status
-  const handleMoveStatus = async (taskId: string, targetStatus: TaskStatus, reason?: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
+  const handleDragStart = (event: DragStartEvent) => {
+    const t = tasks.find(item => item.id === event.active.id);
+    if (t) setActiveTask(t);
+  };
 
-    // If moving to blocked and no reason given, open modal
-    if (targetStatus === 'bloqueada' && !reason && !task.blockedReason) {
-      setPendingBlockTask(task);
-      setBlockReasonInput('');
-      setIsBlockReasonModalOpen(true);
-      return;
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveTask(null);
+    if (!over) return;
+
+    const activeId = String(active.id);
+    const overId = String(over.id);
+
+    // Check if dropped over a column
+    let targetStatus: Task['status'] | null = null;
+    if (['planificada', 'en_campo', 'bloqueada', 'terminada'].includes(overId)) {
+      targetStatus = overId as Task['status'];
+    } else {
+      // Find task over which it was dropped
+      const overTask = tasks.find(t => t.id === overId);
+      if (overTask) targetStatus = overTask.status;
     }
 
-    try {
-      const updateData: Partial<TaskItem> = {
-        status: targetStatus,
-        updatedAt: new Date().toISOString()
-      };
-
-      if (targetStatus === 'bloqueada') {
-        updateData.blockedReason = reason || task.blockedReason || 'Restricción de campo reportada por supervisor';
-      } else {
-        updateData.blockedReason = '';
+    if (targetStatus) {
+      const activeTaskItem = tasks.find(t => t.id === activeId);
+      if (activeTaskItem && activeTaskItem.status !== targetStatus) {
+        try {
+          await updateDoc(doc(db, 'tasks', activeId), {
+            status: targetStatus,
+            updatedAt: new Date().toISOString()
+          });
+        } catch (error) {
+          handleFirestoreError(error, OperationType.UPDATE, `tasks/${activeId}`);
+        }
       }
-
-      await updateDoc(doc(db, 'tasks', taskId), updateData);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `tasks/${taskId}`);
     }
   };
 
-  const handleConfirmBlockReason = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!pendingBlockTask) return;
-    await handleMoveStatus(pendingBlockTask.id, 'bloqueada', blockReasonInput || 'Sin especificar');
-    setIsBlockReasonModalOpen(false);
-    setPendingBlockTask(null);
-    setBlockReasonInput('');
-  };
-
-  // Create Task
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentProject) return;
 
     try {
+      const user = getAuthUser();
       await addDoc(collection(db, 'tasks'), {
         projectId: currentProject.id,
-        code: newTask.code,
-        name: newTask.name,
-        unit: newTask.unit,
-        plannedQuantity: Number(newTask.plannedQuantity),
+        wbsCode: formData.wbsCode,
+        code: formData.wbsCode,
+        name: formData.name,
+        description: formData.description || '',
+        unit: formData.unit,
+        plannedQuantity: Number(formData.plannedQuantity),
         executedQuantity: 0,
-        unitCost: Number(newTask.unitCost),
-        status: newTask.status,
-        priority: newTask.priority,
-        frente: newTask.frente,
-        assignedTo: newTask.assignedTo,
+        unitCost: Number(formData.unitCost),
+        status: formData.status,
+        priority: formData.priority,
+        frente: formData.frontName,
+        assignedTo: user?.displayName || 'Supervisor',
+        crewName: formData.crewName,
+        hasActivePtw: formData.hasActivePtw,
         startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        endDate: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
+        metadata: formData.metadata || { ndtRequired: false }
       });
 
       setIsModalOpen(false);
-      setNewTask({
-        code: '',
+      setFormData({
+        wbsCode: 'WBS 1.1',
         name: '',
+        description: '',
         unit: 'm2',
-        plannedQuantity: '',
-        unitCost: '',
+        plannedQuantity: 100,
+        unitCost: 150,
         status: 'planificada',
         priority: 'media',
-        frente: 'Frente A - Principal',
-        assignedTo: 'Ing. Supervisor'
+        frontName: 'Frente 1 - Estructura',
+        crewName: 'Cuadrilla Alfa',
+        hasActivePtw: false,
+        metadata: { ndtRequired: false }
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'tasks');
     }
   };
 
-  // Update Task
-  const handleUpdate = async (e: React.FormEvent) => {
+  const handleUpdateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTask) return;
 
     try {
       await updateDoc(doc(db, 'tasks', editingTask.id), {
-        code: editingTask.code,
+        wbsCode: editingTask.wbsCode,
+        code: editingTask.wbsCode,
         name: editingTask.name,
+        description: editingTask.description || '',
         unit: editingTask.unit,
         plannedQuantity: Number(editingTask.plannedQuantity),
         unitCost: Number(editingTask.unitCost),
         status: editingTask.status,
         priority: editingTask.priority,
-        frente: editingTask.frente || 'General',
-        assignedTo: editingTask.assignedTo || 'Unassigned'
+        frente: editingTask.frontName,
+        crewName: editingTask.crewName,
+        hasActivePtw: editingTask.hasActivePtw,
+        blockedReason: editingTask.restrictionNote || ''
       });
+
       setIsEditModalOpen(false);
       setEditingTask(null);
     } catch (error) {
@@ -300,100 +534,69 @@ export default function Tasks() {
     }
   };
 
-  // Delete Task
-  const handleDelete = async (taskId: string) => {
+  const handleDeleteTask = async (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar esta partida de la WBS?')) {
       try {
-        await deleteDoc(doc(db, 'tasks', taskId));
+        await deleteDoc(doc(db, 'tasks', id));
       } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `tasks/${taskId}`);
+        handleFirestoreError(error, OperationType.DELETE, `tasks/${id}`);
       }
     }
-  };
-
-  // Save Progress
-  const openProgressModal = (task: TaskItem) => {
-    setProgressTask(task);
-    setCompLength(0);
-    setCompWidth(0);
-    setCompHeight(0);
-    setCompQuantity(0);
-    setIsProgressModalOpen(true);
-  };
-
-  const calculateProgressQuantity = () => {
-    if (!progressTask) return 0;
-    if (progressTask.unit === 'm2') return compLength * compWidth;
-    if (progressTask.unit === 'm3') return compLength * compWidth * compHeight;
-    if (progressTask.unit === 'ml') return compLength;
-    return compQuantity;
   };
 
   const handleSaveProgress = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!progressTask) return;
 
-    const added = calculateProgressQuantity();
-    const newExecuted = (progressTask.executedQuantity || 0) + added;
-    const isCompletedNow = newExecuted >= progressTask.plannedQuantity;
+    const newExecuted = Number(progressTask.executedQuantity || 0) + Number(progressAdd);
+    const isCompleted = newExecuted >= progressTask.plannedQuantity;
 
     try {
       await updateDoc(doc(db, 'tasks', progressTask.id), {
         executedQuantity: newExecuted,
-        status: isCompletedNow ? 'terminada' : progressTask.status === 'planificada' ? 'en_campo' : progressTask.status,
+        status: isCompleted ? 'terminada' : progressTask.status === 'planificada' ? 'en_campo' : progressTask.status,
         updatedAt: new Date().toISOString()
       });
 
       setIsProgressModalOpen(false);
       setProgressTask(null);
+      setProgressAdd(0);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `tasks/${progressTask.id}`);
     }
   };
 
-  // Import handlers
-  const handleImportMSProject = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentProject) return;
+  const handleGenerateAiSubtasks = async (task: Task) => {
+    setAiTaskTarget(task);
+    setIsAiSubtasksModalOpen(true);
+    setAiSubtasksLoading(true);
+    setAiSubtasksResult(null);
 
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const xmlData = evt.target?.result as string;
-        const parser = new XMLParser({ ignoreAttributes: false });
-        const result = parser.parse(xmlData);
-
-        const projectTasks = result.Project?.Tasks?.Task || [];
-        const tasksArray = Array.isArray(projectTasks) ? projectTasks : [projectTasks];
-
-        for (const t of tasksArray) {
-          if (t.Name && t.Name !== 'Project Summary Task') {
-            await addDoc(collection(db, 'tasks'), {
-              projectId: currentProject.id,
-              code: `MSP-${Math.floor(100 + Math.random() * 900)}`,
-              name: t.Name,
-              unit: 'glb',
-              plannedQuantity: 1,
-              executedQuantity: t.PercentComplete ? Number(t.PercentComplete) / 100 : 0,
-              unitCost: 1000,
-              status: t.PercentComplete === 100 ? 'terminada' : t.PercentComplete > 0 ? 'en_campo' : 'planificada',
-              priority: 'media',
-              frente: 'Importado MSP',
-              startDate: t.Start ? t.Start.split('T')[0] : new Date().toISOString().split('T')[0],
-              endDate: t.Finish ? t.Finish.split('T')[0] : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-            });
-          }
-        }
-        alert('Partidas de MS Project importadas exitosamente.');
-      } catch (error) {
-        console.error("Error parsing MS Project XML:", error);
-        alert('Error al procesar el archivo XML de MS Project.');
+    const subtaskSchema = {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: {
+          name: { type: 'STRING' },
+          description: { type: 'STRING' },
+          estimatedDays: { type: 'NUMBER' },
+          resources: { type: 'STRING' }
+        },
+        required: ['name', 'description', 'estimatedDays']
       }
     };
-    reader.readAsText(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
+
+    const result = await callGeminiStructured<Array<{ name: string; description: string; estimatedDays: number; resources?: string }>>(
+      `Desglosa esta partida de obra en subtareas operativas secuenciales: ${task.name} (Código: ${task.wbsCode}). Descripción: ${task.description || 'General'}. Cómputo: ${task.plannedQuantity} ${task.unit}.`,
+      subtaskSchema,
+      'Eres un planificador experto de obra industrial e ingeniería EPC.'
+    );
+
+    setAiSubtasksResult(result);
+    setAiSubtasksLoading(false);
   };
 
+  // Import files
   const handleImportXer = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !currentProject) return;
@@ -401,24 +604,20 @@ export default function Tasks() {
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
-        const xerContent = evt.target?.result as string;
-        const parsed = parseXerFile(xerContent);
+        const parsed = parseXerFile(evt.target?.result as string);
         if (parsed.length === 0) {
-          alert('No se encontraron actividades válidas en Primavera P6 (.xer).');
+          alert('No se encontraron actividades válidas en Primavera P6 (.xer)');
           return;
         }
-
         const { successCount } = await syncImportedTasksToFirestore(
           parsed,
           currentProject.id,
           'default_org',
-          'Primavera P6 (.xer)'
+          'Primavera P6'
         );
-
         alert(`Sincronizadas ${successCount} partidas desde Primavera P6 (.xer)`);
-      } catch (error) {
-        console.error("Error XER:", error);
-        alert('Error al procesar el archivo Primavera P6 (.xer)');
+      } catch (err) {
+        alert('Error al procesar el archivo .xer');
       }
     };
     reader.readAsText(file);
@@ -432,23 +631,19 @@ export default function Tasks() {
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
-        const bc3Content = evt.target?.result as string;
-        const parsed = parseBc3File(bc3Content);
+        const parsed = parseBc3File(evt.target?.result as string);
         if (parsed.length === 0) {
           alert('No se encontraron partidas válidas en .bc3 FIEBDC-3');
           return;
         }
-
         const { successCount } = await syncImportedTasksToFirestore(
           parsed,
           currentProject.id,
           'default_org',
           'Presupuesto BC3'
         );
-
-        alert(`Sincronizadas ${successCount} partidas de Presupuesto FIEBDC-3 (.bc3)`);
-      } catch (error) {
-        console.error("Error BC3:", error);
+        alert(`Sincronizadas ${successCount} partidas desde Presupuesto BC3`);
+      } catch (err) {
         alert('Error al procesar el archivo .bc3');
       }
     };
@@ -456,546 +651,256 @@ export default function Tasks() {
     if (bc3FileInputRef.current) bc3FileInputRef.current.value = '';
   };
 
-  // Ask AI Assistant
-  const handleAskAI = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiQuery.trim()) return;
-
-    setIsAiLoading(true);
-    setAiResponse('');
-
-    try {
-      const taskSummary = tasks.map(t => 
-        `- [${t.code || 'PARTIDA'}] ${t.name}: Estado: ${t.status}, Prioridad: ${t.priority || 'media'}, Plan: ${t.plannedQuantity} ${t.unit}, Ejecutado: ${t.executedQuantity} ${t.unit}, Frente: ${t.frente || 'N/A'}${t.blockedReason ? `, BLOQUEO: ${t.blockedReason}` : ''}`
-      ).join('\n');
-
-      const prompt = `Eres el copiloto experto en dirección de obra e ingeniería de proyectos industriales de Industrial Control 360.
-Analiza la siguiente WBS de partidas del proyecto actual:
-${taskSummary}
-
-Pregunta del usuario: ${aiQuery}
-
-Genera una respuesta ejecutiva, estructurada con puntos de acción para el gerente de obra. Cita normativas o mejores prácticas si aplica.`;
-
-      const response = await callGeminiProxy({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-      });
-
-      setAiResponse(response.text || 'No se pudo generar análisis.');
-    } catch (err) {
-      console.error(err);
-      setAiResponse('Error al comunicarse con el copiloto de IA.');
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
-  // Filter Tasks
+  // Filter tasks
   const filteredTasks = tasks.filter(t => {
     const matchesSearch = 
       t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (t.code && t.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (t.frente && t.frente.toLowerCase().includes(searchTerm.toLowerCase()));
+      t.wbsCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.frontName && t.frontName.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesPriority = filterPriority === 'all' || t.priority === filterPriority;
+    const matchesFront = filterFront === 'all' || t.frontName === filterFront;
 
-    const matchesPriority = filterPriority === 'all' || (t.priority || 'media') === filterPriority;
-    const matchesFrente = filterFrente === 'all' || (t.frente || 'General') === filterFrente;
-    const matchesBlocked = !onlyBlocked || t.status === 'bloqueada';
-
-    return matchesSearch && matchesPriority && matchesFrente && matchesBlocked;
+    return matchesSearch && matchesPriority && matchesFront;
   });
 
-  // Calculate Metrics
+  const uniqueFronts = Array.from(new Set(tasks.map(t => t.frontName).filter(Boolean)));
+
+  // Metrics
   const totalTasks = tasks.length;
-  const blockedTasksCount = tasks.filter(t => t.status === 'bloqueada').length;
-  const completedTasksCount = tasks.filter(t => t.status === 'terminada').length;
-
-  const totalPlannedBudget = tasks.reduce((sum, t) => sum + ((t.plannedQuantity || 0) * (t.unitCost || 0)), 0);
-  const totalExecutedBudget = tasks.reduce((sum, t) => sum + ((t.executedQuantity || 0) * (t.unitCost || 0)), 0);
-
-  const globalAdvancePercent = totalPlannedBudget > 0 
-    ? Math.min(100, (totalExecutedBudget / totalPlannedBudget) * 100) 
-    : totalTasks > 0 
-    ? (completedTasksCount / totalTasks) * 100 
-    : 0;
-
-  // Extract unique frentes
-  const uniqueFrentes = Array.from(new Set(tasks.map(t => t.frente || 'General'))).filter(Boolean);
+  const totalPlannedValuation = tasks.reduce((sum, t) => sum + (t.plannedQuantity * t.unitCost), 0);
+  const totalExecutedValuation = tasks.reduce((sum, t) => sum + (t.executedQuantity * t.unitCost), 0);
+  const totalProgress = totalPlannedValuation > 0 ? (totalExecutedValuation / totalPlannedValuation) * 100 : 0;
+  const blockedCount = tasks.filter(t => t.status === 'bloqueada').length;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 pb-12"
-    >
+    <div className="space-y-6 pb-12">
       {/* Hidden File Inputs */}
-      <input type="file" accept=".xml" ref={fileInputRef} onChange={handleImportMSProject} className="hidden" />
       <input type="file" accept=".xer" ref={xerFileInputRef} onChange={handleImportXer} className="hidden" />
       <input type="file" accept=".bc3" ref={bc3FileInputRef} onChange={handleImportBc3} className="hidden" />
 
-      {/* HEADER SECTION */}
-      <div className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 p-6 sm:p-8 rounded-3xl border border-white/80 dark:border-slate-800 shadow-sm shadow-slate-200/50 dark:shadow-none flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      {/* Page Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2 border-b border-line">
         <div>
-          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">
-            <KanbanIcon size={16} /> Work Board Operativo • Control de WBS & Campo
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-            Tablero Colaborativo de Partidas & Avance
+          <h1 className="text-2xl font-black text-ink tracking-tight font-display">
+            Control de Partidas WBS & Kanban de Obra
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl font-medium">
-            Gestión en tiempo real de frentes de obra, liberaciones de calidad, alertas de restricción e importaciones de Primavera P6 y FIEBDC-3.
+          <p className="text-xs sm:text-sm text-ink-soft mt-1">
+            Gestión de partidas, planificación contractual y ejecución en campo
           </p>
         </div>
-
-        {/* Top Action Bar */}
-        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <Button
-            variant="accent"
-            leftIcon={<Sparkles size={16} />}
-            onClick={() => setIsAiModalOpen(true)}
-          >
-            Copiloto IA
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => xerFileInputRef.current?.click()} leftIcon={<FileCode size={16} />}>
+            P6 (.xer)
           </Button>
-
-          <Button
-            variant="outline"
-            leftIcon={<FileCode size={16} className="text-blue-600 dark:text-blue-400" />}
-            onClick={() => xerFileInputRef.current?.click()}
-            title="Importar Primavera P6 (.xer)"
-          >
-            Primavera (.xer)
+          <Button variant="outline" size="sm" onClick={() => bc3FileInputRef.current?.click()} leftIcon={<Upload size={16} />}>
+            BC3 (.bc3)
           </Button>
-
-          <Button
-            variant="outline"
-            leftIcon={<FileCode size={16} className="text-amber-600 dark:text-amber-400" />}
-            onClick={() => bc3FileInputRef.current?.click()}
-            title="Importar Presupuesto BC3"
-          >
-            FIEBDC-3 (.bc3)
-          </Button>
-
-          <Button
-            variant="primary"
-            leftIcon={<Plus size={18} />}
-            onClick={() => setIsModalOpen(true)}
-          >
+          <Button variant="primary" leftIcon={<Plus size={18} />} onClick={() => setIsModalOpen(true)}>
             Nueva Partida
           </Button>
         </div>
       </div>
 
-      {/* METRICS SUMMARY ROW */}
+      {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Partidas Totales WBS"
+          title="Partidas WBS Totales"
           value={totalTasks}
-          sublabel={`${completedTasksCount} terminadas (${globalAdvancePercent.toFixed(1)}%)`}
-          icon={<Layers size={22} />}
+          sublabel="En catálogo de proyecto"
+          icon={<ClipboardList size={22} />}
           accentColor="indigo"
         />
-
         <MetricCard
-          title="Avance Físico Global"
-          value={`${globalAdvancePercent.toFixed(1)}%`}
-          sublabel={`Valorizado en $${totalExecutedBudget.toLocaleString('en-US', { minimumFractionDigits: 0 })}`}
-          trend={{ direction: globalAdvancePercent > 50 ? 'up' : 'neutral', value: `${completedTasksCount}/${totalTasks}` }}
+          title="Avance Físico-Financiero"
+          value={`${totalProgress.toFixed(1)}%`}
+          sublabel={`$${totalExecutedValuation.toLocaleString('en-US')} / $${totalPlannedValuation.toLocaleString('en-US')}`}
           icon={<Activity size={22} />}
           accentColor="emerald"
         />
-
-        <MetricCard
-          title="Presupuesto Ejecutado"
-          value={`$${totalExecutedBudget.toLocaleString('en-US', { minimumFractionDigits: 0 })}`}
-          sublabel={`Total WBS: $${totalPlannedBudget.toLocaleString('en-US', { minimumFractionDigits: 0 })}`}
-          icon={<Clock size={22} />}
-          accentColor="cyan"
-        />
-
         <MetricCard
           title="Partidas Bloqueadas"
-          value={blockedTasksCount}
-          sublabel={blockedTasksCount > 0 ? "Requieren atención de campo" : "Sin restricciones de obra"}
-          trend={{ direction: blockedTasksCount > 0 ? 'down' : 'neutral', value: `${blockedTasksCount} alertas` }}
-          icon={<ShieldAlert size={22} />}
-          accentColor={blockedTasksCount > 0 ? "amber" : "slate"}
+          value={blockedCount}
+          sublabel="Con restricciones de obra"
+          icon={<AlertTriangle size={22} />}
+          accentColor={blockedCount > 0 ? "error" : "slate"}
+        />
+        <MetricCard
+          title="Frentes Activos"
+          value={uniqueFronts.length || 1}
+          sublabel="Despliegue operativo"
+          icon={<HardHat size={22} />}
+          accentColor="amber"
         />
       </div>
 
-      {/* VIEW SELECTOR & FILTER BAR */}
-      <div className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 p-4 rounded-3xl border border-white/80 dark:border-slate-800 shadow-sm shadow-slate-200/50 dark:shadow-none flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
-        {/* Switch Views */}
-        <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1.5 rounded-2xl gap-1 overflow-x-auto">
-          <button
-            onClick={() => setViewMode('kanban')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
-              viewMode === 'kanban' 
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs' 
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-          >
-            <KanbanIcon size={16} /> Work Board (Kanban)
-          </button>
-
-          <button
-            onClick={() => setViewMode('list')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
-              viewMode === 'list' 
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs' 
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-          >
-            <LayoutList size={16} /> WBS & Cómputos
-          </button>
-
-          <button
-            onClick={() => setViewMode('gantt')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap ${
-              viewMode === 'gantt' 
-                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs' 
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-            }`}
-          >
-            <CalendarDays size={16} /> Cronograma Gantt
-          </button>
+      {/* Control Bar & View Switcher */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-surface p-3 rounded-2xl border border-line">
+        {/* Selector de vistas */}
+        <div className="flex gap-1 bg-surface-2 p-1 rounded-xl w-fit">
+          {[
+            { id: 'kanban', label: 'Kanban', icon: KanbanSquare },
+            { id: 'table', label: 'WBS / Tabla', icon: Table2 },
+            { id: 'calendar', label: 'Calendario', icon: Calendar },
+          ].map(v => (
+            <button 
+              key={v.id} 
+              onClick={() => setView(v.id as any)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                view === v.id ? 'bg-surface text-ink shadow-card' : 'text-ink-soft hover:text-ink'
+              }`}
+            >
+              <v.icon size={16} /> {v.label}
+            </button>
+          ))}
         </div>
 
-        {/* Filter Controls */}
+        {/* Filters */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Search */}
-          <div className="relative min-w-[200px] flex-1 sm:flex-none">
-            <Search size={14} className="absolute left-3 top-3 text-slate-400" />
+          <div className="relative min-w-[200px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
             <input
               type="text"
-              placeholder="Buscar código, partida o frente..."
+              placeholder="Buscar partida o WBS..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-slate-100 font-medium outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-8 pr-3 py-1.5 bg-surface-2 border border-line rounded-xl text-xs font-medium text-ink outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
-          {/* Priority filter */}
           <select
             value={filterPriority}
             onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none"
+            className="px-3 py-1.5 bg-surface-2 border border-line rounded-xl text-xs font-bold text-ink outline-none"
           >
-            <option value="all">Todas Prioridades</option>
-            <option value="critica">🔴 Crítica</option>
-            <option value="alta">🟠 Alta</option>
-            <option value="media">🟡 Media</option>
-            <option value="baja">🟢 Baja</option>
+            <option value="all">Todas las prioridades</option>
+            <option value="critica">Crítica</option>
+            <option value="alta">Alta</option>
+            <option value="media">Media</option>
+            <option value="baja">Baja</option>
           </select>
 
-          {/* Frente filter */}
-          {uniqueFrentes.length > 0 && (
+          {uniqueFronts.length > 0 && (
             <select
-              value={filterFrente}
-              onChange={(e) => setFilterFrente(e.target.value)}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none"
+              value={filterFront}
+              onChange={(e) => setFilterFront(e.target.value)}
+              className="px-3 py-1.5 bg-surface-2 border border-line rounded-xl text-xs font-bold text-ink outline-none"
             >
-              <option value="all">Todos los Frentes</option>
-              {uniqueFrentes.map(f => (
+              <option value="all">Todos los frentes</option>
+              {uniqueFronts.map(f => (
                 <option key={f} value={f}>{f}</option>
               ))}
             </select>
           )}
-
-          {/* Toggle Blocked */}
-          <button
-            onClick={() => setOnlyBlocked(!onlyBlocked)}
-            className={`px-3 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer ${
-              onlyBlocked 
-                ? 'bg-red-600 text-white shadow-xs' 
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            <AlertTriangle size={14} />
-            <span>Solo Bloqueadas</span>
-          </button>
         </div>
       </div>
 
-      {/* MAIN VIEW CONTENT */}
+      {/* Main Views */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
-          <Skeleton className="h-64" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
         </div>
-      ) : filteredTasks.length === 0 && tasks.length === 0 ? (
+      ) : filteredTasks.length === 0 ? (
         <EmptyState
-          icon={<KanbanIcon size={40} className="text-indigo-500" />}
-          title="No hay partidas cargadas en este proyecto"
-          description="Inicia agregando una nueva partida a la WBS o importa el cronograma completo directamente desde Primavera P6 (.xer), FIEBDC-3 (.bc3) o MS Project (.xml)."
-          actionLabel="Agregar Primera Partida"
+          icon={<ClipboardList size={40} className="text-brand-500" />}
+          title="No hay partidas registradas"
+          description="Crea tu primera partida WBS o importa la estructura de control directamente desde Primavera P6 o FIEBDC-3."
+          actionLabel="Crear Partida WBS"
           onAction={() => setIsModalOpen(true)}
-          secondaryAction={
-            <Button variant="outline" onClick={() => xerFileInputRef.current?.click()}>
-              Importar Primavera P6
-            </Button>
-          }
         />
-      ) : viewMode === 'kanban' ? (
-        /* ================= KANBAN BOARD VIEW ================= */
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-start overflow-x-auto pb-4">
-          {KANBAN_COLUMNS.map((col) => {
-            const ColumnIcon = col.icon;
-            const columnTasks = filteredTasks.filter(t => (t.status || 'planificada') === col.id);
+      ) : view === 'kanban' ? (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+            {KANBAN_COLUMNS.map(col => {
+              const colTasks = filteredTasks.filter(t => t.status === col.id);
+              return (
+                <KanbanColumnDroppable
+                  key={col.id}
+                  column={col}
+                  tasks={colTasks}
+                  onEdit={(t) => { setEditingTask(t); setIsEditModalOpen(true); }}
+                  onDelete={handleDeleteTask}
+                  onProgress={(t) => { setProgressTask(t); setIsProgressModalOpen(true); }}
+                  onAiSubtasks={handleGenerateAiSubtasks}
+                />
+              );
+            })}
+          </div>
 
-            const isOver = dragOverColumn === col.id;
-
-            return (
-              <div
-                key={col.id}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  e.dataTransfer.dropEffect = 'move';
-                }}
-                onDragEnter={() => setDragOverColumn(col.id)}
-                onDragLeave={() => setDragOverColumn(null)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOverColumn(null);
-                  const taskId = e.dataTransfer.getData('taskId');
-                  if (taskId) handleMoveStatus(taskId, col.id);
-                }}
-                className={`flex flex-col min-h-[500px] rounded-3xl p-3 sm:p-4 border transition-all duration-200 ${
-                  isOver 
-                    ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-500 ring-4 ring-emerald-500/10' 
-                    : 'bg-slate-100/60 dark:bg-slate-900/60 border-slate-200/80 dark:border-slate-800'
-                }`}
-              >
-                {/* Column Header */}
-                <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800/80 mb-3 px-1">
-                  <div className="flex items-center gap-2">
-                    <span className={`p-2 rounded-xl ${col.color} border ${col.border} shadow-2xs`}>
-                      <ColumnIcon size={16} />
-                    </span>
-                    <div>
-                      <h3 className="text-xs sm:text-sm font-black text-slate-900 dark:text-white tracking-tight">
-                        {col.title}
-                      </h3>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                        {col.subtitle}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-mono font-black px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                    {columnTasks.length}
-                  </span>
-                </div>
-
-                {/* Column Cards Drop Zone */}
-                <div className="flex-1 space-y-3">
-                  <AnimatePresence>
-                    {columnTasks.map((task) => {
-                      const isDragging = draggedTaskId === task.id;
-                      const progress = task.plannedQuantity > 0 ? (task.executedQuantity / task.plannedQuantity) * 100 : 0;
-                      const totalTaskCost = (task.plannedQuantity || 0) * (task.unitCost || 0);
-
-                      return (
-                        <motion.div
-                          key={task.id}
-                          layout
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: isDragging ? 0.4 : 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.95 }}
-                          draggable
-                          onDragStart={(e: any) => {
-                            e.dataTransfer?.setData('taskId', task.id);
-                            setDraggedTaskId(task.id);
-                          }}
-                          onDragEnd={() => setDraggedTaskId(null)}
-                          className={`group relative p-4 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700/80 shadow-xs hover:shadow-md transition-all cursor-grab active:cursor-grabbing space-y-3 ${
-                            task.status === 'bloqueada' ? 'border-l-4 border-l-red-500' : ''
-                          }`}
-                        >
-                          {/* Task Top Badges */}
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-mono text-[11px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-200/60 dark:border-indigo-800/60">
-                              {task.code || 'N/A'}
-                            </span>
-                            <StatusBadge priority={task.priority || 'media'} size="sm" />
-                          </div>
-
-                          {/* Task Name */}
-                          <div>
-                            <h4 className="text-xs font-extrabold text-slate-900 dark:text-white line-clamp-2 leading-snug">
-                              {task.name}
-                            </h4>
-                            {task.frente && (
-                              <span className="inline-block text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1">
-                                📍 {task.frente}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Blocked Reason Alert */}
-                          {task.status === 'bloqueada' && task.blockedReason && (
-                            <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/80 border border-red-200 dark:border-red-800 text-[11px] text-red-900 dark:text-red-200 font-bold flex items-start gap-1.5">
-                              <AlertTriangle size={14} className="shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
-                              <span className="line-clamp-2">{task.blockedReason}</span>
-                            </div>
-                          )}
-
-                          {/* Progress Bar */}
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between text-[11px] font-bold">
-                              <span className="text-slate-500 dark:text-slate-400">
-                                {task.executedQuantity.toFixed(1)} / {task.plannedQuantity} {task.unit}
-                              </span>
-                              <span className={progress >= 100 ? 'text-emerald-600 dark:text-emerald-400 font-black' : 'text-slate-700 dark:text-slate-300 font-black'}>
-                                {progress.toFixed(0)}%
-                              </span>
-                            </div>
-                            <div className="w-full h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full transition-all ${
-                                  progress >= 100 
-                                    ? 'bg-emerald-500' 
-                                    : task.status === 'bloqueada' 
-                                    ? 'bg-red-500' 
-                                    : 'bg-indigo-500 dark:bg-emerald-500'
-                                }`}
-                                style={{ width: `${Math.min(progress, 100)}%` }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Footer Info & Quick Actions */}
-                          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700/60 text-[11px]">
-                            <span className="font-mono font-bold text-slate-500 dark:text-slate-400">
-                              ${totalTaskCost.toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                            </span>
-
-                            <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={() => openProgressModal(task)}
-                                className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded-lg transition-colors cursor-pointer"
-                                title="Registrar Avance de Cómputo"
-                              >
-                                <Activity size={15} />
-                              </button>
-                              <button
-                                onClick={() => { setEditingTask(task); setIsEditModalOpen(true); }}
-                                className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-lg transition-colors cursor-pointer"
-                                title="Editar Partida"
-                              >
-                                <Edit2 size={15} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(task.id)}
-                                className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-lg transition-colors cursor-pointer"
-                                title="Eliminar Partida"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-
-                  {columnTasks.length === 0 && (
-                    <div className="p-6 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                      Arrastra una partida aquí
-                    </div>
-                  )}
-                </div>
+          <DragOverlay>
+            {activeTask ? (
+              <div className="card p-4 space-y-2 opacity-90 shadow-lift rotate-2 border-brand-500 bg-surface">
+                <span className="text-[11px] font-extrabold text-ink-soft tabular">{activeTask.wbsCode}</span>
+                <p className="text-sm font-bold text-ink">{activeTask.name}</p>
               </div>
-            );
-          })}
-        </div>
-      ) : viewMode === 'list' ? (
-        /* ================= LIST / WBS TABLE VIEW ================= */
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      ) : view === 'table' ? (
         <Card>
           <Table>
             <TableHeader>
-              <TableHead>Código</TableHead>
-              <TableHead>Descripción de la Partida WBS</TableHead>
+              <TableHead>Código WBS</TableHead>
+              <TableHead>Partida / Descripción</TableHead>
               <TableHead>Frente</TableHead>
+              <TableHead>Prioridad</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead className="text-center">Planificado</TableHead>
-              <TableHead className="text-center">Ejecutado</TableHead>
-              <TableHead>Avance</TableHead>
+              <TableHead className="text-right">Planned</TableHead>
+              <TableHead className="text-right">Executed</TableHead>
+              <TableHead className="text-right">Avance</TableHead>
               <TableHead className="text-right">P.U. ($)</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableHeader>
             <TableBody>
-              {filteredTasks.map((task) => {
-                const progress = task.plannedQuantity > 0 ? (task.executedQuantity / task.plannedQuantity) * 100 : 0;
-                const isComplete = progress >= 100;
-
+              {filteredTasks.map(t => {
+                const prog = t.plannedQuantity > 0 ? (t.executedQuantity / t.plannedQuantity) * 100 : 0;
                 return (
-                  <TableRow key={task.id}>
-                    <TableCell className="font-mono font-extrabold text-indigo-600 dark:text-indigo-400">
-                      {task.code || 'N/A'}
-                    </TableCell>
+                  <TableRow key={t.id}>
+                    <TableCell className="font-mono font-bold text-brand-500">{t.wbsCode}</TableCell>
                     <TableCell>
                       <div>
-                        <span className="font-bold text-slate-900 dark:text-white block line-clamp-2">
-                          {task.name}
-                        </span>
-                        {task.blockedReason && (
-                          <span className="text-[10px] text-red-600 dark:text-red-400 font-bold block mt-0.5">
-                            ⚠️ Restricción: {task.blockedReason}
-                          </span>
-                        )}
+                        <span className="font-bold text-ink block">{t.name}</span>
+                        {t.restrictionNote && <span className="text-[10px] text-red-500 font-semibold block">⚠️ {t.restrictionNote}</span>}
                       </div>
                     </TableCell>
+                    <TableCell className="text-xs font-medium text-ink-soft">{t.frontName || 'N/A'}</TableCell>
                     <TableCell>
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-                        {task.frente || 'General'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={task.status} size="sm" />
-                    </TableCell>
-                    <TableCell className="text-center font-mono font-bold">
-                      {task.plannedQuantity} {task.unit}
-                    </TableCell>
-                    <TableCell className="text-center font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                      {(task.executedQuantity || 0).toFixed(2)} {task.unit}
+                      <StatusBadge 
+                        status={t.priority} 
+                        variant={t.priority === 'critica' ? 'error' : t.priority === 'alta' ? 'warning' : 'info'} 
+                        size="sm" 
+                      />
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2 min-w-[120px]">
-                        <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full ${isComplete ? 'bg-emerald-500' : 'bg-indigo-600'}`}
-                            style={{ width: `${Math.min(progress, 100)}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-mono font-extrabold text-slate-700 dark:text-slate-300">
-                          {progress.toFixed(0)}%
-                        </span>
-                      </div>
+                      <StatusBadge 
+                        status={t.status} 
+                        variant={t.status === 'terminada' ? 'success' : t.status === 'bloqueada' ? 'error' : t.status === 'en_campo' ? 'warning' : 'info'} 
+                        size="sm" 
+                      />
                     </TableCell>
-                    <TableCell className="text-right font-mono font-bold">
-                      ${task.unitCost}
-                    </TableCell>
+                    <TableCell className="text-right font-mono tabular">{t.plannedQuantity} {t.unit}</TableCell>
+                    <TableCell className="text-right font-mono tabular text-emerald-600 font-bold">{t.executedQuantity} {t.unit}</TableCell>
+                    <TableCell className="text-right font-mono font-bold tabular">{prog.toFixed(1)}%</TableCell>
+                    <TableCell className="text-right font-mono tabular">${t.unitCost}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => openProgressModal(task)}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 rounded-xl transition-colors cursor-pointer"
-                          title="Registrar Cómputo"
-                        >
+                        <button onClick={() => handleGenerateAiSubtasks(t)} className="p-1.5 text-brand-500 hover:bg-surface-2 rounded cursor-pointer" title="Subtareas IA">
+                          <Sparkles size={16} />
+                        </button>
+                        <button onClick={() => { setProgressTask(t); setIsProgressModalOpen(true); }} className="p-1.5 text-emerald-600 hover:bg-surface-2 rounded cursor-pointer" title="Registrar avance">
                           <Activity size={16} />
                         </button>
-                        <button
-                          onClick={() => { setEditingTask(task); setIsEditModalOpen(true); }}
-                          className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 rounded-xl transition-colors cursor-pointer"
-                          title="Editar Partida"
-                        >
+                        <button onClick={() => { setEditingTask(t); setIsEditModalOpen(true); }} className="p-1.5 text-ink-soft hover:bg-surface-2 rounded cursor-pointer" title="Editar">
                           <Edit2 size={16} />
                         </button>
-                        <button
-                          onClick={() => handleDelete(task.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/60 rounded-xl transition-colors cursor-pointer"
-                          title="Eliminar Partida"
-                        >
+                        <button onClick={() => handleDeleteTask(t.id)} className="p-1.5 text-red-500 hover:bg-surface-2 rounded cursor-pointer" title="Eliminar">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -1007,432 +912,282 @@ Genera una respuesta ejecutiva, estructurada con puntos de acción para el geren
           </Table>
         </Card>
       ) : (
-        /* ================= GANTT TIMELINE VIEW ================= */
-        <Card className="p-6 overflow-x-auto">
-          <div className="min-w-[800px] space-y-4">
-            <div className="grid grid-cols-12 gap-4 border-b border-slate-200/80 dark:border-slate-800 pb-3 text-xs font-extrabold uppercase text-slate-400 tracking-wider">
-              <div className="col-span-4">Partida / WBS</div>
-              <div className="col-span-8 flex justify-between">
-                <span>Fecha Inicio</span>
-                <span>Barra de Cronograma & Avance</span>
-                <span>Fecha Fin</span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {filteredTasks.map((task) => {
-                const progress = task.plannedQuantity > 0 ? (task.executedQuantity / task.plannedQuantity) * 100 : 0;
-                return (
-                  <div key={task.id} className="grid grid-cols-12 gap-4 items-center">
-                    <div className="col-span-4">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-[11px] font-black text-indigo-600 dark:text-indigo-400">
-                          {task.code}
-                        </span>
-                        <span className="text-xs font-bold text-slate-900 dark:text-white truncate" title={task.name}>
-                          {task.name}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="col-span-8 relative h-9 bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden flex items-center px-3 text-xs font-bold">
-                      <div
-                        className={`absolute left-0 top-0 bottom-0 transition-all ${
-                          task.status === 'bloqueada' ? 'bg-red-500/20 border-l-4 border-red-500' : 'bg-emerald-500/20 border-l-4 border-emerald-500'
-                        }`}
-                        style={{ width: `${Math.max(12, Math.min(progress, 100))}%` }}
-                      >
-                        <div className="h-full bg-emerald-500/30" style={{ width: `${Math.min(progress, 100)}%` }} />
-                      </div>
-                      <span className="relative z-10 w-full flex justify-between items-center text-slate-700 dark:text-slate-300">
-                        <span>{task.startDate || 'Sin fecha'}</span>
-                        <span className="font-mono font-black text-emerald-600 dark:text-emerald-400">{progress.toFixed(0)}%</span>
-                        <span>{task.endDate || 'Sin fecha'}</span>
-                      </span>
-                    </div>
+        /* Calendar View */
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display font-semibold text-ink">Cronograma de Ejecución</h3>
+            <span className="text-xs text-ink-soft">Línea de tiempo de frentes</span>
+          </div>
+          <div className="space-y-3">
+            {filteredTasks.map(t => (
+              <div key={t.id} className="p-4 rounded-xl bg-surface-2 border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-mono font-bold text-brand-500">{t.wbsCode}</span>
+                  <div>
+                    <h4 className="text-sm font-bold text-ink">{t.name}</h4>
+                    <span className="text-xs text-ink-faint">Frente: {t.frontName} • {t.crewName}</span>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+                <div className="flex items-center gap-4 text-xs font-mono">
+                  <span>Inicia: {t.startDate || 'Hoy'}</span>
+                  <span>Fin: {t.dueDate || '+14 días'}</span>
+                  <StatusBadge status={t.status} size="sm" />
+                </div>
+              </div>
+            ))}
           </div>
         </Card>
       )}
 
-      {/* CREATE NEW TASK MODAL */}
-      <Dialog
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Crear Nueva Partida de Obra (WBS)"
-        description="Ingresa los datos técnicos y cómputos planificados para el control de la partida."
-        maxWidth="lg"
-      >
-        <form onSubmit={handleCreate} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Código WBS / Norma (ej. PDVSA L-STC-001)"
-              required
-              value={newTask.code}
-              onChange={e => setNewTask({ ...newTask, code: e.target.value })}
-              placeholder="Ej: 100.1.1"
+      {/* MODAL CREAR PARTIDA */}
+      <Dialog isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Nueva Partida WBS">
+        <form onSubmit={handleCreateTask} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Input 
+              label="Código WBS" 
+              value={formData.wbsCode} 
+              onChange={(e) => setFormData({ ...formData, wbsCode: e.target.value })} 
+              required 
             />
-            <Input
-              label="Frente de Obra"
-              required
-              value={newTask.frente}
-              onChange={e => setNewTask({ ...newTask, frente: e.target.value })}
-              placeholder="Ej: Frente A - Soldadura Pipeline"
+            <Input 
+              label="Frente de Trabajo" 
+              value={formData.frontName} 
+              onChange={(e) => setFormData({ ...formData, frontName: e.target.value })} 
+              required 
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-              Descripción de la Partida
+          <Input 
+            label="Nombre de la Partida" 
+            value={formData.name} 
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+            required 
+            placeholder="ej. Excavación de zanja para tubería 12in"
+          />
+
+          <div className="grid grid-cols-3 gap-3">
+            <Input 
+              label="Unidad" 
+              value={formData.unit} 
+              onChange={(e) => setFormData({ ...formData, unit: e.target.value })} 
+              required 
+            />
+            <Input 
+              label="Cómputo Planificado" 
+              type="number" 
+              value={formData.plannedQuantity} 
+              onChange={(e) => setFormData({ ...formData, plannedQuantity: Number(e.target.value) })} 
+              required 
+            />
+            <Input 
+              label="Precio Unitario ($)" 
+              type="number" 
+              value={formData.unitCost} 
+              onChange={(e) => setFormData({ ...formData, unitCost: Number(e.target.value) })} 
+              required 
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-ink block mb-1">Prioridad</label>
+              <select 
+                value={formData.priority} 
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+                className="w-full p-2.5 bg-surface border border-line rounded-xl text-xs font-bold text-ink"
+              >
+                <option value="baja">Baja</option>
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+                <option value="critica">Crítica</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-ink block mb-1">Cuadrilla Responsable</label>
+              <Input 
+                value={formData.crewName} 
+                onChange={(e) => setFormData({ ...formData, crewName: e.target.value })} 
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <input 
+              type="checkbox" 
+              id="ptwCheck"
+              checked={formData.hasActivePtw} 
+              onChange={(e) => setFormData({ ...formData, hasActivePtw: e.target.checked })}
+              className="w-4 h-4 text-brand-500 rounded"
+            />
+            <label htmlFor="ptwCheck" className="text-xs font-bold text-ink cursor-pointer">
+              Requiere Permiso de Trabajo (PTW / SIHO-A)
             </label>
-            <textarea
-              required
-              rows={2}
-              value={newTask.name}
-              onChange={e => setNewTask({ ...newTask, name: e.target.value })}
-              className="w-full p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 font-medium outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="Ej: Limpieza, sanreado y aplicación de recubrimiento tricapa de 24 pulgadas"
-            />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                Unidad
-              </label>
-              <select
-                value={newTask.unit}
-                onChange={e => setNewTask({ ...newTask, unit: e.target.value })}
-                className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 outline-none"
-              >
-                <option value="m2">m² (Área)</option>
-                <option value="m3">m³ (Volumen)</option>
-                <option value="ml">ml (Longitud)</option>
-                <option value="kg">kg (Peso)</option>
-                <option value="und">und (Unidad)</option>
-                <option value="glb">glb (Global)</option>
-              </select>
-            </div>
-
-            <Input
-              label="Cant. Planificada"
-              type="number"
-              step="0.01"
-              required
-              value={newTask.plannedQuantity}
-              onChange={e => setNewTask({ ...newTask, plannedQuantity: e.target.value })}
-            />
-
-            <Input
-              label="Costo Unitario ($)"
-              type="number"
-              step="0.01"
-              required
-              value={newTask.unitCost}
-              onChange={e => setNewTask({ ...newTask, unitCost: e.target.value })}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                Prioridad
-              </label>
-              <select
-                value={newTask.priority}
-                onChange={e => setNewTask({ ...newTask, priority: e.target.value as TaskPriority })}
-                className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 outline-none"
-              >
-                <option value="critica">🔴 CRÍTICA</option>
-                <option value="alta">🟠 ALTA</option>
-                <option value="media">🟡 MEDIA</option>
-                <option value="baja">🟢 BAJA</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                Estado Inicial
-              </label>
-              <select
-                value={newTask.status}
-                onChange={e => setNewTask({ ...newTask, status: e.target.value as TaskStatus })}
-                className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 outline-none"
-              >
-                <option value="planificada">📋 Planificada</option>
-                <option value="en_campo">🚜 En Campo</option>
-                <option value="en_revision">🔍 En Revisión</option>
-                <option value="bloqueada">🛑 Bloqueada</option>
-                <option value="terminada">✅ Terminada</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="primary">
-              Guardar Partida
-            </Button>
+          <div className="flex justify-end gap-2 pt-4 border-t border-line">
+            <Button variant="outline" type="button" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+            <Button variant="primary" type="submit">Guardar Partida WBS</Button>
           </div>
         </form>
       </Dialog>
 
-      {/* EDIT TASK MODAL */}
-      <Dialog
-        isOpen={isEditModalOpen && !!editingTask}
-        onClose={() => { setIsEditModalOpen(false); setEditingTask(null); }}
-        title="Editar Partida WBS"
-        description="Actualiza la información técnica y asignación de la partida."
-        maxWidth="lg"
-      >
+      {/* MODAL EDITAR PARTIDA */}
+      <Dialog isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} title="Editar Partida WBS">
         {editingTask && (
-          <form onSubmit={handleUpdate} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                label="Código WBS"
-                required
-                value={editingTask.code}
-                onChange={e => setEditingTask({ ...editingTask, code: e.target.value })}
+          <form onSubmit={handleUpdateTask} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <Input 
+                label="Código WBS" 
+                value={editingTask.wbsCode} 
+                onChange={(e) => setEditingTask({ ...editingTask, wbsCode: e.target.value })} 
+                required 
               />
-              <Input
-                label="Frente de Obra"
-                value={editingTask.frente || ''}
-                onChange={e => setEditingTask({ ...editingTask, frente: e.target.value })}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                Descripción de la Partida
-              </label>
-              <textarea
-                required
-                rows={2}
-                value={editingTask.name}
-                onChange={e => setEditingTask({ ...editingTask, name: e.target.value })}
-                className="w-full p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 font-medium outline-none focus:ring-2 focus:ring-emerald-500"
+              <Input 
+                label="Frente de Trabajo" 
+                value={editingTask.frontName || ''} 
+                onChange={(e) => setEditingTask({ ...editingTask, frontName: e.target.value })} 
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Input 
+              label="Nombre de Partida" 
+              value={editingTask.name} 
+              onChange={(e) => setEditingTask({ ...editingTask, name: e.target.value })} 
+              required 
+            />
+
+            <div className="grid grid-cols-3 gap-3">
+              <Input 
+                label="Unidad" 
+                value={editingTask.unit} 
+                onChange={(e) => setEditingTask({ ...editingTask, unit: e.target.value })} 
+              />
+              <Input 
+                label="Cantidad Planificada" 
+                type="number" 
+                value={editingTask.plannedQuantity} 
+                onChange={(e) => setEditingTask({ ...editingTask, plannedQuantity: Number(e.target.value) })} 
+              />
+              <Input 
+                label="Precio Unitario ($)" 
+                type="number" 
+                value={editingTask.unitCost} 
+                onChange={(e) => setEditingTask({ ...editingTask, unitCost: Number(e.target.value) })} 
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-                  Unidad
-                </label>
-                <select
-                  value={editingTask.unit}
-                  onChange={e => setEditingTask({ ...editingTask, unit: e.target.value })}
-                  className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-200 outline-none"
+                <label className="text-xs font-bold text-ink block mb-1">Estado</label>
+                <select 
+                  value={editingTask.status} 
+                  onChange={(e) => setEditingTask({ ...editingTask, status: e.target.value as any })}
+                  className="w-full p-2.5 bg-surface border border-line rounded-xl text-xs font-bold text-ink"
                 >
-                  <option value="m2">m² (Área)</option>
-                  <option value="m3">m³ (Volumen)</option>
-                  <option value="ml">ml (Longitud)</option>
-                  <option value="kg">kg (Peso)</option>
-                  <option value="und">und (Unidad)</option>
-                  <option value="glb">glb (Global)</option>
+                  <option value="planificada">Planificada</option>
+                  <option value="en_campo">En Campo</option>
+                  <option value="bloqueada">Bloqueada</option>
+                  <option value="terminada">Terminada / NDT</option>
                 </select>
               </div>
-
-              <Input
-                label="Cant. Planificada"
-                type="number"
-                step="0.01"
-                required
-                value={editingTask.plannedQuantity}
-                onChange={e => setEditingTask({ ...editingTask, plannedQuantity: Number(e.target.value) })}
-              />
-
-              <Input
-                label="Costo Unitario ($)"
-                type="number"
-                step="0.01"
-                required
-                value={editingTask.unitCost}
-                onChange={e => setEditingTask({ ...editingTask, unitCost: Number(e.target.value) })}
-              />
+              <div>
+                <label className="text-xs font-bold text-ink block mb-1">Prioridad</label>
+                <select 
+                  value={editingTask.priority} 
+                  onChange={(e) => setEditingTask({ ...editingTask, priority: e.target.value as any })}
+                  className="w-full p-2.5 bg-surface border border-line rounded-xl text-xs font-bold text-ink"
+                >
+                  <option value="baja">Baja</option>
+                  <option value="media">Media</option>
+                  <option value="alta">Alta</option>
+                  <option value="critica">Crítica</option>
+                </select>
+              </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button variant="ghost" onClick={() => { setIsEditModalOpen(false); setEditingTask(null); }}>
-                Cancelar
-              </Button>
-              <Button type="submit" variant="primary">
-                Actualizar Partida
-              </Button>
+            {editingTask.status === 'bloqueada' && (
+              <Input 
+                label="Nota de Restricción / Bloqueo" 
+                value={editingTask.restrictionNote || ''} 
+                onChange={(e) => setEditingTask({ ...editingTask, restrictionNote: e.target.value })} 
+                placeholder="ej. Falta de suministro de tubería de 8in por transporte"
+              />
+            )}
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-line">
+              <Button variant="outline" type="button" onClick={() => setIsEditModalOpen(false)}>Cancelar</Button>
+              <Button variant="primary" type="submit">Actualizar Partida</Button>
             </div>
           </form>
         )}
       </Dialog>
 
-      {/* PROGRESS REGISTRATION MODAL */}
-      <Dialog
-        isOpen={isProgressModalOpen && !!progressTask}
-        onClose={() => { setIsProgressModalOpen(false); setProgressTask(null); }}
-        title="Registrar Avance de Cómputos Métricos"
-        description={progressTask?.name}
-        maxWidth="md"
-      >
+      {/* MODAL REGISTRAR AVANCE */}
+      <Dialog isOpen={isProgressModalOpen} onClose={() => setIsProgressModalOpen(false)} title="Registrar Avance Diario">
         {progressTask && (
           <form onSubmit={handleSaveProgress} className="space-y-4">
-            <div className="p-4 rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex justify-between items-center text-xs">
-              <div>
-                <p className="text-slate-400 uppercase font-bold text-[10px]">Planificado</p>
-                <p className="font-extrabold text-slate-900 dark:text-white text-sm">
-                  {progressTask.plannedQuantity} {progressTask.unit}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-slate-400 uppercase font-bold text-[10px]">Ejecutado Actual</p>
-                <p className="font-extrabold text-emerald-600 dark:text-emerald-400 text-sm">
-                  {(progressTask.executedQuantity || 0).toFixed(2)} {progressTask.unit}
-                </p>
-              </div>
+            <div className="p-3 bg-surface-2 rounded-xl text-xs space-y-1">
+              <p className="font-bold text-ink">{progressTask.wbsCode} - {progressTask.name}</p>
+              <p className="text-ink-soft">Avance Actual: {progressTask.executedQuantity} / {progressTask.plannedQuantity} {progressTask.unit}</p>
             </div>
 
-            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Ingresa los cómputos de la jornada en campo:
-            </p>
+            <Input 
+              label={`Cómputo a Adicionar (${progressTask.unit})`} 
+              type="number" 
+              value={progressAdd} 
+              onChange={(e) => setProgressAdd(Number(e.target.value))} 
+              required 
+              autoFocus
+            />
 
-            {progressTask.unit === 'm3' && (
-              <div className="grid grid-cols-3 gap-3">
-                <Input label="Largo (m)" type="number" step="0.01" value={compLength || ''} onChange={e => setCompLength(Number(e.target.value))} />
-                <Input label="Ancho (m)" type="number" step="0.01" value={compWidth || ''} onChange={e => setCompWidth(Number(e.target.value))} />
-                <Input label="Alto (m)" type="number" step="0.01" value={compHeight || ''} onChange={e => setCompHeight(Number(e.target.value))} />
-              </div>
-            )}
-
-            {progressTask.unit === 'm2' && (
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Largo (m)" type="number" step="0.01" value={compLength || ''} onChange={e => setCompLength(Number(e.target.value))} />
-                <Input label="Ancho/Alto (m)" type="number" step="0.01" value={compWidth || ''} onChange={e => setCompWidth(Number(e.target.value))} />
-              </div>
-            )}
-
-            {progressTask.unit === 'ml' && (
-              <Input label="Longitud (m)" type="number" step="0.01" value={compLength || ''} onChange={e => setCompLength(Number(e.target.value))} />
-            )}
-
-            {['kg', 'und', 'glb'].includes(progressTask.unit) && (
-              <Input label={`Cantidad (${progressTask.unit})`} type="number" step="0.01" value={compQuantity || ''} onChange={e => setCompQuantity(Number(e.target.value))} />
-            )}
-
-            <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex justify-between items-center text-xs sm:text-sm font-bold text-emerald-900 dark:text-emerald-200">
-              <span>Cantidad a sumar:</span>
-              <span className="font-mono text-base font-black text-emerald-600 dark:text-emerald-400">
-                +{calculateProgressQuantity().toFixed(2)} {progressTask.unit}
-              </span>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-              <Button variant="ghost" onClick={() => { setIsProgressModalOpen(false); setProgressTask(null); }}>
-                Cancelar
-              </Button>
-              <Button type="submit" variant="primary">
-                Validar y Guardar Avance
-              </Button>
+            <div className="flex justify-end gap-2 pt-4 border-t border-line">
+              <Button variant="outline" type="button" onClick={() => setIsProgressModalOpen(false)}>Cancelar</Button>
+              <Button variant="primary" type="submit">Registrar Avance</Button>
             </div>
           </form>
         )}
       </Dialog>
 
-      {/* BLOCK REASON MODAL */}
-      <Dialog
-        isOpen={isBlockReasonModalOpen && !!pendingBlockTask}
-        onClose={() => { setIsBlockReasonModalOpen(false); setPendingBlockTask(null); }}
-        title="Reportar Bloqueo / Restricción de Campo"
-        description={pendingBlockTask?.name}
-        maxWidth="md"
-      >
-        <form onSubmit={handleConfirmBlockReason} className="space-y-4">
-          <div>
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5">
-              Motivo del Bloqueo u Obstáculo
-            </label>
-            <textarea
-              required
-              rows={3}
-              value={blockReasonInput}
-              onChange={e => setBlockReasonInput(e.target.value)}
-              placeholder="Ej: Retraso en permiso de trabajo PTW caliente por alta concentración de gas en fosa / Faltante de electrodos E-7018..."
-              className="w-full p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-900 dark:text-slate-100 font-medium outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-            <Button variant="ghost" onClick={() => { setIsBlockReasonModalOpen(false); setPendingBlockTask(null); }}>
-              Cancelar
-            </Button>
-            <Button type="submit" variant="danger">
-              Marcar como Bloqueada
-            </Button>
-          </div>
-        </form>
-      </Dialog>
-
-      {/* AI ASSISTANT MODAL */}
-      <Dialog
-        isOpen={isAiModalOpen}
-        onClose={() => setIsAiModalOpen(false)}
-        title="Copiloto IA de Partidas WBS"
-        description="Asesoría técnica en tiempo real para optimización de ruta crítica y resolución de restricciones de obra."
-        maxWidth="xl"
-      >
+      {/* MODAL SUBTAREAS IA */}
+      <Dialog isOpen={isAiSubtasksModalOpen} onClose={() => setIsAiSubtasksModalOpen(false)} title="Sugerencia de Subtareas con IA">
         <div className="space-y-4">
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 min-h-[220px] max-h-[350px] overflow-y-auto">
-            {isAiLoading ? (
-              <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3 py-12">
-                <Loader2 size={32} className="animate-spin text-indigo-600 dark:text-emerald-400" />
-                <p className="text-xs font-bold">Analizando WBS de obra, rendimientos y restricciones...</p>
-              </div>
-            ) : aiResponse ? (
-              <div className="prose prose-sm dark:prose-invert max-w-none text-xs sm:text-sm whitespace-pre-wrap font-medium">
-                {aiResponse}
-              </div>
-            ) : (
-              <div className="text-center py-10 space-y-3">
-                <Sparkles size={36} className="mx-auto text-amber-500 opacity-80" />
-                <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                  ¿Qué deseas consultar sobre el frente de obra?
-                </p>
-                <div className="flex flex-wrap justify-center gap-2 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setAiQuery('¿Cuáles son las partidas en ruta crítica o bloqueadas que amenazan el hito semanal?')}
-                    className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-colors text-slate-700 dark:text-slate-200 cursor-pointer"
-                  >
-                    🔍 Analizar Ruta Crítica y Bloqueos
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAiQuery('Genera un resumen ejecutivo de avance físico vs presupuestado para la gerencia.')}
-                    className="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 transition-colors text-slate-700 dark:text-slate-200 cursor-pointer"
-                  >
-                    📊 Resumen Ejecutivo de Avance
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          {aiTaskTarget && (
+            <div className="p-3 bg-brand-500/10 border border-brand-500/20 rounded-xl text-xs">
+              <p className="font-bold text-ink">{aiTaskTarget.wbsCode} — {aiTaskTarget.name}</p>
+              <p className="text-ink-soft mt-0.5">Analizando secuencia técnica y desglose de trabajo...</p>
+            </div>
+          )}
 
-          <form onSubmit={handleAskAI} className="flex gap-2">
-            <input
-              type="text"
-              value={aiQuery}
-              onChange={e => setAiQuery(e.target.value)}
-              placeholder="Escribe tu consulta sobre la obra..."
-              className="flex-1 py-2.5 px-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm font-medium outline-none focus:ring-2 focus:ring-emerald-500"
-            />
-            <Button type="submit" isLoading={isAiLoading} disabled={!aiQuery.trim()}>
-              Preguntar
-            </Button>
-          </form>
+          {aiSubtasksLoading ? (
+            <div className="p-8 text-center space-y-2">
+              <RefreshCw className="animate-spin text-brand-500 mx-auto" size={24} />
+              <p className="text-xs font-bold text-ink">Generando subtareas estructuradas con Gemini AI...</p>
+            </div>
+          ) : aiSubtasksResult ? (
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-ink uppercase tracking-wider">Subtareas Recomendadas:</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {aiSubtasksResult.map((sub, i) => (
+                  <div key={i} className="p-3 bg-surface-2 rounded-xl border border-line space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-ink">{i + 1}. {sub.name}</span>
+                      <span className="text-[10px] font-bold text-brand-500 bg-brand-500/10 px-2 py-0.5 rounded-full">{sub.estimatedDays} días</span>
+                    </div>
+                    <p className="text-xs text-ink-soft">{sub.description}</p>
+                    {sub.resources && <p className="text-[10px] text-ink-faint">Recursos: {sub.resources}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-ink-faint text-center py-4">No se pudieron generar subtareas en este momento.</p>
+          )}
+
+          <div className="flex justify-end pt-4 border-t border-line">
+            <Button variant="primary" onClick={() => setIsAiSubtasksModalOpen(false)}>Cerrar</Button>
+          </div>
         </div>
       </Dialog>
-    </motion.div>
+    </div>
   );
 }

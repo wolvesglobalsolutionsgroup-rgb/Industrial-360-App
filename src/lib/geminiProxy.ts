@@ -40,3 +40,17 @@ export async function callGeminiProxy(options: GeminiRequestOptions): Promise<{ 
     };
   }
 }
+
+export async function callGeminiStructured<T>(
+  prompt: string,
+  schema: object,
+  systemInstruction?: string
+): Promise<T | null> {
+  const result = await callGeminiProxy({
+    prompt,
+    systemInstruction,
+    config: { responseMimeType: 'application/json', responseSchema: schema }
+  });
+  if (result.raw?.error) return null;
+  try { return JSON.parse(result.text) as T; } catch { return null; }
+}

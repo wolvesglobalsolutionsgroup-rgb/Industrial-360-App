@@ -11,7 +11,7 @@ export interface MetricCardProps {
     direction: 'up' | 'down' | 'neutral';
     value: string;
   };
-  accentColor?: 'emerald' | 'cyan' | 'amber' | 'indigo' | 'slate';
+  accentColor?: 'emerald' | 'cyan' | 'amber' | 'indigo' | 'slate' | 'error' | 'rose';
   className?: string;
 }
 
@@ -30,6 +30,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     amber: 'before:bg-amber-500',
     indigo: 'before:bg-indigo-500',
     slate: 'before:bg-slate-500',
+    error: 'before:bg-rose-500',
+    rose: 'before:bg-rose-500',
   };
 
   const iconBgs = {
@@ -38,6 +40,8 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     amber: 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60',
     indigo: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60',
     slate: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
+    error: 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60',
+    rose: 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60',
   };
 
   return (
