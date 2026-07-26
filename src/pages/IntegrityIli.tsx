@@ -197,106 +197,147 @@ export default function IntegrityIli() {
     return { topPct: `${top.toFixed(1)}%`, leftPct: `${left.toFixed(1)}%` };
   };
 
-  // Parser para archivos de reporte ILI ROSEN (.csv / .txt)
+  // Parser para archivos de reporte ILI ROSEN (.xlsx, .xls, .csv, .txt)
   const handleFileImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     setUploadMessage('Procesando corrida de inspección ILI ROSEN...');
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result as string;
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-        if (lines.length < 2) {
-          setUploadMessage('El archivo no contiene suficientes registros.');
-          return;
-        }
+    const fileName = file.name.toLowerCase();
 
-        // Detectar delimitador (coma o tabulación)
-        const delimiter = lines[0].includes('\t') ? '\t' : ',';
-        const headers = lines[0].split(delimiter).map(h => h.trim().toUpperCase().replace(/"/g, ''));
-
-        // Obtener índices de columnas dinámicamente
-        const idxDist = headers.indexOf('DIST') !== -1 ? headers.indexOf('DIST') : headers.indexOf('KP');
-        const idxType = headers.indexOf('TYPE');
-        const idxInternal = headers.indexOf('INTERNAL') !== -1 ? headers.indexOf('INTERNAL') : headers.indexOf('INT_EXT');
-        const idxWl = headers.indexOf('WL') !== -1 ? headers.indexOf('WL') : headers.indexOf('WL %');
-        const idxLen = headers.indexOf('LEN') !== -1 ? headers.indexOf('LEN') : headers.indexOf('LENGTH_MM');
-        const idxWid = headers.indexOf('WID') !== -1 ? headers.indexOf('WID') : headers.indexOf('WIDTH_MM');
-        const idxOclock = headers.indexOf('O_CLOCK') !== -1 ? headers.indexOf('O_CLOCK') : headers.indexOf('CLOCK');
-        const idxJjNo = headers.indexOf('JJ_NO') !== -1 ? headers.indexOf('JJ_NO') : headers.indexOf('WELD_NO');
-        const idxJjDist = headers.indexOf('JJ_DIST') !== -1 ? headers.indexOf('JJ_DIST') : headers.indexOf('WELD_DIST');
-        const idxEasting = headers.indexOf('EASTING') !== -1 ? headers.indexOf('EASTING') : headers.indexOf('UTM_E');
-        const idxNorthing = headers.indexOf('NORTHING') !== -1 ? headers.indexOf('NORTHING') : headers.indexOf('UTM_N');
-        const idxCp = headers.indexOf('CRITERIO PC (-MV)') !== -1 ? headers.indexOf('CRITERIO PC (-MV)') : headers.indexOf('CP');
-
-        const parsedAnomalies: Anomaly[] = [];
-        // Procesar filas (saltando cabeceras y filas de nombres repetidos)
-        for (let i = 1; i < lines.length; i++) {
-          const cols = lines[i].split(delimiter).map(c => c.trim().replace(/"/g, ''));
-          if (cols.length < Math.min(headers.length, 3)) continue;
-
-          // Saltar fila de subtítulos de ROSEN si coincide con el nombre de la columna
-          if (idxDist !== -1 && cols[idxDist]?.toUpperCase() === 'DIST') continue;
-
-          const type = idxType !== -1 ? cols[idxType] : 'Metal Loss';
-          // Filtrar solo tipos relevantes de anomalías para el visor (Metal Loss, Dent, Corrosion, Gouge)
-          if (type && !['METAL LOSS', 'CORROSION', 'DENT', 'GOUGE', 'CORROSIÓN', 'PÉRDIDA DE METAL'].includes(type.toUpperCase())) {
-            continue;
+    const processRowObjects = (rows: Record<string, any>[]) => {
+      const getVal = (row: Record<string, any>, possibleKeys: string[], defaultVal: any = '') => {
+        const rowKeys = Object.keys(row);
+        for (const pKey of possibleKeys) {
+          const match = rowKeys.find(rk => rk.trim().toUpperCase() === pKey.toUpperCase());
+          if (match !== undefined && row[match] !== '' && row[match] !== null) {
+            return row[match];
           }
-
-          const wlVal = idxWl !== -1 ? parseFloat(cols[idxWl]) || 0 : 0;
-          if (wlVal === 0 && idxWl !== -1) continue; // Ignorar si no hay pérdida
-
-          const isInternal = idxInternal !== -1 
-            ? (cols[idxInternal]?.toUpperCase() === 'Y' || cols[idxInternal]?.toUpperCase() === 'INTERNAL' || cols[idxInternal]?.toUpperCase() === 'INT')
-            : false;
-
-          const cpRaw = idxCp !== -1 && cols[idxCp] ? parseFloat(cols[idxCp]) : 0;
-
-          parsedAnomalies.push({
-            id: `ANO-IMP-${100 + parsedAnomalies.length}`,
-            kp: idxDist !== -1 ? Math.abs(parseFloat(cols[idxDist]) || 0) : Number(((i + 1) * 1.8).toFixed(3)),
-            clockPosition: (idxOclock !== -1 && cols[idxOclock]) ? cols[idxOclock] : '12:00',
-            depthPercent: wlVal || 25,
-            lengthMm: idxLen !== -1 ? parseFloat(cols[idxLen]) || 120 : 120,
-            widthMm: idxWid !== -1 ? parseFloat(cols[idxWid]) || 50 : 50,
-            type: 'Metal Loss',
-            internalExternal: isInternal ? 'Internal' : 'External',
-            nominalWT: 12.7,
-            pipeDiameter: 16,
-            smys: 52000,
-            maop: 1100,
-            status: (wlVal || 25) >= 40 ? 'Atención Prioritaria' : 'Inconclusa',
-            // Campos extendidos reales
-            easting: idxEasting !== -1 ? parseFloat(cols[idxEasting]) || 381300 : 381300 + parsedAnomalies.length * 120,
-            northing: idxNorthing !== -1 ? parseFloat(cols[idxNorthing]) || 979350 : 979350 - parsedAnomalies.length * 90,
-            cpPotentialMv: cpRaw ? -Math.abs(cpRaw) : -940,
-            upstreamWeldNo: (idxJjNo !== -1 && cols[idxJjNo]) ? cols[idxJjNo] : `JJ-${100 + parsedAnomalies.length}`,
-            upstreamWeldDistMm: idxJjDist !== -1 ? parseFloat(cols[idxJjDist]) || 0 : 1200
-          });
         }
+        return defaultVal;
+      };
 
-        // Ordenar por severidad de pérdida de metal (WL) descendente para ver las críticas primero
-        parsedAnomalies.sort((a, b) => b.depthPercent - a.depthPercent);
+      const parsedAnomalies: Anomaly[] = [];
 
-        if (parsedAnomalies.length > 0) {
-          setAnomalies(parsedAnomalies);
-          setSelectedAnomaly(parsedAnomalies[0]);
-          setUploadMessage(`¡Éxito! Se han importado ${parsedAnomalies.length} anomalías de corrosión reales del reporte.`);
-          alert(`¡Éxito! Se han importado ${parsedAnomalies.length} anomalías de corrosión reales del reporte.`);
-        } else {
-          setUploadMessage('No se encontraron registros de pérdida de metal (Metal Loss) válidos.');
-          alert('No se encontraron registros de pérdida de metal (Metal Loss) válidos.');
-        }
-      } catch (err: any) {
-        console.error('Error importando ROSEN CSV:', err);
-        setUploadMessage('Ocurrió un error al procesar el archivo CSV/TXT.');
-        alert('Ocurrió un error al procesar el archivo CSV/TXT.');
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const distRaw = getVal(row, ['DIST', 'KP', 'DISTANCE', 'DIST_KM', 'KM'], null);
+        if (distRaw === null || String(distRaw).trim().toUpperCase() === 'DIST') continue;
+
+        const typeVal = String(getVal(row, ['TYPE', 'ANOMALY_TYPE', 'CLASSIFICATION', 'TIPO'], 'Metal Loss')).trim();
+        const upperType = typeVal.toUpperCase();
+
+        // Filtrar solo tipos relevantes de anomalías (Metal Loss, Dent, Corrosion, Gouge, Crack)
+        const validTypes = ['METAL LOSS', 'CORROSION', 'CORROSIÓN', 'PÉRDIDA DE METAL', 'DENT', 'GOUGE', 'CRACK', 'DEFECT'];
+        const isMatchingType = validTypes.some(vt => upperType.includes(vt));
+        
+        const wlRaw = getVal(row, ['WL', 'WL %', 'WL (%)', 'WL%', 'DEPTH_%', 'DEPTH_PCT', 'SEVERITY', 'PROFUNDIDAD'], null);
+        const wlVal = wlRaw !== null ? Math.abs(parseFloat(String(wlRaw)) || 0) : 0;
+
+        // Ignorar si no coincide con tipo de defecto o si no tiene pérdida
+        if (!isMatchingType && wlVal === 0) continue;
+
+        const intExtRaw = String(getVal(row, ['INTERNAL', 'INT_EXT', 'INTERNAL/EXTERNAL', 'ORIENTATION', 'UBICACIÓN'], 'External')).toUpperCase();
+        const isInternal = intExtRaw === 'Y' || intExtRaw.includes('INT');
+
+        const cpRaw = getVal(row, ['CRITERIO PC (-MV)', 'CP', 'POTENCIAL_PC', 'PC_MV', 'CP_MV'], null);
+        const cpVal = cpRaw !== null ? parseFloat(String(cpRaw)) : 0;
+
+        const dist = Math.abs(parseFloat(String(distRaw)) || Number(((i + 1) * 1.5).toFixed(3)));
+        const clockStr = String(getVal(row, ['O_CLOCK', 'CLOCK', 'POSITION', 'HORA', 'POSICIÓN'], '12:00')).trim();
+        const lenVal = parseFloat(String(getVal(row, ['LEN', 'LENGTH_MM', 'L_MM', 'LENGTH', 'LARGO'], 120))) || 120;
+        const widVal = parseFloat(String(getVal(row, ['WID', 'WIDTH_MM', 'W_MM', 'WIDTH', 'ANCHO'], 50))) || 50;
+        const jjNoStr = String(getVal(row, ['JJ_NO', 'WELD_NO', 'JOINT', 'JUNTA'], `JJ-${100 + parsedAnomalies.length}`)).trim();
+        const jjDistVal = parseFloat(String(getVal(row, ['JJ_DIST', 'WELD_DIST', 'DIST_WELD'], 1200))) || 1200;
+        const eastingVal = parseFloat(String(getVal(row, ['EASTING', 'UTM_E', 'X', 'ESTE'], 381300 + parsedAnomalies.length * 120))) || (381300 + parsedAnomalies.length * 120);
+        const northingVal = parseFloat(String(getVal(row, ['NORTHING', 'UTM_N', 'Y', 'NORTE'], 979350 - parsedAnomalies.length * 90))) || (979350 - parsedAnomalies.length * 90);
+
+        parsedAnomalies.push({
+          id: `ANO-IMP-${100 + parsedAnomalies.length}`,
+          kp: dist,
+          clockPosition: clockStr || '12:00',
+          depthPercent: wlVal || 25,
+          lengthMm: lenVal,
+          widthMm: widVal,
+          type: upperType.includes('DENT') ? 'Dent' : (upperType.includes('GOUGE') ? 'Gouge' : 'Metal Loss'),
+          internalExternal: isInternal ? 'Internal' : 'External',
+          nominalWT: 12.7,
+          pipeDiameter: 16,
+          smys: 52000,
+          maop: 1100,
+          status: (wlVal || 25) >= 40 ? 'Atención Prioritaria' : 'Inconclusa',
+          easting: eastingVal,
+          northing: northingVal,
+          cpPotentialMv: cpVal ? -Math.abs(cpVal) : -940,
+          upstreamWeldNo: jjNoStr,
+          upstreamWeldDistMm: jjDistVal
+        });
+      }
+
+      parsedAnomalies.sort((a, b) => b.depthPercent - a.depthPercent);
+
+      if (parsedAnomalies.length > 0) {
+        setAnomalies(parsedAnomalies);
+        setSelectedAnomaly(parsedAnomalies[0]);
+        setUploadMessage(`¡Éxito! Se han importado ${parsedAnomalies.length} anomalías del reporte ILI ROSEN (${file.name}).`);
+        alert(`¡Éxito! Se han importado ${parsedAnomalies.length} anomalías del reporte ILI ROSEN (${file.name}).`);
+      } else {
+        setUploadMessage('No se encontraron registros de anomalías o pérdida de metal válidos.');
+        alert('No se encontraron registros de anomalías o pérdida de metal válidos.');
       }
     };
-    reader.readAsText(file);
+
+    if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonRows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+          processRowObjects(jsonRows);
+        } catch (err: any) {
+          console.error('Error al leer Excel:', err);
+          setUploadMessage('Error al procesar el archivo Excel ROSEN.');
+          alert('Error al procesar el archivo Excel ROSEN.');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const text = e.target?.result as string;
+          const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+          if (lines.length < 2) {
+            setUploadMessage('El archivo no contiene suficientes registros.');
+            return;
+          }
+
+          const delimiter = lines[0].includes('\t') ? '\t' : (lines[0].includes(';') ? ';' : ',');
+          const headers = lines[0].split(delimiter).map(h => h.trim().replace(/"/g, ''));
+
+          const jsonRows: Record<string, any>[] = [];
+          for (let i = 1; i < lines.length; i++) {
+            const cols = lines[i].split(delimiter).map(c => c.trim().replace(/"/g, ''));
+            if (cols.length === 0) continue;
+            const rowObj: Record<string, any> = {};
+            headers.forEach((h, idx) => {
+              rowObj[h] = cols[idx] !== undefined ? cols[idx] : '';
+            });
+            jsonRows.push(rowObj);
+          }
+          processRowObjects(jsonRows);
+        } catch (err: any) {
+          console.error('Error importando CSV/TXT:', err);
+          setUploadMessage('Ocurrió un error al procesar el archivo CSV/TXT.');
+          alert('Ocurrió un error al procesar el archivo CSV/TXT.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
     if (event.target) event.target.value = '';
   };
 
@@ -392,15 +433,15 @@ export default function IntegrityIli() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-[#0B2239] text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="backdrop-blur-xl bg-white/75 dark:bg-slate-900/75 p-6 sm:p-8 rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-sm shadow-slate-200/50 dark:shadow-none flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
-          <div className="flex items-center gap-2 text-amber-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">
             <Database size={16} /> Módulo PIMS • Normativa ASME B31G / RSTRENG / NACE SP0169
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
             Gestión de Integridad de Ductos & Corridas ILI Pigging
           </h1>
-          <p className="text-slate-300 text-sm mt-1 max-w-2xl">
+          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl font-medium">
             Alineamiento de catódica vs anomalías MFL, evaluación estructural RSTRENG y generación de Dig Sheets para {orgName}.
           </p>
         </div>
@@ -411,7 +452,7 @@ export default function IntegrityIli() {
             id="ili-file-input"
             ref={fileInputRef} 
             onChange={handleFileImport} 
-            accept=".csv,.txt" 
+            accept=".xlsx,.xls,.csv,.txt" 
             className="hidden" 
           />
           <button 
@@ -422,67 +463,79 @@ export default function IntegrityIli() {
                 document.getElementById('ili-file-input')?.click();
               }
             }}
-            className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-[#0B2239] font-extrabold px-4 py-2.5 rounded-xl text-xs sm:text-sm transition-all shadow-md cursor-pointer"
+            className="flex items-center gap-2 bg-[#0B2239] hover:bg-slate-800 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 font-extrabold px-5 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-sm hover:shadow-md cursor-pointer"
           >
             <Upload size={16} />
-            <span>Importar Corrida ROSEN (CSV)</span>
+            <span>Importar Corrida ROSEN (.xlsx / .csv)</span>
           </button>
         </div>
       </div>
 
       {uploadMessage && (
-        <div className="p-3 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold flex items-center justify-between">
+        <div className="p-4 bg-amber-50/90 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border border-amber-200/80 dark:border-amber-800 rounded-2xl text-xs font-bold flex items-center justify-between backdrop-blur-md">
           <span>{uploadMessage}</span>
-          <button onClick={() => setUploadMessage(null)} className="text-gray-500 hover:text-black">×</button>
+          <button onClick={() => setUploadMessage(null)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white">×</button>
         </div>
       )}
 
       {/* Navigation Tabs */}
-      <div className="flex border-b border-gray-200 bg-white rounded-2xl p-1 shadow-xs overflow-x-auto">
+      <div className="flex border border-white/80 dark:border-slate-800/80 bg-white/75 dark:bg-slate-900/75 backdrop-blur-xl rounded-3xl p-1.5 shadow-xs overflow-x-auto gap-1">
         <button
           onClick={() => setActiveTab('ili')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
-            activeTab === 'ili' ? 'bg-[#0B2239] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'ili' 
+              ? 'bg-[#0B2239] text-white dark:bg-emerald-600 shadow-sm' 
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
           }`}
         >
           <Activity size={16} /> Visor de Anomalías ILI
         </button>
         <button
           onClick={() => setActiveTab('cp')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
-            activeTab === 'cp' ? 'bg-[#0B2239] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'cp' 
+              ? 'bg-[#0B2239] text-white dark:bg-emerald-600 shadow-sm' 
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
           }`}
         >
           <Zap size={16} /> Alineamiento Catódica (CP vs ILI)
         </button>
         <button
           onClick={() => setActiveTab('calculator')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
-            activeTab === 'calculator' ? 'bg-[#0B2239] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'calculator' 
+              ? 'bg-[#0B2239] text-white dark:bg-emerald-600 shadow-sm' 
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
           }`}
         >
           <Calculator size={16} /> Calculadora ASME B31G vs RSTRENG
         </button>
         <button
           onClick={() => setActiveTab('digsheets')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
-            activeTab === 'digsheets' ? 'bg-[#0B2239] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'digsheets' 
+              ? 'bg-[#0B2239] text-white dark:bg-emerald-600 shadow-sm' 
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
           }`}
         >
           <FileText size={16} /> Generador de Dig Sheets
         </button>
         <button
           onClick={() => setActiveTab('api653')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
-            activeTab === 'api653' ? 'bg-[#0B2239] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'api653' 
+              ? 'bg-[#0B2239] text-white dark:bg-emerald-600 shadow-sm' 
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
           }`}
         >
           <Compass size={16} /> Tanques API 653
         </button>
         <button
           onClick={() => setActiveTab('api570')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap ${
-            activeTab === 'api570' ? 'bg-[#0B2239] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-extrabold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'api570' 
+              ? 'bg-[#0B2239] text-white dark:bg-emerald-600 shadow-sm' 
+              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
           }`}
         >
           <Wrench size={16} /> API 570 Proceso
@@ -493,29 +546,29 @@ export default function IntegrityIli() {
       {activeTab === 'ili' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* List of Anomalies */}
-          <div className="lg:col-span-1 bg-white p-5 rounded-2xl border border-gray-200 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-2">
-              <h2 className="text-sm font-bold text-gray-900">Anomalías Detectadas</h2>
-              <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-mono font-bold">
+          <div className="lg:col-span-1 backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 p-6 rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-sm shadow-slate-200/50 dark:shadow-none space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">Anomalías Detectadas</h2>
+              <span className="text-xs bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 px-2.5 py-1 rounded-full font-mono font-extrabold border border-slate-200/60 dark:border-slate-700/60">
                 {filteredAnomalies.length} Registros
               </span>
             </div>
 
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
-                <Search size={14} className="absolute left-3 top-2.5 text-gray-400" />
+                <Search size={14} className="absolute left-3 top-3 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Buscar KP, ID o Junta..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-xl text-xs outline-none focus:ring-1 focus:ring-[#0B2239]"
+                  className="w-full pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100 font-medium"
                 />
               </div>
               <select
                 value={filterType}
                 onChange={(e) => setFilterType(e.target.value)}
-                className="px-2 py-1.5 border border-gray-200 rounded-xl text-xs bg-white font-semibold"
+                className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs bg-slate-50 dark:bg-slate-800/60 font-bold text-slate-700 dark:text-slate-200 outline-none"
               >
                 <option value="all">Todas</option>
                 <option value="critical">Críticas (&gt;40%)</option>
@@ -523,7 +576,7 @@ export default function IntegrityIli() {
               </select>
             </div>
 
-            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-[520px] overflow-y-auto pr-1">
               {filteredAnomalies.map((item) => {
                 const isSelected = selectedAnomaly?.id === item.id;
                 const isCritical = item.depthPercent >= 40;
@@ -532,18 +585,18 @@ export default function IntegrityIli() {
                   <div
                     key={item.id}
                     onClick={() => setSelectedAnomaly(item)}
-                    className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all ${
                       isSelected
-                        ? 'border-[#0B2239] bg-slate-900 text-white shadow-md'
-                        : 'border-gray-200 hover:border-slate-300 hover:bg-slate-50 text-gray-800'
+                        ? 'border-[#0B2239] dark:border-emerald-500 bg-slate-900 text-white shadow-md'
+                        : 'border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 text-slate-800 dark:text-slate-200'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold">{item.id}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      <span className="font-mono text-xs font-black">{item.id}</span>
+                      <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
                         isCritical 
-                          ? (isSelected ? 'bg-red-500 text-white' : 'bg-red-100 text-red-700') 
-                          : (isSelected ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700')
+                          ? (isSelected ? 'bg-red-500 text-white' : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300') 
+                          : (isSelected ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300')
                       }`}>
                         KP {item.kp} km
                       </span>
@@ -551,15 +604,15 @@ export default function IntegrityIli() {
 
                     <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className={`text-[10px] uppercase block ${isSelected ? 'text-slate-400' : 'text-gray-400'}`}>
+                        <span className={`text-[9px] uppercase font-bold block ${isSelected ? 'text-slate-400' : 'text-slate-400'}`}>
                           Profundidad (WL)
                         </span>
-                        <span className={`font-bold ${isCritical ? 'text-red-400' : ''}`}>
+                        <span className={`font-black ${isCritical ? 'text-red-400' : ''}`}>
                           {item.depthPercent}% WT ({((item.depthPercent / 100) * item.nominalWT).toFixed(2)} mm)
                         </span>
                       </div>
                       <div>
-                        <span className={`text-[10px] uppercase block ${isSelected ? 'text-slate-400' : 'text-gray-400'}`}>
+                        <span className={`text-[9px] uppercase font-bold block ${isSelected ? 'text-slate-400' : 'text-slate-400'}`}>
                           Orientación / Junta
                         </span>
                         <span className="font-bold font-mono">
@@ -576,19 +629,19 @@ export default function IntegrityIli() {
           {/* Interactive Inspection & Pipe View */}
           <div className="lg:col-span-2 space-y-6">
             {selectedAnomaly ? (
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-xs space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center pb-4 border-b border-gray-100 gap-3">
+              <div className="backdrop-blur-xl bg-white/80 dark:bg-slate-900/80 p-6 rounded-3xl border border-white/80 dark:border-slate-800/80 shadow-sm shadow-slate-200/50 dark:shadow-none space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center pb-4 border-b border-slate-100 dark:border-slate-800 gap-3">
                   <div>
-                    <span className="text-xs font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                    <span className="text-xs font-mono font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200/60 dark:border-emerald-800/60">
                       ANOMALÍA SELECCIONADA: {selectedAnomaly.id}
                     </span>
-                    <h3 className="text-xl font-bold text-gray-900 mt-1.5">
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white mt-2">
                       {selectedAnomaly.type} ({selectedAnomaly.internalExternal}) en KP {selectedAnomaly.kp} km
                     </h3>
                   </div>
                   <button 
                     onClick={() => setActiveTab('digsheets')}
-                    className="flex items-center gap-1.5 bg-[#0B2239] hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+                    className="flex items-center gap-2 bg-[#0B2239] hover:bg-slate-800 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-sm cursor-pointer"
                   >
                     <FileText size={14} />
                     <span>Generar Dig Sheet</span>
