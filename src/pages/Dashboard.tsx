@@ -99,15 +99,6 @@ export default function Dashboard() {
       setErrorState(err?.message || 'Error al conectar con la base de datos');
       setIsLoadingData(false);
     }
-
-    // Safety fallback timer to ensure StatCards render seamlessly on Vercel even if Firestore listeners take time to connect
-    const safetyTimer = setTimeout(() => {
-      setIsLoadingData(false);
-    }, 800);
-
-    return () => {
-      clearTimeout(safetyTimer);
-    };
   }, [currentProject]);
 
   // Weather Context Effect
