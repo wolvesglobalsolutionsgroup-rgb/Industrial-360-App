@@ -58,6 +58,7 @@ export default function Projects() {
   // Subscribe to Firestore Projects
   useEffect(() => {
     setIsLoading(true);
+    // TODO: Migrar a jerarquía multi-tenant /organizations/{orgId}/projects/{projId}
     const q = query(collection(db, 'projects'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const projs = snapshot.docs.map(docSnap => ({
