@@ -1,6 +1,6 @@
 {
-  "short_name": "SEMAX PINO",
-  "name": "SEMAX PINO C.A. - Industrial Control 360",
+  "short_name": "IC360",
+  "name": "Industrial Control 360",
   "icons": [
     {
       "src": "/favicon.ico",
@@ -13,5 +13,5 @@
   "theme_color": "#0B2239",
   "display": "standalone",
   "orientation": "any",
-  "description": "Sistema de Gestión y Operaciones Integrales de Campo para Ingeniería y Servicios Petroleros SEMAX PINO C.A."
+  "description": "Sistema de Gestión y Operaciones Integrales de Campo para Ingeniería y Servicios Petroleros"
 }
