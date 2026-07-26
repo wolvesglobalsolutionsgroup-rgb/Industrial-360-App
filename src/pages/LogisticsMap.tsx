@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   MapPin, Search, Navigation, Loader2, Map as MapIcon, Play, Square, Route, 
   Wifi, WifiOff, RefreshCw, Download, Upload, Plus, Check, Compass, Layers, 
-  Shield, Sparkles, AlertCircle, FileSpreadsheet
+  Shield, Sparkles, AlertCircle, FileSpreadsheet, Network
 } from 'lucide-react';
 import { callGeminiProxy } from '../lib/geminiProxy';
 import { collection, query, onSnapshot, where, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
@@ -14,6 +14,7 @@ import StatCard from '../components/common/StatCard';
 import { FieldMap, GPSPicker, RouteDrawer } from '../components/field';
 import { MapMarkerData, MapRouteData } from '../components/field/FieldMap';
 import { RoutePoint } from '../components/field/RouteDrawer';
+import PortfolioNetwork from '../components/map/PortfolioNetwork';
 import { subscribeSyncStatus, syncPendingRecords, SyncStats, isBrowserOnline } from '../lib/offline/syncEngine';
 import { exportRouteToKML, exportMarkersToKML, downloadKMLFile, importKMLToGeoJSON } from '../lib/kml/kmlExporter';
 import * as turf from '@turf/turf';
@@ -22,7 +23,7 @@ export default function LogisticsMap() {
   const { currentProject } = useProject();
 
   // Active view tab
-  const [activeTab, setActiveTab] = useState<'map' | 'drawer' | 'assistant'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'drawer' | 'network' | 'assistant'>('map');
 
   // GPS Location state
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number; accuracy?: number } | null>(null);
@@ -369,6 +370,14 @@ Ofrece una respuesta técnica, indicando rutas de acceso recomendadas, estacione
               Dibujador de Trazado
             </Button>
             <Button
+              variant={activeTab === 'network' ? 'primary' : 'outline'}
+              size="sm"
+              onClick={() => setActiveTab('network')}
+              leftIcon={<Network size={14} />}
+            >
+              Red Interconectada (PAMS)
+            </Button>
+            <Button
               variant={activeTab === 'assistant' ? 'primary' : 'outline'}
               size="sm"
               onClick={() => setActiveTab('assistant')}
@@ -610,7 +619,12 @@ Ofrece una respuesta técnica, indicando rutas de acceso recomendadas, estacione
         </div>
       )}
 
-      {/* Tab 3: AI Geographic & Logistics Assistant */}
+      {/* Tab 3: PAMS Interconnected Network */}
+      {activeTab === 'network' && (
+        <PortfolioNetwork />
+      )}
+
+      {/* Tab 4: AI Geographic & Logistics Assistant */}
       {activeTab === 'assistant' && (
         <div className="max-w-3xl mx-auto space-y-6">
           <Card>

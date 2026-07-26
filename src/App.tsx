@@ -38,6 +38,7 @@ import InteroperabilityEngine from './pages/InteroperabilityEngine';
 import DossierCompiler from './pages/DossierCompiler';
 import ClientPortalBuilder from './pages/ClientPortalBuilder';
 import ClientPortalView from './pages/ClientPortalView';
+import HotTapSchemes from './pages/HotTapSchemes';
 import Landing from './pages/Landing';
 import { ProjectProvider } from './ProjectContext';
 import { ThemeProvider } from './theme/ThemeContext';
@@ -127,6 +128,7 @@ export default function App() {
           <Route path="modulos/cierre" element={<DossierCompiler />} />
           <Route path="client-portal-builder" element={<ClientPortalBuilder />} />
           <Route path="portal-builder" element={<ClientPortalBuilder />} />
+          <Route path="hot-tap" element={<HotTapSchemes />} />
           <Route path="tools" element={<EngineeringTools />} />
           <Route path="project-brain" element={<ProjectBrain />} />
           <Route path="intelligence" element={<Intelligence />} />

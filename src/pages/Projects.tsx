@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { seedDemoData } from '../lib/seedDemoData';
+import { PhaseManager } from '../components/projects/PhaseManager';
 import {
   MetricCard, 
   Card, 
@@ -329,6 +330,9 @@ export default function Projects() {
           accentColor="cyan"
         />
       </div>
+
+      {/* Phase Manager Component (PAMS V/C/D/I/O) */}
+      <PhaseManager currentPhase="I" />
 
       {/* Toolbar & Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-surface p-3 rounded-2xl border border-line">

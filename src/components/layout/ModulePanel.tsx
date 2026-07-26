@@ -24,6 +24,7 @@ import {
   Wrench, 
   Box, 
   Cpu, 
+  Flame,
   BrainCircuit, 
   Sparkles, 
   MessageSquare, 
@@ -100,6 +101,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
       { id: 'documents', path: '/documents', title: 'Gestión Documental', description: 'Biblioteca técnica, planos aprobados e ing.', icon: FileArchive },
       { id: 'dossier', path: '/modulos/cierre', title: 'Cierre & Dossier', description: 'Compilador automático de Libro Blanco y Dossier', icon: BookOpen, badge: 'Auto', badgeColor: 'amber' },
       { id: 'tools', path: '/tools', title: 'Herramientas Ingeniería', description: 'Calculadoras ASME B31.3, B31G y prueba hidro', icon: Wrench },
+      { id: 'hot-tap', path: '/hot-tap', title: 'Hot Tap & Stopple (PAMS)', description: 'Simulación y diseño de intervenciones en caliente', icon: Flame, badge: 'PAMS', badgeColor: 'amber' },
       { id: 'bim', path: '/bim', title: 'Visor BIM 3D', description: 'Inspección espacial de maquetas tridimensionales', icon: Box },
       { id: 'interoperabilidad', path: '/modulos/interoperabilidad', title: 'Interoperabilidad', description: 'Sincronización con Primavera, SAP y AutoCAD', icon: Cpu },
     ]
