@@ -46,6 +46,10 @@ export default function Dashboard() {
     setIsLoadingData(true);
     setErrorState(null);
     const isSingle = currentProject && currentProject.id !== 'all';
+
+    const timer = setTimeout(() => {
+      setIsLoadingData(false);
+    }, 1000);
     
     try {
       const tasksQ = isSingle 
@@ -54,10 +58,11 @@ export default function Dashboard() {
       const unsubTasks = onSnapshot(tasksQ, (snap) => {
         setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         setIsLoadingData(false);
+        clearTimeout(timer);
       }, (err) => {
         handleFirestoreError(err, OperationType.GET, 'tasks');
-        setErrorState('Error al cargar datos de partidas de obra');
         setIsLoadingData(false);
+        clearTimeout(timer);
       });
 
       const expensesQ = isSingle
@@ -89,6 +94,7 @@ export default function Dashboard() {
       }, (err) => handleFirestoreError(err, OperationType.GET, 'weld_joints'));
 
       return () => {
+        clearTimeout(timer);
         unsubTasks();
         unsubExpenses();
         unsubValuations();
@@ -96,7 +102,7 @@ export default function Dashboard() {
         unsubWelds();
       };
     } catch (err: any) {
-      setErrorState(err?.message || 'Error al conectar con la base de datos');
+      clearTimeout(timer);
       setIsLoadingData(false);
     }
   }, [currentProject]);

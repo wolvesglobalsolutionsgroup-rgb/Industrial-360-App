@@ -58,7 +58,10 @@ export default function Projects() {
   // Subscribe to Firestore Projects
   useEffect(() => {
     setIsLoading(true);
-    // TODO: Migrar a jerarquía multi-tenant /organizations/{orgId}/projects/{projId}
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+
     const q = query(collection(db, 'projects'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const projs = snapshot.docs.map(docSnap => ({
@@ -67,12 +70,17 @@ export default function Projects() {
       })) as ProjectItem[];
       setProjects(projs);
       setIsLoading(false);
+      clearTimeout(timer);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'projects');
       setIsLoading(false);
+      clearTimeout(timer);
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }, []);
 
   // Filter projects by search
