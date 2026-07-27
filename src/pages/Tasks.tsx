@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc, where 
+  collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc, where, collectionGroup 
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getAuthUser } from '../firebase';
 import { 
@@ -78,7 +78,9 @@ const COLUMN_CONFIGS = [
 import { seedDemoData, FALLBACK_DEMO_TASKS } from '../lib/seedDemoData';
 
 export default function Tasks() {
-  const { currentProject } = useProject();
+  const { currentProject, currentOrganization } = useProject();
+  const orgId = currentOrganization?.id || 'default_org';
+
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -125,7 +127,7 @@ export default function Tasks() {
     setTimeout(() => setSeedMessage(null), 5000);
   };
 
-  // Subscribe to Firestore Tasks
+  // Subscribe to Firestore Tasks (Multi-tenant)
   useEffect(() => {
     if (!currentProject) {
       setTasks([]);
@@ -138,16 +140,20 @@ export default function Tasks() {
       setLoading(false);
     }, 1000);
 
-    const q = currentProject.id === 'all'
-      ? query(collection(db, 'tasks'))
-      : query(collection(db, 'tasks'), where('projectId', '==', currentProject.id));
+    const tasksPath = currentProject.id !== 'all'
+      ? `organizations/${orgId}/projects/${currentProject.id}/tasks`
+      : null;
+
+    const q = tasksPath
+      ? query(collection(db, tasksPath))
+      : query(collectionGroup(db, 'tasks'), where('orgId', '==', orgId));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const tsks = snapshot.docs.map(docSnap => {
         const d = docSnap.data();
         return {
           id: docSnap.id,
-          projectId: d.projectId,
+          projectId: d.projectId || currentProject.id,
           wbsCode: d.wbsCode || d.code || 'WBS-1.0',
           title: d.title || d.name || 'Partida sin nombre',
           description: d.description || '',
@@ -192,7 +198,7 @@ export default function Tasks() {
       clearTimeout(timer);
       unsubscribe();
     };
-  }, [currentProject]);
+  }, [currentProject, orgId]);
 
   // Drag Handlers
   const handleDragStart = (event: DragStartEvent) => {
@@ -219,13 +225,22 @@ export default function Tasks() {
     if (targetStatus) {
       const activeTaskItem = tasks.find(t => t.id === activeId);
       if (activeTaskItem && activeTaskItem.status !== targetStatus) {
+        const itemProjId = activeTaskItem.projectId || currentProject?.id || 'default';
+        const tasksPath = `organizations/${orgId}/projects/${itemProjId}/tasks`;
         try {
-          await updateDoc(doc(db, 'tasks', activeId), {
+          await updateDoc(doc(db, tasksPath, activeId), {
             status: targetStatus,
             updatedAt: new Date().toISOString()
           });
         } catch (error) {
-          handleFirestoreError(error, OperationType.UPDATE, `tasks/${activeId}`);
+          try {
+            await updateDoc(doc(db, 'tasks', activeId), {
+              status: targetStatus,
+              updatedAt: new Date().toISOString()
+            });
+          } catch (err) {
+            handleFirestoreError(error, OperationType.UPDATE, `${tasksPath}/${activeId}`);
+          }
         }
       }
     }
@@ -240,14 +255,25 @@ export default function Tasks() {
     const newExecuted = Math.max(0, Math.min(task.plannedQuantity, (task.executedQuantity || 0) + deltaQty));
     const isCompleted = newExecuted >= task.plannedQuantity;
 
+    const itemProjId = task.projectId || currentProject?.id || 'default';
+    const tasksPath = `organizations/${orgId}/projects/${itemProjId}/tasks`;
+
     try {
-      await updateDoc(doc(db, 'tasks', taskId), {
+      await updateDoc(doc(db, tasksPath, taskId), {
         executedQuantity: newExecuted,
         status: isCompleted ? 'terminada' : task.status === 'planificada' ? 'en_campo' : task.status,
         updatedAt: new Date().toISOString(),
       });
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `tasks/${taskId}`);
+      try {
+        await updateDoc(doc(db, 'tasks', taskId), {
+          executedQuantity: newExecuted,
+          status: isCompleted ? 'terminada' : task.status === 'planificada' ? 'en_campo' : task.status,
+          updatedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        handleFirestoreError(error, OperationType.UPDATE, `${tasksPath}/${taskId}`);
+      }
     }
   };
 
@@ -255,28 +281,41 @@ export default function Tasks() {
   const handleSaveTask = async (taskData: any) => {
     if (!currentProject) return;
 
+    const itemProjId = taskData.projectId || currentProject.id;
+    const tasksPath = `organizations/${orgId}/projects/${itemProjId}/tasks`;
+
     if (taskData.id) {
       // Edit
       try {
-        await updateDoc(doc(db, 'tasks', taskData.id), {
+        await updateDoc(doc(db, tasksPath, taskData.id), {
           ...taskData,
+          orgId,
           updatedAt: new Date().toISOString(),
         });
       } catch (error) {
-        handleFirestoreError(error, OperationType.UPDATE, `tasks/${taskData.id}`);
+        try {
+          await updateDoc(doc(db, 'tasks', taskData.id), {
+            ...taskData,
+            orgId,
+            updatedAt: new Date().toISOString(),
+          });
+        } catch (err) {
+          handleFirestoreError(error, OperationType.UPDATE, `${tasksPath}/${taskData.id}`);
+        }
       }
     } else {
       // Create
       try {
         const user = getAuthUser();
-        await addDoc(collection(db, 'tasks'), {
-          projectId: currentProject.id,
+        await addDoc(collection(db, tasksPath), {
+          projectId: itemProjId,
+          orgId,
           ...taskData,
           assignedTo: user?.displayName || 'Supervisor Obra',
           createdAt: new Date().toISOString(),
         });
       } catch (error) {
-        handleFirestoreError(error, OperationType.CREATE, 'tasks');
+        handleFirestoreError(error, OperationType.CREATE, tasksPath);
       }
     }
   };
@@ -284,10 +323,18 @@ export default function Tasks() {
   // Delete Task
   const handleDeleteTask = async (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar esta partida WBS?')) {
+      const task = tasks.find(t => t.id === id);
+      const itemProjId = task?.projectId || currentProject?.id || 'default';
+      const tasksPath = `organizations/${orgId}/projects/${itemProjId}/tasks`;
+
       try {
-        await deleteDoc(doc(db, 'tasks', id));
+        await deleteDoc(doc(db, tasksPath, id));
       } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `tasks/${id}`);
+        try {
+          await deleteDoc(doc(db, 'tasks', id));
+        } catch (err) {
+          handleFirestoreError(error, OperationType.DELETE, `${tasksPath}/${id}`);
+        }
       }
     }
   };
@@ -338,8 +385,11 @@ export default function Tasks() {
       completed: false,
     }));
 
+    const itemProjId = aiTaskTarget.projectId || currentProject?.id || 'default';
+    const tasksPath = `organizations/${orgId}/projects/${itemProjId}/tasks`;
+
     try {
-      await updateDoc(doc(db, 'tasks', aiTaskTarget.id), {
+      await updateDoc(doc(db, tasksPath, aiTaskTarget.id), {
         subtasks: formattedSubtasks,
         updatedAt: new Date().toISOString(),
       });
@@ -347,7 +397,17 @@ export default function Tasks() {
       setAiTaskTarget(null);
       setAiSubtasksResult(null);
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `tasks/${aiTaskTarget.id}`);
+      try {
+        await updateDoc(doc(db, 'tasks', aiTaskTarget.id), {
+          subtasks: formattedSubtasks,
+          updatedAt: new Date().toISOString(),
+        });
+        setIsAiModalOpen(false);
+        setAiTaskTarget(null);
+        setAiSubtasksResult(null);
+      } catch (err) {
+        handleFirestoreError(error, OperationType.UPDATE, `${tasksPath}/${aiTaskTarget.id}`);
+      }
     }
   };
 
@@ -367,7 +427,7 @@ export default function Tasks() {
         const { successCount } = await syncImportedTasksToFirestore(
           parsed,
           currentProject.id,
-          'default_org',
+          orgId,
           'Primavera P6'
         );
         alert(`Sincronizadas ${successCount} partidas desde Primavera P6 (.xer)`);
@@ -394,7 +454,7 @@ export default function Tasks() {
         const { successCount } = await syncImportedTasksToFirestore(
           parsed,
           currentProject.id,
-          'default_org',
+          orgId,
           'Presupuesto BC3'
         );
         alert(`Sincronizadas ${successCount} partidas desde Presupuesto BC3`);
