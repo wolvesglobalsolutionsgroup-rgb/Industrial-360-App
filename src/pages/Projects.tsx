@@ -3,6 +3,7 @@ import {
   collection, query, onSnapshot, addDoc, updateDoc, doc, deleteDoc 
 } from 'firebase/firestore';
 import { db, getAuthUser, handleFirestoreError, OperationType } from '../firebase';
+import { useProject } from '../ProjectContext';
 import { 
   Plus, Search, Building2, DollarSign, TrendingUp, Edit2, Trash2, CheckCircle2, FileSpreadsheet, Loader2, Calendar, Sparkles 
 } from 'lucide-react';
@@ -38,6 +39,10 @@ export interface ProjectItem {
 }
 
 export default function Projects() {
+  const { currentOrganization } = useProject();
+  const orgId = currentOrganization?.id || 'default_org';
+  const projectsPath = `organizations/${orgId}/projects`;
+
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,14 +73,14 @@ export default function Projects() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Subscribe to Firestore Projects
+  // Subscribe to Firestore Projects under Multi-tenant Organization Hierarchy
   useEffect(() => {
     setIsLoading(true);
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1000);
 
-    const q = query(collection(db, 'projects'));
+    const q = query(collection(db, projectsPath));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const projs = snapshot.docs.map(docSnap => ({
         id: docSnap.id,
@@ -85,7 +90,7 @@ export default function Projects() {
       setIsLoading(false);
       clearTimeout(timer);
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'projects');
+      handleFirestoreError(error, OperationType.GET, projectsPath);
       setIsLoading(false);
       clearTimeout(timer);
     });
@@ -94,7 +99,7 @@ export default function Projects() {
       clearTimeout(timer);
       unsubscribe();
     };
-  }, []);
+  }, [projectsPath]);
 
   // Filter projects by search
   const filteredProjects = projects.filter(p => 
@@ -148,14 +153,15 @@ export default function Projects() {
       advancePercent: Number(form.advancePercent || 0),
       startDate: form.startDate,
       status: form.status,
+      orgId,
       updatedAt: new Date().toISOString()
     };
 
     try {
       if (editingProject) {
-        await updateDoc(doc(db, 'projects', editingProject.id), projectData);
+        await updateDoc(doc(db, projectsPath, editingProject.id), projectData);
       } else {
-        await addDoc(collection(db, 'projects'), {
+        await addDoc(collection(db, projectsPath), {
           ...projectData,
           ownerId: user?.uid || 'anonymous',
           createdAt: new Date().toISOString()
@@ -163,7 +169,7 @@ export default function Projects() {
       }
       setIsModalOpen(false);
     } catch (error) {
-      handleFirestoreError(error, editingProject ? OperationType.UPDATE : OperationType.CREATE, 'projects');
+      handleFirestoreError(error, editingProject ? OperationType.UPDATE : OperationType.CREATE, projectsPath);
     } finally {
       setIsSubmitting(false);
     }
@@ -172,9 +178,9 @@ export default function Projects() {
   const handleDeleteProject = async (id: string, name: string) => {
     if (window.confirm(`¿Estás seguro de eliminar el proyecto "${name}"?`)) {
       try {
-        await deleteDoc(doc(db, 'projects', id));
+        await deleteDoc(doc(db, projectsPath, id));
       } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, `projects/${id}`);
+        handleFirestoreError(error, OperationType.DELETE, `${projectsPath}/${id}`);
       }
     }
   };
@@ -212,13 +218,14 @@ export default function Projects() {
           }
         }
 
-        await addDoc(collection(db, 'projects'), {
+        await addDoc(collection(db, projectsPath), {
           name,
           description,
           budget,
           advancePercent,
           startDate,
           status: 'planificada',
+          orgId,
           ownerId: user?.uid || 'anonymous',
           createdAt: new Date().toISOString()
         });
