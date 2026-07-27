@@ -70,55 +70,55 @@ export default function InteroperabilityEngine() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-surface border border-line p-6 rounded-2xl shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-brand-500 dark:text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
             <ArrowLeftRight size={16} /> Motor de Interoperabilidad Universal
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Integración P6, MSP, BC3 & ERP SAP</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-2xl font-black text-ink tracking-tight">Integración P6, MSP, BC3 & ERP SAP</h1>
+          <p className="text-ink-soft text-xs mt-1 font-medium">
             Importador y exportador bidireccional nativo para cronogramas Primavera P6 (.xer), presupuestos BC3 y modelos CAD/ISOGEN.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 px-4 py-2 rounded-xl">
-          <Server size={18} className="text-emerald-400 animate-pulse" />
+        <div className="flex items-center gap-2 bg-surface-2 border border-line px-4 py-2 rounded-xl">
+          <Server size={18} className="text-brand-500 dark:text-emerald-400 animate-pulse" />
           <div className="text-xs font-mono">
-            <span className="text-slate-400 block">Conector SAP OData</span>
-            <span className="text-emerald-400 font-bold">ONLINE & SYNCED</span>
+            <span className="text-ink-soft block">Conector SAP OData</span>
+            <span className="text-brand-500 dark:text-emerald-400 font-bold">ONLINE & SYNCED</span>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 bg-white rounded-xl p-1 shadow-sm overflow-x-auto">
+      <div className="flex bg-surface-2 border border-line rounded-xl p-1.5 shadow-2xs overflow-x-auto gap-1">
         <button
           onClick={() => setActiveTab('schedules')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'schedules' ? 'bg-slate-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'schedules' ? 'bg-brand-500 text-white shadow-2xs' : 'text-ink-soft hover:text-ink hover:bg-surface'
           }`}
         >
           <Layers size={16} /> Cronogramas (.XER / .MPP)
         </button>
         <button
           onClick={() => setActiveTab('bc3')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'bc3' ? 'bg-slate-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'bc3' ? 'bg-brand-500 text-white shadow-2xs' : 'text-ink-soft hover:text-ink hover:bg-surface'
           }`}
         >
           <FileCode size={16} /> Presupuestos BC3 (FIEBDC-3)
         </button>
         <button
           onClick={() => setActiveTab('erp')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'erp' ? 'bg-slate-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'erp' ? 'bg-brand-500 text-white shadow-2xs' : 'text-ink-soft hover:text-ink hover:bg-surface'
           }`}
         >
           <Plug size={16} /> Conectores ERP SAP / Maximo
         </button>
         <button
           onClick={() => setActiveTab('cad')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'cad' ? 'bg-slate-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'cad' ? 'bg-brand-500 text-white shadow-2xs' : 'text-ink-soft hover:text-ink hover:bg-surface'
           }`}
         >
           <Box size={16} /> ISOGEN (.PCF) & CAD IFC
@@ -129,29 +129,29 @@ export default function InteroperabilityEngine() {
       {activeTab === 'schedules' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Upload card */}
-          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-5">
-            <h2 className="text-base font-bold text-gray-900">Importar Cronograma de Proyecto</h2>
-            <p className="text-xs text-gray-500">
+          <div className="bg-surface p-6 rounded-2xl border border-line shadow-2xs space-y-5">
+            <h2 className="text-base font-bold text-ink">Importar Cronograma de Proyecto</h2>
+            <p className="text-xs text-ink-soft font-medium">
               Soporta Primavera P6 (.xer / .xml) y Microsoft Project (.mpp). Mantiene precedencias, holguras y asignación de recursos.
             </p>
 
-            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center bg-slate-50 hover:bg-emerald-50/30 transition-all cursor-pointer space-y-3">
-              <Upload size={32} className="mx-auto text-emerald-600" />
-              <div className="text-xs font-semibold text-gray-700">
-                Arrastra tu archivo <span className="font-mono text-emerald-700 font-bold">.XER</span> o <span className="font-mono text-emerald-700 font-bold">.MPP</span> aquí
+            <div className="border-2 border-dashed border-line rounded-2xl p-8 text-center bg-surface-2 hover:bg-brand-500/5 transition-all cursor-pointer space-y-3">
+              <Upload size={32} className="mx-auto text-brand-500 dark:text-emerald-400" />
+              <div className="text-xs font-semibold text-ink">
+                Arrastra tu archivo <span className="font-mono text-brand-500 dark:text-emerald-400 font-bold">.XER</span> o <span className="font-mono text-brand-500 dark:text-emerald-400 font-bold">.MPP</span> aquí
               </div>
-              <p className="text-[11px] text-gray-400">O selecciona una simulación rápida a continuación:</p>
+              <p className="text-[11px] text-ink-soft">O selecciona una simulación rápida a continuación:</p>
 
               <div className="flex justify-center gap-2 pt-2">
                 <button
                   onClick={() => handleSimulateScheduleImport('CRONOGRAMA_OFFSHORE_P6_V2.XER')}
-                  className="bg-slate-900 text-white text-xs font-mono font-bold px-3 py-1.5 rounded-lg hover:bg-slate-800"
+                  className="bg-brand-500 hover:bg-brand-600 text-white text-xs font-mono font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs"
                 >
                   Probar .XER Primavera
                 </button>
                 <button
                   onClick={() => handleSimulateScheduleImport('PLAN_OBRA_PIPING_2026.MPP')}
-                  className="bg-slate-800 text-white text-xs font-mono font-bold px-3 py-1.5 rounded-lg hover:bg-slate-700"
+                  className="bg-surface-2 hover:bg-elevated border border-line text-ink text-xs font-mono font-bold px-3 py-1.5 rounded-xl transition-all cursor-pointer shadow-2xs"
                 >
                   Probar .MPP MS Project
                 </button>
@@ -159,18 +159,18 @@ export default function InteroperabilityEngine() {
             </div>
 
             {/* Export Section */}
-            <div className="pt-4 border-t border-gray-100 space-y-3">
-              <h3 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Exportar Avance Real del Proyecto</h3>
+            <div className="pt-4 border-t border-line space-y-3">
+              <h3 className="text-xs font-bold text-ink-soft uppercase tracking-wider">Exportar Avance Real del Proyecto</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => alert('Exportando cronograma en formato Primavera P6 (.XER)...')}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold px-3 py-2 rounded-xl text-xs font-mono"
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-surface-2 hover:bg-elevated border border-line text-ink font-bold px-3 py-2 rounded-xl text-xs font-mono cursor-pointer"
                 >
                   <Download size={14} /> Exportar .XER
                 </button>
                 <button
                   onClick={() => alert('Exportando cronograma en formato MS Project (.XML)...')}
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold px-3 py-2 rounded-xl text-xs font-mono"
+                  className="flex-1 flex items-center justify-center gap-1.5 bg-surface-2 hover:bg-elevated border border-line text-ink font-bold px-3 py-2 rounded-xl text-xs font-mono cursor-pointer"
                 >
                   <Download size={14} /> Exportar .XML (MSP)
                 </button>
@@ -179,26 +179,26 @@ export default function InteroperabilityEngine() {
           </div>
 
           {/* Log / Summary Output */}
-          <div className="bg-slate-900 text-white p-6 rounded-2xl space-y-4 font-mono">
-            <div className="flex justify-between items-center text-xs text-emerald-400 font-bold border-b border-slate-800 pb-2">
+          <div className="bg-surface border border-line p-6 rounded-2xl space-y-4 font-mono shadow-2xs">
+            <div className="flex justify-between items-center text-xs text-brand-500 dark:text-emerald-400 font-bold border-b border-line pb-2">
               <span>TERMINAL DE PROCESAMIENTO CPM / P6</span>
               <span>ESTATUS: {isProcessing ? 'PROCESANDO...' : 'LISTO'}</span>
             </div>
 
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 h-48 overflow-y-auto space-y-1 text-xs">
+            <div className="bg-surface-2 p-4 rounded-xl border border-line h-48 overflow-y-auto space-y-1 text-xs">
               {importedLogs.length === 0 ? (
-                <span className="text-slate-500">Selecciona un archivo para iniciar la lectura...</span>
+                <span className="text-ink-faint">Selecciona un archivo para iniciar la lectura...</span>
               ) : (
                 importedLogs.map((log, idx) => (
-                  <div key={idx} className="text-slate-300">{log}</div>
+                  <div key={idx} className="text-ink font-mono">{log}</div>
                 ))
               )}
             </div>
 
             {scheduleData && (
-              <div className="p-4 bg-slate-800 rounded-xl border border-slate-700 space-y-3 text-xs">
-                <span className="text-emerald-400 font-bold block">RESUMEN DE CRONOGRAMA IMPORTADO</span>
-                <div className="grid grid-cols-2 gap-2 text-slate-200">
+              <div className="p-4 bg-surface-2 rounded-xl border border-line space-y-3 text-xs">
+                <span className="text-brand-500 dark:text-emerald-400 font-bold block">RESUMEN DE CRONOGRAMA IMPORTADO</span>
+                <div className="grid grid-cols-2 gap-2 text-ink">
                   <div>• Actividades Totales: <strong>{scheduleData.tasksCount}</strong></div>
                   <div>• Niveles WBS/EDT: <strong>{scheduleData.wbsCount}</strong></div>
                   <div>• Ruta Crítica CPM: <strong>{scheduleData.criticalPathCount} Partidas</strong></div>
@@ -212,37 +212,37 @@ export default function InteroperabilityEngine() {
 
       {/* TAB 2: BC3 FIEBDC-3 */}
       {activeTab === 'bc3' && (
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-          <div className="border-b border-gray-100 pb-4">
-            <h2 className="text-lg font-bold text-gray-900">Formato Estándar de Presupuestos BC3 (FIEBDC-3)</h2>
-            <p className="text-xs text-gray-500 mt-1">
+        <div className="bg-surface p-6 rounded-2xl border border-line shadow-2xs space-y-6">
+          <div className="border-b border-line pb-4">
+            <h2 className="text-lg font-bold text-ink">Formato Estándar de Presupuestos BC3 (FIEBDC-3)</h2>
+            <p className="text-xs text-ink-soft mt-1 font-medium">
               Intercambio de bases de precios, APUs desglosados y cuadros de mediciones con Presto, Cype y pliegos de licitación.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 bg-slate-50 rounded-xl border border-gray-200 space-y-4">
-              <h3 className="font-bold text-slate-900 text-sm">Importar Fichero BC3</h3>
+            <div className="p-6 bg-surface-2 rounded-xl border border-line space-y-4">
+              <h3 className="font-bold text-ink text-sm">Importar Fichero BC3</h3>
               <button
                 onClick={handleSimulateBC3Import}
-                className="w-full bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-slate-800"
+                className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-2xs"
               >
                 Cargar Presupuesto .BC3 de Muestra
               </button>
 
               {bc3Processed && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold">
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-semibold">
                   ✅ Fichero {bc3File} procesado: 42 Partidas de APU cargadas correctamente.
                 </div>
               )}
             </div>
 
-            <div className="p-6 bg-slate-50 rounded-xl border border-gray-200 space-y-4">
-              <h3 className="font-bold text-slate-900 text-sm">Exportar Presupuesto Actual a BC3</h3>
-              <p className="text-xs text-gray-600">Genera la estructura estandarizada de capítulos, subcapítulos y desglose de insumos.</p>
+            <div className="p-6 bg-surface-2 rounded-xl border border-line space-y-4">
+              <h3 className="font-bold text-ink text-sm">Exportar Presupuesto Actual a BC3</h3>
+              <p className="text-xs text-ink-soft font-medium">Genera la estructura estandarizada de capítulos, subcapítulos y desglose de insumos.</p>
               <button
                 onClick={() => alert('Generando fichero BC3 estandarizado FIEBDC-3...')}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs transition-all cursor-pointer shadow-2xs"
               >
                 Descargar Archivo Presupuesto.bc3
               </button>
@@ -253,10 +253,10 @@ export default function InteroperabilityEngine() {
 
       {/* TAB 3: CONECTORES ERP SAP */}
       {activeTab === 'erp' && (
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-          <h2 className="text-lg font-bold text-gray-900">Sincronización Bidireccional con ERP Enterprise (SAP S/4HANA / Maximo)</h2>
-          <div className="p-4 bg-slate-900 text-white rounded-xl space-y-2 font-mono text-xs">
-            <p>• Estado Servicio OData/RFC: <strong className="text-emerald-400">ACTIVO</strong></p>
+        <div className="bg-surface p-6 rounded-2xl border border-line shadow-2xs space-y-6">
+          <h2 className="text-lg font-bold text-ink">Sincronización Bidireccional con ERP Enterprise (SAP S/4HANA / Maximo)</h2>
+          <div className="p-4 bg-surface-2 text-ink rounded-xl border border-line space-y-2 font-mono text-xs">
+            <p>• Estado Servicio OData/RFC: <strong className="text-brand-500 dark:text-emerald-400">ACTIVO</strong></p>
             <p>• Módulos Sincronizados: SAP MM (Materiales), SAP PM (Mantenimiento), SAP FI/CO (Costos)</p>
             <p>• ÚLTIMA SINCRONIZACIÓN: {lastSyncTime}</p>
           </div>
@@ -265,9 +265,9 @@ export default function InteroperabilityEngine() {
 
       {/* TAB 4: CAD ISOGEN .PCF */}
       {activeTab === 'cad' && (
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-          <h2 className="text-lg font-bold text-gray-900">Extracción de Materiales desde Isométricos CAD (.PCF / .IFC)</h2>
-          <p className="text-xs text-gray-500">Lee archivos de tuberías ISOGEN .pcf para generar listas de juntas y materiales automáticamente.</p>
+        <div className="bg-surface p-6 rounded-2xl border border-line shadow-2xs space-y-4">
+          <h2 className="text-lg font-bold text-ink">Extracción de Materiales desde Isométricos CAD (.PCF / .IFC)</h2>
+          <p className="text-xs text-ink-soft font-medium">Lee archivos de tuberías ISOGEN .pcf para generar listas de juntas y materiales automáticamente.</p>
         </div>
       )}
     </div>

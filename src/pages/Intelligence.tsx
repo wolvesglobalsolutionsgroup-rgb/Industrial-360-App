@@ -75,83 +75,100 @@ export default function Intelligence() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Inteligencia y RAG (Mod 7)</h1>
-        <p className="text-gray-500 mt-1">Conecta bases de conocimiento exportadas desde NotebookLM</p>
+      <header className="bg-surface border border-line p-6 rounded-2xl shadow-2xs">
+        <div className="flex items-center gap-2 text-brand-500 dark:text-emerald-400 font-mono text-xs uppercase tracking-wider font-bold mb-1">
+          <BrainCircuit size={16} /> Módulo 7 • Inteligencia & RAG
+        </div>
+        <h1 className="text-2xl font-black text-ink tracking-tight">Inteligencia y RAG del Proyecto</h1>
+        <p className="text-ink-soft text-sm mt-1 font-medium">
+          Conecta bases de conocimiento exportadas desde NotebookLM y gestiona la normativa activa del proyecto.
+        </p>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-surface rounded-2xl border border-line shadow-2xs overflow-hidden">
+            <div className="p-6 border-b border-line flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-brand-500/15 text-brand-500 dark:text-emerald-400 rounded-xl flex items-center justify-center">
                   <Settings2 size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold">Configuración y Sincronización</h2>
-                  <p className="text-sm text-gray-500">Carga conocimiento (.json) desde tu CLI local</p>
+                  <h2 className="text-base font-bold text-ink">Configuración y Sincronización</h2>
+                  <p className="text-xs text-ink-soft font-medium">Carga conocimiento (.json) desde tu CLI local o MCP</p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <button 
                   onClick={fetchNotebooks}
                   disabled={connecting}
-                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-lg font-medium transition-all"
+                  className="flex items-center gap-2 px-3.5 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
                 >
-                  <Zap size={18} /> {connecting ? 'Conectando...' : 'Conectar Servidor Local'}
+                  <Zap size={16} /> {connecting ? 'Conectando...' : 'Conectar Servidor Local'}
                 </button>
                 <button 
                   onClick={handleSave}
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-lg font-medium transition-all"
+                  className="flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs"
                 >
-                  <Save size={18} /> {isSaving ? 'Guardando...' : 'Guardar Cambios'}
+                  <Save size={16} /> {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>
             </div>
 
             <div className="p-6 space-y-6">
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <Link2 size={16} className="text-gray-400" /> Seleccionar Notebook Conectado
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs font-bold text-ink-soft uppercase tracking-wider">
+                  <Link2 size={16} className="text-brand-500" /> Seleccionar Notebook Conectado
                 </label>
                 <select 
                   value={config.notebookId}
                   onChange={(e) => setConfig({...config, notebookId: e.target.value})}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500"
+                  className="w-full bg-surface-2 border border-line rounded-xl px-4 py-2.5 text-ink font-medium text-xs outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="">-- Selecciona un Notebook --</option>
                   {notebooks.map(nb => <option key={nb.id} value={nb.id}>{nb.name}</option>)}
                 </select>
               </div>
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
-                  <BookOpen size={16} className="text-gray-400" /> Normativa Activa
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-xs font-bold text-ink-soft uppercase tracking-wider">
+                  <BookOpen size={16} className="text-brand-500" /> Normativa Activa
                 </label>
-                <select value={config.activeStandard} onChange={(e) => setConfig({...config, activeStandard: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-purple-500">
-                  <option value="PDVSA A-211">PDVSA A-211</option>
-                  <option value="PDVSA L-STC-001">PDVSA L-STC-001</option>
+                <select 
+                  value={config.activeStandard} 
+                  onChange={(e) => setConfig({...config, activeStandard: e.target.value})} 
+                  className="w-full bg-surface-2 border border-line rounded-xl px-4 py-2.5 text-ink font-medium text-xs outline-none focus:ring-2 focus:ring-brand-500"
+                >
+                  <option value="PDVSA A-211">PDVSA A-211 (Norma Estructural)</option>
+                  <option value="PDVSA L-STC-001">PDVSA L-STC-001 (Tuberías y Soldadura)</option>
+                  <option value="ASME B31.3">ASME B31.3 (Process Piping)</option>
                 </select>
               </div>
             </div>
           </motion.div>
 
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <h2 className="text-lg font-bold flex items-center gap-2 mb-4">
-              <Database size={20} className="text-blue-600" /> Fuentes de Conocimiento Conectadas
+          <div className="bg-surface rounded-2xl border border-line shadow-2xs p-6 space-y-4">
+            <h2 className="text-base font-bold text-ink flex items-center gap-2">
+              <Database size={18} className="text-brand-500" /> Fuentes de Conocimiento Conectadas
             </h2>
-            <div className="space-y-3 p-4 bg-gray-50 rounded-xl text-center text-sm text-gray-500">
-              No hay fuentes importadas. Importa un archivo JSON de NotebookLM configurado.
+            <div className="p-6 bg-surface-2 border border-line rounded-xl text-center text-xs text-ink-soft font-medium italic">
+              No hay fuentes importadas. Importa un archivo JSON de NotebookLM configurado o conecta el servidor local MCP.
             </div>
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-emerald-900 rounded-2xl p-6 text-white shadow-lg relative">
-            <Sparkles className="absolute -top-4 -right-4 w-24 h-24 text-white/10 rotate-12" />
-            <h3 className="text-lg font-bold mb-2">Estado del Cerebro</h3>
-            <p className="text-sm text-emerald-100 opacity-80">El motor RAG está configurado para este proyecto.</p>
+          <div className="bg-surface border border-line rounded-2xl p-6 shadow-2xs space-y-3">
+            <div className="flex items-center gap-2 text-emerald-500 dark:text-emerald-400 font-bold text-xs uppercase tracking-wider">
+              <Sparkles size={16} /> Estado del Cerebro IA
+            </div>
+            <h3 className="text-lg font-bold text-ink">RAG Activo y Sincronizado</h3>
+            <p className="text-xs text-ink-soft leading-relaxed font-medium">
+              El motor de Búsqueda Vectorial y Análisis Contextual (RAG) está vinculado al proyecto activo.
+            </p>
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+              Estatus: En línea (Norma {config.activeStandard || 'PDVSA A-211'})
+            </div>
           </div>
         </div>
       </div>

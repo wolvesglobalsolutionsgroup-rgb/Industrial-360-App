@@ -103,24 +103,33 @@ export default function VoiceChat() {
 
       <div className="relative">
         {isRecording && (
-          <div className="absolute inset-0 bg-brand-500 rounded-full animate-ping opacity-20 scale-150"></div>
+          <>
+            <div className="absolute inset-0 bg-rose-500 rounded-full animate-ping opacity-30 scale-150"></div>
+            <div className="absolute -inset-4 bg-rose-500/20 rounded-full animate-pulse"></div>
+          </>
         )}
         
         <button
           onClick={isRecording ? stopRecording : startRecording}
           disabled={isProcessing}
-          className={`relative z-10 w-32 h-32 rounded-full flex items-center justify-center transition-all shadow-xl cursor-pointer ${
+          className={`relative z-10 w-36 h-36 rounded-full flex flex-col items-center justify-center transition-all duration-300 shadow-2xl cursor-pointer ring-8 focus:outline-none focus:ring-4 focus:ring-amber-400 ${
             isRecording 
-              ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30' 
-              : 'bg-brand-500 hover:bg-brand-600 text-white shadow-brand-500/30'
+              ? 'bg-rose-600 hover:bg-rose-700 text-white ring-rose-500/30 shadow-rose-600/50 scale-105' 
+              : 'bg-gradient-to-br from-amber-500 via-orange-600 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-white ring-orange-500/20 shadow-orange-600/40 hover:scale-105'
           }`}
         >
           {isProcessing ? (
-            <Loader2 size={48} className="animate-spin" />
+            <Loader2 size={52} className="animate-spin text-white" />
           ) : isRecording ? (
-            <MicOff size={48} />
+            <>
+              <MicOff size={48} className="text-white drop-shadow-md" />
+              <span className="text-[10px] font-black uppercase tracking-widest mt-1 text-white">Detener</span>
+            </>
           ) : (
-            <Mic size={48} />
+            <>
+              <Mic size={48} className="text-white drop-shadow-md" />
+              <span className="text-[10px] font-black uppercase tracking-widest mt-1 text-white">Grabar</span>
+            </>
           )}
         </button>
       </div>

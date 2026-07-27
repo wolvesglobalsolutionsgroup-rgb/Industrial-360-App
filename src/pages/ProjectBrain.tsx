@@ -204,26 +204,26 @@ export default function ProjectBrain() {
             <p className="text-ink-soft text-xs">Asistente IA para Gestión y Análisis Documental</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {projectConfig?.notebookId && (
-            <div className="flex items-center gap-2 text-xs bg-purple-500/15 px-3 py-1.5 rounded-full text-purple-700 dark:text-purple-300 border border-purple-500/30 animate-pulse">
+            <div className="flex items-center gap-1.5 text-xs bg-brand-500/10 px-3 py-1.5 rounded-full text-brand-500 dark:text-emerald-400 border border-brand-500/20 font-bold">
               <Link2 size={14} />
               Notebook Conectado
             </div>
           )}
           <button
             onClick={() => setIsHighThinking(!isHighThinking)}
-            className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full transition-colors cursor-pointer ${
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full font-bold transition-all cursor-pointer ${
               isHighThinking 
-                ? 'bg-purple-600 text-white font-bold' 
-                : 'bg-surface hover:bg-elevated text-ink-soft hover:text-ink border border-line'
+                ? 'bg-amber-500 text-white shadow-xs' 
+                : 'bg-surface-2 hover:bg-elevated text-ink-soft hover:text-ink border border-line'
             }`}
             title="Modo de Pensamiento Profundo (Ideal para cálculos complejos o análisis de normativas)"
           >
             <Settings2 size={14} />
             {isHighThinking ? 'Pensamiento Profundo: ON' : 'Pensamiento Profundo: OFF'}
           </button>
-          <div className="flex items-center gap-2 text-xs bg-brand-500/10 text-brand-500 border border-brand-500/20 px-3 py-1.5 rounded-full font-bold">
+          <div className="flex items-center gap-1.5 text-xs bg-brand-500/10 text-brand-500 dark:text-emerald-400 border border-brand-500/20 px-3 py-1.5 rounded-full font-bold">
             <Sparkles size={14} />
             Gemini 3.1 Pro
           </div>

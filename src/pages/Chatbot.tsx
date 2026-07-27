@@ -97,16 +97,16 @@ export default function Chatbot() {
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col h-[calc(100vh-8rem)] bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+      className="flex flex-col h-[calc(100vh-8rem)] bg-surface rounded-2xl border border-line shadow-sm overflow-hidden"
     >
-      <header className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+      <header className="px-6 py-4 border-b border-line bg-surface-2/60 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+          <div className="w-10 h-10 bg-brand-500/15 rounded-full flex items-center justify-center text-brand-500 dark:text-emerald-400">
             <Bot size={24} />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Asistente IA de Obra</h2>
-            <p className="text-sm text-gray-500">Gemini 3.1 Pro + RAG</p>
+            <h2 className="text-lg font-bold text-ink">Asistente IA de Obra</h2>
+            <p className="text-xs text-ink-soft font-medium">Gemini 3.1 Pro + RAG</p>
           </div>
         </div>
       </header>
@@ -115,19 +115,19 @@ export default function Chatbot() {
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-              msg.role === 'user' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'
+              msg.role === 'user' ? 'bg-brand-accent/20 text-brand-accent' : 'bg-brand-500/15 text-brand-500 dark:text-emerald-400'
             }`}>
               {msg.role === 'user' ? <User size={18} /> : <Bot size={18} />}
             </div>
-            <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 ${
+            <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 text-sm ${
               msg.role === 'user' 
-                ? 'bg-blue-600 text-white rounded-tr-none' 
-                : 'bg-gray-100 text-gray-800 rounded-tl-none'
+                ? 'bg-brand-500 text-white rounded-tr-none font-medium shadow-xs' 
+                : 'bg-surface-2 border border-line text-ink rounded-tl-none font-medium shadow-2xs'
             }`}>
               {msg.role === 'user' ? (
                 <p className="whitespace-pre-wrap">{msg.text}</p>
               ) : (
-                <div className="prose prose-sm prose-emerald max-w-none">
+                <div className="prose prose-sm dark:prose-invert max-w-none text-ink">
                   <Markdown>{msg.text}</Markdown>
                 </div>
               )}
@@ -136,25 +136,25 @@ export default function Chatbot() {
         ))}
         {isLoading && (
           <div className="flex gap-4">
-            <div className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 bg-brand-500/15 text-brand-500 dark:text-emerald-400 rounded-full flex items-center justify-center shrink-0">
               <Bot size={18} />
             </div>
-            <div className="bg-gray-100 rounded-2xl rounded-tl-none px-5 py-3.5 flex items-center gap-2">
-              <Loader2 size={16} className="animate-spin text-gray-500" />
-              <span className="text-sm text-gray-500">Analizando...</span>
+            <div className="bg-surface-2 border border-line rounded-2xl rounded-tl-none px-5 py-3.5 flex items-center gap-2">
+              <Loader2 size={16} className="animate-spin text-brand-500 dark:text-emerald-400" />
+              <span className="text-sm font-medium text-ink-soft">Analizando...</span>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 border-t border-gray-100 bg-white">
+      <div className="p-4 border-t border-line bg-surface">
         <div className="max-w-4xl mx-auto">
           {attachedFile && (
-            <div className="mb-3 flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-2 rounded-lg w-fit">
+            <div className="mb-3 flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 text-brand-500 dark:text-emerald-400 px-3 py-2 rounded-xl w-fit">
               <FileText size={16} />
-              <span className="text-sm font-medium truncate max-w-[200px]">{attachedFile.file.name}</span>
-              <button onClick={() => setAttachedFile(null)} className="p-1 hover:bg-blue-100 rounded-full transition-colors">
+              <span className="text-xs font-bold truncate max-w-[200px]">{attachedFile.file.name}</span>
+              <button onClick={() => setAttachedFile(null)} className="p-1 hover:bg-brand-500/20 rounded-full transition-colors cursor-pointer">
                 <X size={14} />
               </button>
             </div>
@@ -169,7 +169,7 @@ export default function Chatbot() {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-3 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
+              className="p-3 text-ink-soft hover:text-brand-500 hover:bg-surface-2 rounded-xl transition-colors cursor-pointer"
               title="Adjuntar documento (PDF, TXT)"
             >
               <Paperclip size={20} />
@@ -180,12 +180,12 @@ export default function Chatbot() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
               placeholder="Escribe tu consulta o pide un análisis del documento..."
-              className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+              className="flex-1 px-4 py-3 bg-surface-2 border border-line text-ink placeholder:text-ink-faint rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all text-sm font-medium"
             />
             <button
               onClick={handleSend}
               disabled={isLoading || (!input.trim() && !attachedFile)}
-              className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-xl transition-colors flex items-center justify-center"
+              className="px-4 py-3 bg-brand-500 hover:bg-brand-600 disabled:opacity-40 text-white rounded-xl transition-colors flex items-center justify-center cursor-pointer shadow-xs"
             >
               <Send size={20} />
             </button>

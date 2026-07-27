@@ -290,16 +290,16 @@ export default function ClientPortalBuilder() {
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-12">
       {/* Header Banner */}
-      <div className="bg-[#0B2239] text-white rounded-3xl p-6 sm:p-8 shadow-xl relative overflow-hidden">
+      <div className="bg-surface border border-line rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
         <div className="relative z-10 space-y-3">
-          <div className="flex items-center gap-2 text-amber-400 font-mono text-xs uppercase tracking-wider">
+          <div className="flex items-center gap-2 text-brand-500 dark:text-brand-accent font-mono text-xs uppercase tracking-wider font-bold">
             <Globe size={16} />
             <span>Client Portal Builder • B2B Executive Sharing</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">
             Constructor de Portales Cliente
           </h1>
-          <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
+          <p className="text-ink-soft text-sm max-w-2xl leading-relaxed font-medium">
             Configura un portal seguro, branded e interactivo para compartir avances de obra, curvas S, dossier de calidad y permisos SIHO con auditores e inspectores externos.
           </p>
         </div>
@@ -309,39 +309,39 @@ export default function ClientPortalBuilder() {
         {/* Left Column: Form & Settings (2 Cols) */}
         <div className="lg:col-span-2 space-y-6">
           {/* General Information */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-5">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <Building size={20} className="text-[#0B2239]" />
+          <div className="bg-surface rounded-2xl border border-line p-6 shadow-2xs space-y-5">
+            <h2 className="text-lg font-bold text-ink flex items-center gap-2 border-b border-line pb-3">
+              <Building size={20} className="text-brand-500" />
               <span>1. Datos del Portal y Cliente</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Nombre del Portal</label>
+                <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Nombre del Portal</label>
                 <input 
                   type="text"
                   value={portalName}
                   onChange={(e) => setPortalName(e.target.value)}
                   placeholder="ej. Portal de Avance - Estación de Flujo X"
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  className="w-full px-3.5 py-2.5 bg-surface-2 border border-line rounded-xl font-medium text-sm text-ink outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Cliente / Inspectoría de Destino</label>
+                <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Cliente / Inspectoría de Destino</label>
                 <input 
                   type="text"
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="ej. Comité de Inspección PDVSA"
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  className="w-full px-3.5 py-2.5 bg-surface-2 border border-line rounded-xl font-medium text-sm text-ink outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
 
             {/* Project Links Selector */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Proyectos Vinculados al Portal</label>
+              <label className="block text-xs font-bold text-ink-soft uppercase mb-2">Proyectos Vinculados al Portal</label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-48 overflow-y-auto p-1">
                 {projects.filter(p => p.id !== 'all').map((proj) => {
                   const isChecked = linkedProjectIds.includes(proj.id);
@@ -351,18 +351,18 @@ export default function ClientPortalBuilder() {
                       onClick={() => toggleProjectSelection(proj.id)}
                       className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                         isChecked 
-                          ? 'border-[#0B2239] bg-slate-900 text-white shadow-sm' 
-                          : 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                          ? 'border-brand-500 bg-brand-500 text-white shadow-xs' 
+                          : 'border-line bg-surface-2 text-ink hover:bg-elevated'
                       }`}
                     >
                       <div className={`w-4 h-4 rounded flex items-center justify-center border ${
-                        isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-gray-400 bg-white'
+                        isChecked ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-line bg-surface'
                       }`}>
                         {isChecked && <Check size={12} strokeWidth={3} />}
                       </div>
                       <div className="truncate">
                         <p className="text-xs font-bold truncate">{proj.name}</p>
-                        <p className="text-[10px] opacity-75">{proj.status || 'Activo'}</p>
+                        <p className={`text-[10px] ${isChecked ? 'text-white/80' : 'text-ink-soft'}`}>{proj.status || 'Activo'}</p>
                       </div>
                     </div>
                   );
@@ -372,39 +372,39 @@ export default function ClientPortalBuilder() {
           </div>
 
           {/* Branding Selector */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-5">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <Palette size={20} className="text-[#0B2239]" />
+          <div className="bg-surface rounded-2xl border border-line p-6 shadow-2xs space-y-5">
+            <h2 className="text-lg font-bold text-ink flex items-center gap-2 border-b border-line pb-3">
+              <Palette size={20} className="text-brand-500" />
               <span>2. Branding e Identidad Visual</span>
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">URL de Logo Personalizado</label>
+                <label className="block text-xs font-bold text-ink-soft uppercase mb-1">URL de Logo Personalizado</label>
                 <input 
                   type="text"
                   value={customLogoUrl}
                   onChange={(e) => setCustomLogoUrl(e.target.value)}
                   placeholder="https://servidor.com/logo-cliente.png"
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-[#0B2239]"
+                  className="w-full px-3.5 py-2.5 bg-surface-2 border border-line rounded-xl font-medium text-sm text-ink outline-none focus:ring-2 focus:ring-brand-500"
                 />
-                <p className="text-[11px] text-gray-400 mt-1">Opcional. Si se omite, usará el BrandKit corporativo.</p>
+                <p className="text-[11px] text-ink-faint mt-1">Opcional. Si se omite, usará el BrandKit corporativo.</p>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Color de Acento Primario</label>
+                <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Color de Acento Primario</label>
                 <div className="flex items-center gap-3">
                   <input 
                     type="color"
                     value={accentColor}
                     onChange={(e) => setAccentColor(e.target.value)}
-                    className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5 bg-gray-50"
+                    className="w-10 h-10 rounded-xl border border-line cursor-pointer p-0.5 bg-surface-2"
                   />
                   <input 
                     type="text"
                     value={accentColor}
                     onChange={(e) => setAccentColor(e.target.value)}
-                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl font-mono text-sm uppercase font-bold"
+                    className="w-full px-3.5 py-2 bg-surface-2 border border-line rounded-xl font-mono text-sm uppercase font-bold text-ink"
                   />
                 </div>
               </div>
@@ -412,12 +412,12 @@ export default function ClientPortalBuilder() {
 
             {/* Preset Selection */}
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Preset de Tema Independiente</label>
+              <label className="block text-xs font-bold text-ink-soft uppercase mb-2">Preset de Tema Independiente</label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { key: 'mineral', label: 'Mineral Light', bg: 'bg-[#F2F1ED]', text: 'text-gray-900' },
+                  { key: 'mineral', label: 'Mineral Light', bg: 'bg-[#F2F1ED]', text: 'text-slate-900' },
                   { key: 'petroleum', label: 'Petroleum Dark', bg: 'bg-[#0B2239]', text: 'text-white' },
-                  { key: 'corporate_clean', label: 'Corporate Clean', bg: 'bg-white', text: 'text-gray-800' },
+                  { key: 'corporate_clean', label: 'Corporate Clean', bg: 'bg-white', text: 'text-slate-800' },
                   { key: 'high_contrast', label: 'High Contrast', bg: 'bg-slate-950', text: 'text-emerald-400' },
                 ].map((preset) => {
                   const isSel = themePreset === preset.key;
@@ -426,10 +426,10 @@ export default function ClientPortalBuilder() {
                       key={preset.key}
                       type="button"
                       onClick={() => setThemePreset(preset.key as any)}
-                      className={`p-3 rounded-xl border text-center font-bold text-xs transition-all ${
+                      className={`p-3 rounded-xl border text-center font-bold text-xs transition-all cursor-pointer ${
                         preset.bg
                       } ${preset.text} ${
-                        isSel ? 'ring-2 ring-[#0B2239] border-black shadow-md scale-[1.02]' : 'border-gray-200 opacity-80 hover:opacity-100'
+                        isSel ? 'ring-2 ring-brand-500 border-brand-500 shadow-xs scale-[1.02]' : 'border-line opacity-80 hover:opacity-100'
                       }`}
                     >
                       {preset.label}
@@ -441,26 +441,26 @@ export default function ClientPortalBuilder() {
           </div>
 
           {/* Security & Token Config */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <ShieldCheck size={20} className="text-[#0B2239]" />
+          <div className="bg-surface rounded-2xl border border-line p-6 shadow-2xs space-y-4">
+            <h2 className="text-lg font-bold text-ink flex items-center gap-2 border-b border-line pb-3">
+              <ShieldCheck size={20} className="text-brand-500" />
               <span>3. Seguridad, Token de 64 Caracteres y Expiración</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Token Cifrado de Acceso (64 Hex)</label>
+                <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Token Cifrado de Acceso (64 Hex)</label>
                 <div className="flex items-center gap-2">
                   <input 
                     type="text" 
                     readOnly 
                     value={accessToken} 
-                    className="w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-xl font-mono text-[11px] text-slate-700"
+                    className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl font-mono text-[11px] text-ink"
                   />
                   <button 
                     type="button" 
                     onClick={() => setAccessToken(generate64CharToken())}
-                    className="px-3 py-2 bg-slate-800 text-white rounded-xl text-xs font-bold hover:bg-slate-700 whitespace-nowrap"
+                    className="px-3 py-2 bg-brand-500 text-white rounded-xl text-xs font-bold hover:bg-brand-600 whitespace-nowrap cursor-pointer"
                   >
                     Regenerar Token
                   </button>
@@ -468,11 +468,11 @@ export default function ClientPortalBuilder() {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Caducidad del Enlace</label>
+                <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Caducidad del Enlace</label>
                 <select 
                   value={expiresAtOption} 
                   onChange={e => setExpiresAtOption(e.target.value as any)}
-                  className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-medium text-xs text-gray-800 outline-none"
+                  className="w-full px-3.5 py-2.5 bg-surface-2 border border-line rounded-xl font-medium text-xs text-ink outline-none"
                 >
                   <option value="90days">Validez 90 Días (Recomendado)</option>
                   <option value="30days">Validez 30 Días</option>
@@ -481,16 +481,16 @@ export default function ClientPortalBuilder() {
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-between p-3 bg-red-50/60 border border-red-200 rounded-xl">
+            <div className="pt-2 flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
               <div>
-                <p className="text-xs font-bold text-red-900">Estado de Revocación de Acceso</p>
-                <p className="text-[11px] text-red-700">Si se activa, la URL compartida quedará deshabilitada inmediatamente.</p>
+                <p className="text-xs font-bold text-rose-600 dark:text-rose-400">Estado de Revocación de Acceso</p>
+                <p className="text-[11px] text-ink-soft">Si se activa, la URL compartida quedará deshabilitada inmediatamente.</p>
               </div>
               <button 
                 type="button"
                 onClick={() => setIsRevoked(!isRevoked)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                  isRevoked ? 'bg-red-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isRevoked ? 'bg-rose-600 text-white' : 'bg-surface-2 text-ink hover:bg-elevated'
                 }`}
               >
                 {isRevoked ? 'Acceso Revocado' : 'Acceso Activo'}
@@ -499,9 +499,9 @@ export default function ClientPortalBuilder() {
           </div>
 
           {/* Visibility Matrix */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-5">
-            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <CheckSquare size={20} className="text-[#0B2239]" />
+          <div className="bg-surface rounded-2xl border border-line p-6 shadow-2xs space-y-5">
+            <h2 className="text-lg font-bold text-ink flex items-center gap-2 border-b border-line pb-3">
+              <CheckSquare size={20} className="text-brand-500" />
               <span>4. Matriz de Visibilidad para Cliente Final</span>
             </h2>
 
@@ -524,18 +524,18 @@ export default function ClientPortalBuilder() {
                     onClick={() => setVisibilityMatrix(prev => ({ ...prev, [item.key]: !enabled }))}
                     className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-all ${
                       enabled 
-                        ? 'bg-emerald-50/60 border-emerald-300 text-slate-900 shadow-sm' 
-                        : 'bg-gray-50 border-gray-200 text-gray-400 opacity-70 hover:opacity-100'
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-ink shadow-xs' 
+                        : 'bg-surface-2 border-line text-ink-faint opacity-70 hover:opacity-100'
                     }`}
                   >
-                    <div className={`mt-0.5 p-1.5 rounded-lg ${enabled ? 'bg-emerald-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                    <div className={`mt-0.5 p-1.5 rounded-lg ${enabled ? 'bg-emerald-500 text-white' : 'bg-surface text-ink-faint'}`}>
                       <IconComponent size={16} />
                     </div>
                     <div className="flex-1">
                       <p className="text-xs font-bold leading-snug">{item.label}</p>
-                      <p className="text-[11px] text-gray-500 mt-0.5">{item.desc}</p>
+                      <p className="text-[11px] text-ink-soft mt-0.5">{item.desc}</p>
                     </div>
-                    <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${enabled ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-gray-300 bg-white'}`}>
+                    <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${enabled ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-line bg-surface'}`}>
                       {enabled && <Check size={14} strokeWidth={3} />}
                     </div>
                   </div>
@@ -545,12 +545,12 @@ export default function ClientPortalBuilder() {
           </div>
 
           {/* Email Invitation Box */}
-          <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-sm space-y-3">
-            <h3 className="text-sm font-bold flex items-center gap-2 text-emerald-400">
+          <div className="bg-surface-2 border border-line rounded-2xl p-6 shadow-2xs space-y-3">
+            <h3 className="text-sm font-bold flex items-center gap-2 text-brand-500 dark:text-emerald-400">
               <Send size={16} />
               <span>Enviar Invitación Directa por Correo (Resend SDK)</span>
             </h3>
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-ink-soft">
               Envía un correo electrónico formal con el enlace cifrado y credenciales de acceso al cliente o fiscal.
             </p>
             <div className="flex items-center gap-2">
@@ -559,30 +559,30 @@ export default function ClientPortalBuilder() {
                 value={inviteEmail}
                 onChange={e => setInviteEmail(e.target.value)}
                 placeholder="cliente.inspector@empresa.com"
-                className="flex-1 px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs outline-none focus:border-emerald-500"
+                className="flex-1 px-3.5 py-2 rounded-xl bg-surface border border-line text-ink text-xs outline-none focus:border-brand-500"
               />
               <button 
                 type="button"
                 onClick={handleSendInviteEmail}
                 disabled={isSendingEmail}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl flex items-center gap-1.5"
+                className="px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 cursor-pointer"
               >
                 <Send size={14} />
                 <span>{isSendingEmail ? 'Enviando...' : 'Enviar Email'}</span>
               </button>
             </div>
             {emailStatusMsg && (
-              <p className="text-xs text-emerald-300 bg-emerald-950/60 p-2.5 rounded-xl border border-emerald-800/80">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/20">
                 {emailStatusMsg}
               </p>
             )}
           </div>
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between gap-4 bg-surface p-4 rounded-2xl border border-line shadow-2xs">
             <button
               onClick={resetForm}
-              className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-xs font-bold hover:bg-gray-50 transition-colors"
+              className="px-4 py-2.5 rounded-xl border border-line text-ink text-xs font-bold hover:bg-surface-2 transition-colors cursor-pointer"
             >
               Limpiar / Nuevo Portal
             </button>
@@ -590,7 +590,7 @@ export default function ClientPortalBuilder() {
             <button
               onClick={handleSavePortal}
               disabled={isSaving}
-              className="px-6 py-2.5 rounded-xl bg-[#0B2239] text-white text-xs font-bold hover:bg-slate-800 transition-all shadow-md flex items-center gap-2"
+              className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <Save size={16} />
               <span>{isSaving ? 'Guardando...' : (selectedPortalId ? 'Actualizar Portal' : 'Guardar Portal Cliente')}</span>
@@ -598,7 +598,7 @@ export default function ClientPortalBuilder() {
           </div>
 
           {statusMessage && (
-            <p className="text-xs font-bold p-3 bg-amber-50 text-amber-800 rounded-xl border border-amber-200">
+            <p className="text-xs font-bold p-3 bg-amber-500/15 text-amber-700 dark:text-amber-300 rounded-xl border border-amber-500/30">
               {statusMessage}
             </p>
           )}
@@ -606,19 +606,19 @@ export default function ClientPortalBuilder() {
 
         {/* Right Column: Existing Portals List & Link Sharing */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <Globe size={18} className="text-[#0B2239]" />
+          <div className="bg-surface rounded-2xl border border-line p-6 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h2 className="text-base font-bold text-ink flex items-center gap-2">
+                <Globe size={18} className="text-brand-500" />
                 <span>Portales Configurados</span>
               </h2>
-              <span className="text-xs font-bold px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">
+              <span className="text-xs font-bold px-2 py-0.5 bg-surface-2 text-ink rounded-full border border-line">
                 {portals.length}
               </span>
             </div>
 
             {portals.length === 0 ? (
-              <p className="text-xs text-gray-400 py-6 text-center italic">
+              <p className="text-xs text-ink-faint py-6 text-center italic">
                 Aún no has configurado portales para esta organización.
               </p>
             ) : (
@@ -629,20 +629,20 @@ export default function ClientPortalBuilder() {
                     <div 
                       key={p.id}
                       className={`p-4 rounded-2xl border transition-all space-y-3 ${
-                        isSel ? 'border-[#0B2239] bg-slate-900 text-white shadow-md' : 'border-gray-200 bg-white text-gray-800 hover:border-gray-300'
+                        isSel ? 'border-brand-500 bg-brand-500 text-white shadow-xs' : 'border-line bg-surface text-ink hover:bg-surface-2'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="text-xs font-bold">{p.name}</p>
-                          <p className={`text-[10px] mt-0.5 ${isSel ? 'text-slate-300' : 'text-gray-500'}`}>
+                          <p className={`text-[10px] mt-0.5 ${isSel ? 'text-white/80' : 'text-ink-soft'}`}>
                             {p.clientName} • {p.linkedProjectIds?.length || 0} Proyectos
                           </p>
                         </div>
                         <button
                           onClick={() => handleDeletePortal(p.id)}
-                          className={`p-1.5 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors ${
-                            isSel ? 'text-slate-400' : 'text-gray-400'
+                          className={`p-1.5 rounded-lg hover:bg-rose-500/20 hover:text-rose-500 transition-colors ${
+                            isSel ? 'text-white/70' : 'text-ink-faint'
                           }`}
                           title="Eliminar portal"
                         >
@@ -650,13 +650,13 @@ export default function ClientPortalBuilder() {
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100/20">
+                      <div className="flex items-center gap-2 pt-2 border-t border-line">
                         <button
                           onClick={() => loadPortalConfig(p)}
-                          className={`flex-1 py-1.5 px-3 rounded-lg text-[11px] font-bold border transition-colors ${
+                          className={`flex-1 py-1.5 px-3 rounded-lg text-[11px] font-bold border transition-colors cursor-pointer ${
                             isSel 
                               ? 'bg-white text-slate-900 border-white hover:bg-slate-100' 
-                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                              : 'bg-surface-2 text-ink border-line hover:bg-elevated'
                           }`}
                         >
                           Cargar / Editar
@@ -664,7 +664,7 @@ export default function ClientPortalBuilder() {
 
                         <button
                           onClick={() => copyShareLink(p.id)}
-                          className="py-1.5 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-700 transition-colors"
+                          className="py-1.5 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-700 transition-colors cursor-pointer"
                         >
                           {copiedId === p.id ? <Check size={12} /> : <Copy size={12} />}
                           <span>Enlace</span>
@@ -676,8 +676,8 @@ export default function ClientPortalBuilder() {
                           rel="noopener noreferrer"
                           className={`p-1.5 rounded-lg border flex items-center justify-center transition-colors ${
                             isSel 
-                              ? 'border-slate-700 text-amber-400 hover:bg-slate-800' 
-                              : 'border-gray-200 text-[#0B2239] hover:bg-gray-50'
+                              ? 'border-white/30 text-white hover:bg-white/10' 
+                              : 'border-line text-brand-500 hover:bg-surface-2'
                           }`}
                           title="Abrir Vista Previa Cliente"
                         >
