@@ -137,8 +137,8 @@ export default function Documents() {
     >
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Biblioteca & Repositorio Digital</h1>
-          <p className="text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-ink tracking-tight">Biblioteca & Repositorio Digital</h1>
+          <p className="text-ink-soft mt-1">
             Gestión documental en Firebase Storage (Planos DWG/PDF, Especificaciones, Cómputos)
           </p>
         </div>
@@ -152,7 +152,7 @@ export default function Documents() {
           <button 
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm disabled:opacity-50 cursor-pointer"
           >
             {isUploading ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
             {isUploading ? `Subiendo (${uploadProgress}%)...` : 'Subir Documento'}
@@ -162,12 +162,12 @@ export default function Documents() {
 
       {/* Upload Progress Bar */}
       {isUploading && uploadProgress !== null && (
-        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl space-y-2">
-          <div className="flex justify-between text-xs font-bold text-emerald-800">
+        <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl space-y-2">
+          <div className="flex justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400">
             <span>Subiendo a Firebase Storage...</span>
             <span>{uploadProgress}%</span>
           </div>
-          <div className="w-full bg-emerald-200 h-2.5 rounded-full overflow-hidden">
+          <div className="w-full bg-emerald-500/20 h-2.5 rounded-full overflow-hidden">
             <div 
               className="bg-emerald-600 h-full transition-all duration-300" 
               style={{ width: `${uploadProgress}%` }}
@@ -176,24 +176,24 @@ export default function Documents() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="bg-surface rounded-2xl border border-line shadow-sm p-6">
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" size={20} />
             <input 
               type="text" 
               placeholder="Buscar por código o nombre de plano/documento..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-line rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none bg-surface-2 text-ink placeholder:text-ink-faint"
             />
           </div>
           <div className="flex items-center gap-2">
-            <Filter className="text-gray-400" size={20} />
+            <Filter className="text-ink-faint" size={20} />
             <select 
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none bg-white"
+              className="border border-line rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 outline-none bg-surface-2 text-ink"
             >
               <option value="Todas">Todas las categorías</option>
               <option value="Planos">Planos</option>
@@ -208,7 +208,7 @@ export default function Documents() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-sm">
+              <tr className="bg-surface-2 border-b border-line text-ink-soft text-sm">
                 <th className="p-4 font-medium">Nombre del Archivo</th>
                 <th className="p-4 font-medium">Categoría</th>
                 <th className="p-4 font-medium">Tamaño</th>
@@ -217,30 +217,30 @@ export default function Documents() {
                 <th className="p-4 font-medium text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-line">
               {filteredDocs.map(doc => (
-                <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
+                <tr key={doc.id} className="hover:bg-surface-2/60 transition-colors">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       {getFileIcon(doc.type, doc.name)}
-                      <span className="font-medium text-gray-900 truncate max-w-xs">{doc.name}</span>
+                      <span className="font-medium text-ink truncate max-w-xs">{doc.name}</span>
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-md text-xs font-medium">
+                    <span className="px-2.5 py-1 bg-surface-2 text-ink-soft rounded-md text-xs font-medium border border-line">
                       {doc.category}
                     </span>
                   </td>
-                  <td className="p-4 text-gray-500 text-sm font-mono">{formatBytes(doc.size)}</td>
-                  <td className="p-4 text-gray-600 text-sm">{doc.uploadedBy || 'Inspector de Campo'}</td>
-                  <td className="p-4 text-gray-500 text-sm">{new Date(doc.uploadDate).toLocaleDateString()}</td>
+                  <td className="p-4 text-ink-soft text-sm font-mono">{formatBytes(doc.size)}</td>
+                  <td className="p-4 text-ink-soft text-sm">{doc.uploadedBy || 'Inspector de Campo'}</td>
+                  <td className="p-4 text-ink-soft text-sm">{new Date(doc.uploadDate).toLocaleDateString()}</td>
                   <td className="p-4 text-right flex items-center justify-end gap-1">
                     {doc.url && doc.url !== '#' && (
                       <a 
                         href={doc.url} 
                         target="_blank" 
                         rel="noopener noreferrer"
-                        className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        className="p-2 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors cursor-pointer"
                         title="Descargar de Firebase Storage"
                       >
                         <DownloadIcon size={18} />
@@ -248,7 +248,7 @@ export default function Documents() {
                     )}
                     <button 
                       onClick={() => handleDelete(doc.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
                       title="Eliminar"
                     >
                       <Trash2 size={18} />
@@ -258,9 +258,9 @@ export default function Documents() {
               ))}
               {filteredDocs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-gray-500">
+                  <td colSpan={6} className="p-8 text-center text-ink-faint">
                     <div className="flex flex-col items-center justify-center gap-3">
-                      <FolderOpen size={48} className="text-gray-300" />
+                      <FolderOpen size={48} className="text-ink-faint" />
                       <p>No se encontraron documentos en Firebase Storage para este proyecto.</p>
                     </div>
                   </td>

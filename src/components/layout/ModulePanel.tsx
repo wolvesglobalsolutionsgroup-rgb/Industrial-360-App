@@ -110,7 +110,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
     id: 'inteligencia-portal',
     title: 'Inteligencia & Portal',
     description: 'Asistente IA con normativas, analítica y portal para el cliente',
-    colorAccent: 'border-brand-500 text-brand-500 bg-brand-500/10',
+    colorAccent: 'border-brand-500/30 text-brand-600 dark:text-brand-300 bg-brand-500/10',
     modules: [
       { id: 'project-brain', path: '/project-brain', title: 'Cerebro de Proyecto AI', description: 'Consultas normativas y resúmenes con Gemini AI', icon: BrainCircuit, badge: 'AI', badgeColor: 'brand' },
       { id: 'intelligence', path: '/intelligence', title: 'Inteligencia & Analítica', description: 'Modelos predictivos y análisis de riesgos', icon: Sparkles },
@@ -178,7 +178,7 @@ export const ModulePanel: React.FC<ModulePanelProps> = ({ isOpen, onClose }) => 
               <div>
                 <h2 className="text-lg font-black text-ink font-display flex items-center gap-2">
                   Catálogo Completo de Módulos
-                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-500 border border-brand-500/20">
+                  <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-300 border border-brand-500/20">
                     {totalCount} Módulos
                   </span>
                 </h2>
@@ -262,18 +262,18 @@ export const ModulePanel: React.FC<ModulePanelProps> = ({ isOpen, onClose }) => 
                         <div className={`p-2 rounded-xl shrink-0 transition-transform group-hover:scale-105 ${
                           isActive 
                             ? 'brand-gradient text-white shadow-brand' 
-                            : 'bg-surface text-brand-500 border border-line'
+                            : 'bg-surface text-brand-600 dark:text-brand-300 border border-line'
                         }`}>
                           <Icon size={18} />
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-1">
-                            <span className="text-xs font-bold text-ink truncate group-hover:text-brand-500 transition-colors">
+                            <span className="text-xs font-bold text-ink truncate group-hover:text-brand-600 dark:group-hover:text-brand-300 transition-colors">
                               {module.title}
                             </span>
                             {module.badge && (
-                              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-brand-500/10 text-brand-500 shrink-0">
+                              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-300 shrink-0">
                                 {module.badge}
                               </span>
                             )}
@@ -283,7 +283,7 @@ export const ModulePanel: React.FC<ModulePanelProps> = ({ isOpen, onClose }) => 
                           </p>
                         </div>
 
-                        <ChevronRight size={14} className="text-ink-faint group-hover:text-brand-500 group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
+                        <ChevronRight size={14} className="text-ink-faint group-hover:text-brand-600 dark:group-hover:text-brand-300 group-hover:translate-x-0.5 transition-all shrink-0 mt-1" />
                       </button>
                     );
                   })}

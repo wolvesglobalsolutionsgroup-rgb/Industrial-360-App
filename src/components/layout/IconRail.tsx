@@ -76,7 +76,7 @@ export const IconRail: React.FC<IconRailProps> = ({ onToggleModules, className =
           <button
             onClick={onToggleModules}
             title="Ver todos los módulos (31)"
-            className="group relative w-11 h-11 rounded-2xl flex items-center justify-center text-brand-500 hover:bg-brand-500/10 transition-all cursor-pointer border border-brand-500/20 my-1"
+            className="group relative w-11 h-11 rounded-2xl flex items-center justify-center text-brand-600 dark:text-brand-300 hover:bg-brand-500/10 transition-all cursor-pointer border border-brand-500/30 my-1"
           >
             <Grid3x3 size={20} className="shrink-0 transition-transform group-hover:scale-110" />
             <span className="absolute left-full ml-3 px-2.5 py-1.5 bg-ink text-surface text-[11px] font-bold rounded-xl whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-xl">

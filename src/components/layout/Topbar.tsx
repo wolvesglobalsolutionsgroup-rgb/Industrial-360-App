@@ -72,7 +72,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleMobileMenu, onToggleModu
 
         {/* Active Organization Badge */}
         <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-surface-2 border border-line rounded-xl text-xs font-bold text-ink">
-          <Building size={14} className="text-brand-500 shrink-0" />
+          <Building size={14} className="text-brand-600 dark:text-brand-300 shrink-0" />
           <span className="truncate max-w-[150px]">{currentOrganization.name}</span>
         </div>
 
@@ -82,7 +82,7 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleMobileMenu, onToggleModu
             onClick={() => setIsProjectMenuOpen(!isProjectMenuOpen)}
             className="flex items-center gap-2 bg-surface-2 hover:bg-surface-2/80 border border-line px-3 py-1.5 rounded-xl transition-all text-xs font-bold text-ink shadow-2xs cursor-pointer"
           >
-            <HardHat size={15} className="text-brand-500 shrink-0" />
+            <HardHat size={15} className="text-brand-600 dark:text-brand-300 shrink-0" />
             <span className="max-w-[140px] sm:max-w-[200px] truncate font-display">
               {currentProject ? currentProject.name : 'Seleccionar Proyecto'}
             </span>
@@ -170,12 +170,12 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleMobileMenu, onToggleModu
         {onToggleModules && (
           <button
             onClick={onToggleModules}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 text-brand-500 border border-brand-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-300 border border-brand-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer"
             title="Ver catálogo con todos los módulos (31)"
           >
             <Grid3x3 size={15} />
             <span className="hidden sm:inline font-display">Módulos</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-brand-500 text-white font-extrabold">31</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full brand-gradient text-white font-extrabold">31</span>
           </button>
         )}
 

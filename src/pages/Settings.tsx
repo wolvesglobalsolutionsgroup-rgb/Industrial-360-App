@@ -89,8 +89,8 @@ export default function Settings() {
       className="space-y-6"
     >
       <header className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">Configuración y Temas de Diseño</h1>
-        <p className="text-gray-500 dark:text-slate-400 mt-1">Administra el sistema de temas de colores (Theming), identidad visual y datos fiscales de la organización</p>
+        <h1 className="text-3xl font-bold text-ink tracking-tight">Configuración y Temas de Diseño</h1>
+        <p className="text-ink-soft mt-1">Administra el sistema de temas de colores (Theming), identidad visual y datos fiscales de la organización</p>
       </header>
 
       <div className="flex flex-col md:flex-row gap-8">
@@ -108,13 +108,13 @@ export default function Settings() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
                   activeTab === tab.id 
-                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold' 
-                    : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/20' 
+                    : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
                 }`}
               >
-                <Icon size={18} className={activeTab === tab.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-slate-500'} />
+                <Icon size={18} className={activeTab === tab.id ? 'text-emerald-600 dark:text-emerald-400' : 'text-ink-faint'} />
                 {tab.label}
               </button>
             );
@@ -123,14 +123,14 @@ export default function Settings() {
 
         {/* Tab Content */}
         <div className="flex-1">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 md:p-8 space-y-8">
+          <div className="bg-surface rounded-2xl border border-line shadow-sm p-6 md:p-8 space-y-8">
             {activeTab === 'brand' && (
               <div className="space-y-8">
                 {/* Section Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-slate-800 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100">Temas de Colores & Kit de Marca</h2>
-                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
+                    <h2 className="text-xl font-bold text-ink">Temas de Colores & Kit de Marca</h2>
+                    <p className="text-xs text-ink-soft mt-1">
                       Selecciona presets de diseño de la plataforma y personaliza el membrete corporativo.
                     </p>
                   </div>

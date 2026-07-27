@@ -717,7 +717,7 @@ export default function Tasks() {
             {filteredTasks.map(t => (
               <div key={t.id} className="p-4 rounded-2xl bg-surface-2 border border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-mono font-bold text-brand-500 px-2 py-0.5 rounded bg-surface border border-line">
+                  <span className="text-xs font-mono font-bold text-brand-600 dark:text-brand-300 px-2 py-0.5 rounded bg-surface border border-line">
                     {t.wbsCode}
                   </span>
                   <div>

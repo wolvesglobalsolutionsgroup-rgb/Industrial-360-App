@@ -288,22 +288,22 @@ async function generateSha256Hash(dataString: string): Promise<string> {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-md uppercase tracking-wider">
+            <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-md uppercase tracking-wider border border-emerald-500/20">
               Norma PDVSA SI-S-04 / SI-S-08
             </span>
-            <span className="text-xs text-gray-500 font-mono">HSE Module v3.2</span>
+            <span className="text-xs text-ink-faint font-mono">HSE Module v3.2</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mt-1">
+          <h1 className="text-3xl font-extrabold text-ink tracking-tight mt-1">
             Módulo SIHO-A & Permisos de Trabajo Seguro (PTS)
           </h1>
-          <p className="text-gray-600 text-sm">
+          <p className="text-ink-soft text-sm">
             Control integral de seguridad industrial, higiene ocupacional, permisos de trabajo, pruebas atmosféricas y análisis de riesgo AST.
           </p>
         </div>
 
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-sm flex items-center gap-2 transition-all shrink-0"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-sm flex items-center gap-2 transition-all shrink-0 cursor-pointer"
         >
           <Plus size={18} />
           Emitir Permiso PTS
@@ -312,59 +312,59 @@ async function generateSha256Hash(dataString: string): Promise<string> {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div className="bg-surface p-4 rounded-xl border border-line shadow-card flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Permisos Activos</p>
-            <p className="text-2xl font-black text-gray-900 mt-1">{ptwList.filter(p => p.status === 'aprobado').length || 4}</p>
-            <span className="text-xs text-emerald-600 font-medium">100% Auditados SIHO</span>
+            <p className="text-xs font-bold text-ink-faint uppercase tracking-wider">Permisos Activos</p>
+            <p className="text-2xl font-black text-ink mt-1">{ptwList.filter(p => p.status === 'aprobado').length || 4}</p>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">100% Auditados SIHO</span>
           </div>
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+          <div className="p-3 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl">
             <ShieldCheck size={24} />
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div className="bg-surface p-4 rounded-xl border border-line shadow-card flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Lecturas Gasotester</p>
-            <p className="text-2xl font-black text-emerald-600 mt-1">Seguro (0 ppm H₂S)</p>
-            <span className="text-xs text-gray-500">Última calibración: Hoy 07:00</span>
+            <p className="text-xs font-bold text-ink-faint uppercase tracking-wider">Lecturas Gasotester</p>
+            <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">Seguro (0 ppm H₂S)</p>
+            <span className="text-xs text-ink-soft">Última calibración: Hoy 07:00</span>
           </div>
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-3 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl">
             <Wind size={24} />
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div className="bg-surface p-4 rounded-xl border border-line shadow-card flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Puntos de Riesgo Bloqueados</p>
-            <p className="text-2xl font-black text-gray-900 mt-1">{ptwList.filter(p => p.status === 'bloqueado').length || 0}</p>
-            <span className="text-xs text-emerald-600 font-medium">LOTO Activo en 12 Válvulas</span>
+            <p className="text-xs font-bold text-ink-faint uppercase tracking-wider">Puntos de Riesgo Bloqueados</p>
+            <p className="text-2xl font-black text-ink mt-1">{ptwList.filter(p => p.status === 'bloqueado').length || 0}</p>
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">LOTO Activo en 12 Válvulas</span>
           </div>
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
+          <div className="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl">
             <Lock size={24} />
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
+        <div className="bg-surface p-4 rounded-xl border border-line shadow-card flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Charlas 5 Minutos</p>
-            <p className="text-2xl font-black text-gray-900 mt-1">100% al día</p>
-            <span className="text-xs text-gray-500">14 Trabajadores firmados</span>
+            <p className="text-xs font-bold text-ink-faint uppercase tracking-wider">Charlas 5 Minutos</p>
+            <p className="text-2xl font-black text-ink mt-1">100% al día</p>
+            <span className="text-xs text-ink-soft">14 Trabajadores firmados</span>
           </div>
-          <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+          <div className="p-3 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-xl">
             <User size={24} />
           </div>
         </div>
       </div>
 
       {/* Tabs Navigation */}
-      <div className="flex border-b border-gray-200 bg-white rounded-t-xl px-4 pt-2">
+      <div className="flex border-b border-line bg-surface rounded-t-xl px-4 pt-2">
         <button
           onClick={() => setActiveTab('ptw')}
-          className={`px-4 py-3 font-semibold text-sm border-b-2 flex items-center gap-2 transition-all ${
+          className={`px-4 py-3 font-semibold text-sm border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'ptw'
-              ? 'border-emerald-600 text-emerald-600'
-              : 'border-transparent text-gray-500 hover:text-gray-800'
+              ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+              : 'border-transparent text-ink-soft hover:text-ink'
           }`}
         >
           <FileText size={18} />
@@ -396,25 +396,25 @@ async function generateSha256Hash(dataString: string): Promise<string> {
 
       {/* TAB 1: PERMISOS DE TRABAJO SEGURO (PTS) */}
       {activeTab === 'ptw' && (
-        <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 p-6 space-y-6">
+        <div className="bg-surface rounded-b-xl border border-line border-t-0 p-6 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="relative w-full sm:w-80">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
               <input
                 type="text"
                 placeholder="Buscar por código, ubicación, supervisor..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full pl-10 pr-4 py-2 border border-line rounded-lg text-sm bg-surface-2 text-ink placeholder:text-ink-faint focus:ring-2 focus:ring-emerald-500 outline-none"
               />
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Filter size={16} className="text-gray-400" />
+              <Filter size={16} className="text-ink-faint" />
               <select
                 value={selectedTypeFilter}
                 onChange={(e) => setSelectedTypeFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 font-medium"
+                className="px-3 py-2 border border-line rounded-lg text-sm bg-surface-2 text-ink font-medium"
               >
                 <option value="all">Todos los Tipos de Trabajo</option>
                 <option value="frio">Trabajo en Frío</option>
@@ -427,10 +427,10 @@ async function generateSha256Hash(dataString: string): Promise<string> {
           </div>
 
           {/* PTW List Table */}
-          <div className="overflow-x-auto rounded-xl border border-gray-100">
+          <div className="overflow-x-auto rounded-xl border border-line">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50 text-gray-600 text-xs uppercase font-bold border-b border-gray-200">
+                <tr className="bg-surface-2 text-ink-soft text-xs uppercase font-bold border-b border-line">
                   <th className="p-4">Código PTS</th>
                   <th className="p-4">Tipo de Trabajo</th>
                   <th className="p-4">Ubicación / Planta</th>
@@ -441,60 +441,60 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                   <th className="p-4 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 text-sm">
+              <tbody className="divide-y divide-line text-sm">
                 {filteredPtw.length === 0 ? (
                   // Sample mock rows if Firestore empty
                   <>
-                    <tr className="hover:bg-gray-50/50 transition-colors">
-                      <td className="p-4 font-mono font-bold text-emerald-700">PTS-CAL-8041</td>
+                    <tr className="hover:bg-surface-2/60 transition-colors">
+                      <td className="p-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">PTS-CAL-8041</td>
                       <td className="p-4">{getTypeBadge('caliente')}</td>
-                      <td className="p-4 font-medium text-gray-900">Planta de Compresión H-2 / Colector 12"</td>
+                      <td className="p-4 font-medium text-ink">Planta de Compresión H-2 / Colector 12"</td>
                       <td className="p-4">
                         <div className="text-xs space-y-0.5 font-mono">
-                          <span className="text-emerald-700 font-bold">H₂S: 0 ppm</span> | <span>LEL: 0%</span> | <span className="text-blue-700 font-bold">O₂: 20.9%</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">H₂S: 0 ppm</span> | <span className="text-ink">LEL: 0%</span> | <span className="text-blue-600 dark:text-blue-400 font-bold">O₂: 20.9%</span>
                         </div>
                       </td>
-                      <td className="p-4 text-gray-700">Ing. Manuel Silva</td>
-                      <td className="p-4 text-xs text-gray-500">25/07/2026 07:00 - 17:00</td>
+                      <td className="p-4 text-ink-soft">Ing. Manuel Silva</td>
+                      <td className="p-4 text-xs text-ink-faint">25/07/2026 07:00 - 17:00</td>
                       <td className="p-4 text-center">{getStatusBadge('aprobado')}</td>
                       <td className="p-4 text-right">
-                        <button className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-lg font-medium transition-all">
+                        <button className="text-xs bg-surface-2 hover:bg-surface-2/80 text-ink border border-line px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer">
                           Ver PDF PTS
                         </button>
                       </td>
                     </tr>
-                    <tr className="hover:bg-gray-50/50 transition-colors">
-                      <td className="p-4 font-mono font-bold text-emerald-700">PTS-ESP-9102</td>
+                    <tr className="hover:bg-surface-2/60 transition-colors">
+                      <td className="p-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">PTS-ESP-9102</td>
                       <td className="p-4">{getTypeBadge('espacio_confinado')}</td>
-                      <td className="p-4 font-medium text-gray-900">Tanque de Almacenamiento TK-104 (Inspección Interna)</td>
+                      <td className="p-4 font-medium text-ink">Tanque de Almacenamiento TK-104 (Inspección Interna)</td>
                       <td className="p-4">
                         <div className="text-xs space-y-0.5 font-mono">
-                          <span className="text-emerald-700 font-bold">H₂S: 0 ppm</span> | <span>LEL: 2%</span> | <span className="text-blue-700 font-bold">O₂: 20.8%</span>
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">H₂S: 0 ppm</span> | <span className="text-ink">LEL: 2%</span> | <span className="text-blue-600 dark:text-blue-400 font-bold">O₂: 20.8%</span>
                         </div>
                       </td>
-                      <td className="p-4 text-gray-700">Ing. Rebeca Gómez</td>
-                      <td className="p-4 text-xs text-gray-500">25/07/2026 08:00 - 16:00</td>
+                      <td className="p-4 text-ink-soft">Ing. Rebeca Gómez</td>
+                      <td className="p-4 text-xs text-ink-faint">25/07/2026 08:00 - 16:00</td>
                       <td className="p-4 text-center">{getStatusBadge('aprobado')}</td>
                       <td className="p-4 text-right">
-                        <button className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-lg font-medium transition-all">
+                        <button className="text-xs bg-surface-2 hover:bg-surface-2/80 text-ink border border-line px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer">
                           Ver PDF PTS
                         </button>
                       </td>
                     </tr>
-                    <tr className="hover:bg-gray-50/50 transition-colors bg-red-50/30">
-                      <td className="p-4 font-mono font-bold text-red-700">PTS-CAL-3310</td>
+                    <tr className="hover:bg-surface-2/60 transition-colors bg-red-500/10">
+                      <td className="p-4 font-mono font-bold text-red-600 dark:text-red-400">PTS-CAL-3310</td>
                       <td className="p-4">{getTypeBadge('caliente')}</td>
-                      <td className="p-4 font-medium text-gray-900">Separador Trifásico V-201 (Área de Purga)</td>
+                      <td className="p-4 font-medium text-ink">Separador Trifásico V-201 (Área de Purga)</td>
                       <td className="p-4">
-                        <div className="text-xs space-y-0.5 font-mono text-red-700 font-bold">
+                        <div className="text-xs space-y-0.5 font-mono text-red-600 dark:text-red-400 font-bold">
                           <span>H₂S: 18 ppm 🚨</span> | <span>LEL: 14% 🚨</span>
                         </div>
                       </td>
-                      <td className="p-4 text-gray-700">Ing. Carlos Mendoza</td>
-                      <td className="p-4 text-xs text-gray-500">25/07/2026 09:30 - Suspendido</td>
+                      <td className="p-4 text-ink-soft">Ing. Carlos Mendoza</td>
+                      <td className="p-4 text-xs text-ink-faint">25/07/2026 09:30 - Suspendido</td>
                       <td className="p-4 text-center">{getStatusBadge('bloqueado')}</td>
                       <td className="p-4 text-right">
-                        <button className="text-xs bg-red-100 hover:bg-red-200 text-red-800 px-3 py-1.5 rounded-lg font-bold transition-all">
+                        <button className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-300 border border-red-500/30 px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer">
                           Ver Alerta SIHO
                         </button>
                       </td>
@@ -502,26 +502,26 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                   </>
                 ) : (
                   filteredPtw.map((ptw) => (
-                    <tr key={ptw.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="p-4 font-mono font-bold text-emerald-700">{ptw.code}</td>
+                    <tr key={ptw.id} className="hover:bg-surface-2/60 transition-colors">
+                      <td className="p-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">{ptw.code}</td>
                       <td className="p-4">{getTypeBadge(ptw.type)}</td>
-                      <td className="p-4 font-medium text-gray-900">{ptw.location}</td>
+                      <td className="p-4 font-medium text-ink">{ptw.location}</td>
                       <td className="p-4">
                         <div className="text-xs font-mono">
-                          <span className={ptw.gasReadings.h2s > 10 ? 'text-red-600 font-bold' : 'text-emerald-700'}>
+                          <span className={ptw.gasReadings.h2s > 10 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-600 dark:text-emerald-400'}>
                             H₂S: {ptw.gasReadings.h2s} ppm
                           </span> | 
-                          <span className={ptw.gasReadings.lel > 10 ? 'text-red-600 font-bold' : ''}>
+                          <span className={ptw.gasReadings.lel > 10 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-ink'}>
                             LEL: {ptw.gasReadings.lel}%
                           </span> | 
-                          <span className="text-blue-700">O₂: {ptw.gasReadings.o2}%</span>
+                          <span className="text-blue-600 dark:text-blue-400">O₂: {ptw.gasReadings.o2}%</span>
                         </div>
                       </td>
-                      <td className="p-4 text-gray-700">{ptw.supervisor}</td>
-                      <td className="p-4 text-xs text-gray-500">{ptw.validFrom}</td>
+                      <td className="p-4 text-ink-soft">{ptw.supervisor}</td>
+                      <td className="p-4 text-xs text-ink-faint">{ptw.validFrom}</td>
                       <td className="p-4 text-center">{getStatusBadge(ptw.status)}</td>
                       <td className="p-4 text-right">
-                        <button className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-lg font-medium transition-all">
+                        <button className="text-xs bg-surface-2 hover:bg-surface-2/80 text-ink border border-line px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer">
                           Ver Detalle
                         </button>
                       </td>
@@ -536,21 +536,21 @@ async function generateSha256Hash(dataString: string): Promise<string> {
 
       {/* TAB 2: MATRIZ IPER / AST */}
       {activeTab === 'ast' && (
-        <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 p-6 space-y-6">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3">
-            <Sparkles className="text-emerald-600 shrink-0 mt-0.5" size={20} />
+        <div className="bg-surface rounded-b-xl border border-line border-t-0 p-6 space-y-6">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-start gap-3">
+            <Sparkles className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" size={20} />
             <div>
-              <h3 className="text-sm font-bold text-emerald-900">Análisis de Riesgo en el Trabajo (AST) conforme a PDVSA SI-S-04</h3>
-              <p className="text-xs text-emerald-800 mt-0.5">
+              <h3 className="text-sm font-bold text-ink">Análisis de Riesgo en el Trabajo (AST) conforme a PDVSA SI-S-04</h3>
+              <p className="text-xs text-ink-soft mt-0.5">
                 La matriz de control exige identificar secuencialmente cada paso operativo, establecer el nivel de riesgo inherente y dictaminar las medidas de control de ingeniería, administrativas y EPP obligatorio antes de iniciar.
               </p>
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <div className="overflow-x-auto rounded-xl border border-line">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-100 text-gray-700 text-xs uppercase font-bold border-b border-gray-200">
+                <tr className="bg-surface-2 text-ink-soft text-xs uppercase font-bold border-b border-line">
                   <th className="p-3">Paso / Secuencia Operativa</th>
                   <th className="p-3">Peligro y Riesgo Asociado</th>
                   <th className="p-3 text-center">Riesgo Inicial</th>
@@ -558,25 +558,25 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                   <th className="p-3 text-center">Riesgo Residual</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 text-sm">
+              <tbody className="divide-y divide-line text-sm">
                 {astSteps.map((step, idx) => (
-                  <tr key={step.id} className="hover:bg-gray-50">
-                    <td className="p-3 font-semibold text-gray-900">
-                      <span className="text-emerald-600 font-mono mr-2">{idx + 1}.</span>
+                  <tr key={step.id} className="hover:bg-surface-2/60">
+                    <td className="p-3 font-semibold text-ink">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-mono mr-2">{idx + 1}.</span>
                       {step.sequence}
                     </td>
-                    <td className="p-3 text-gray-700">{step.hazard}</td>
+                    <td className="p-3 text-ink-soft">{step.hazard}</td>
                     <td className="p-3 text-center">
                       <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
-                        step.initialRisk === 'Alto' ? 'bg-red-100 text-red-800' :
-                        step.initialRisk === 'Medio' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800'
+                        step.initialRisk === 'Alto' ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20' :
+                        step.initialRisk === 'Medio' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
                       }`}>
                         {step.initialRisk}
                       </span>
                     </td>
-                    <td className="p-3 text-gray-800 font-medium">{step.controls}</td>
+                    <td className="p-3 text-ink font-medium">{step.controls}</td>
                     <td className="p-3 text-center">
-                      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-100 text-emerald-800">
+                      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                         {step.residualRisk}
                       </span>
                     </td>
@@ -587,9 +587,9 @@ async function generateSha256Hash(dataString: string): Promise<string> {
           </div>
 
           {/* Form to add new step */}
-          <form onSubmit={handleAddASTStep} className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-4">
-            <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <Plus size={16} className="text-emerald-600" />
+          <form onSubmit={handleAddASTStep} className="bg-surface-2 border border-line rounded-xl p-4 space-y-4">
+            <h4 className="text-sm font-bold text-ink flex items-center gap-2">
+              <Plus size={16} className="text-emerald-600 dark:text-emerald-400" />
               Agregar Paso a la Matriz AST de Obra
             </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -598,7 +598,7 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                 placeholder="Secuencia de trabajo (Ej: Izamiento de carrete de 8 pulg)"
                 value={newSeq}
                 onChange={(e) => setNewSeq(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-emerald-500"
                 required
               />
               <input
@@ -606,7 +606,7 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                 placeholder="Peligro / Riesgo (Ej: Falla de guaya de grúa)"
                 value={newHazard}
                 onChange={(e) => setNewHazard(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-emerald-500"
                 required
               />
               <input
@@ -614,13 +614,13 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                 placeholder="Controles (Ej: Inspección pre-uso, delimitación)"
                 value={newControls}
                 onChange={(e) => setNewControls(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-500"
+                className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-emerald-500"
               />
               <div className="flex gap-2">
                 <select
                   value={newRisk}
                   onChange={(e) => setNewRisk(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white font-medium"
+                  className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink font-medium"
                 >
                   <option value="Alto">Riesgo: Alto</option>
                   <option value="Medio">Riesgo: Medio</option>
@@ -628,7 +628,7 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                 </select>
                 <button
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm shrink-0 transition-all"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm shrink-0 transition-all cursor-pointer"
                 >
                   Agregar
                 </button>
@@ -640,58 +640,58 @@ async function generateSha256Hash(dataString: string): Promise<string> {
 
       {/* TAB 3: CHARLAS 5 MIN Y REGISTRO EPP */}
       {activeTab === 'charlas' && (
-        <div className="bg-white rounded-b-xl border border-gray-200 border-t-0 p-6 space-y-6">
+        <div className="bg-surface rounded-b-xl border border-line border-t-0 p-6 space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Registro de Charla */}
-            <div className="border border-gray-200 rounded-xl p-5 space-y-4 bg-gray-50/50">
-              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <FileText size={18} className="text-emerald-600" />
+            <div className="border border-line rounded-xl p-5 space-y-4 bg-surface-2/60">
+              <h3 className="text-base font-bold text-ink flex items-center gap-2">
+                <FileText size={18} className="text-emerald-600 dark:text-emerald-400" />
                 Minuta de Charla Diaria de 5 Minutos (SIHO)
               </h3>
 
               <div className="space-y-3 text-sm">
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tema Impartido</label>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Tema Impartido</label>
                   <input
                     type="text"
                     value={talkTopic}
                     onChange={(e) => setTalkTopic(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                    className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Facilitador / Instructor</label>
+                    <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Facilitador / Instructor</label>
                     <input
                       type="text"
                       value={talkInstructor}
                       onChange={(e) => setTalkInstructor(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                      className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">N° Trabajadores Asistentes</label>
+                    <label className="block text-xs font-bold text-ink-soft uppercase mb-1">N° Trabajadores Asistentes</label>
                     <input
                       type="number"
                       value={attendeesCount}
                       onChange={(e) => setAttendeesCount(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white"
+                      className="w-full px-3 py-2 border border-line rounded-lg bg-surface text-ink"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Registro Fotográfico de Asistencia</label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center bg-white cursor-pointer hover:bg-gray-50 transition-all">
-                    <Camera size={24} className="mx-auto text-gray-400 mb-1" />
-                    <span className="text-xs text-gray-600 font-medium">Capturar foto del grupo en charla</span>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Registro Fotográfico de Asistencia</label>
+                  <div className="border-2 border-dashed border-line rounded-xl p-4 text-center bg-surface cursor-pointer hover:bg-surface-2 transition-all">
+                    <Camera size={24} className="mx-auto text-ink-faint mb-1" />
+                    <span className="text-xs text-ink-soft font-medium">Capturar foto del grupo en charla</span>
                   </div>
                 </div>
 
                 <button 
                   onClick={() => alert("Charla de 5 minutos guardada y archivada en Dossier SIHO.")}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all shadow-sm"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all shadow-sm cursor-pointer"
                 >
                   Registrar Charla en Expediente
                 </button>
@@ -699,22 +699,22 @@ async function generateSha256Hash(dataString: string): Promise<string> {
             </div>
 
             {/* Checklist de EPP Entregado */}
-            <div className="border border-gray-200 rounded-xl p-5 space-y-4">
-              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <HardHat size={18} className="text-emerald-600" />
+            <div className="border border-line rounded-xl p-5 space-y-4 bg-surface-2/60">
+              <h3 className="text-base font-bold text-ink flex items-center gap-2">
+                <HardHat size={18} className="text-emerald-600 dark:text-emerald-400" />
                 Control de Dotación e Inspección de EPP
               </h3>
 
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-ink-soft">
                 Verificación diaria de estado físico de Equipos de Protección Personal antes de ingresar a planta.
               </p>
 
               <div className="space-y-2">
                 {defaultEppOptions.map((epp, idx) => (
-                  <label key={idx} className="flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:bg-gray-50 cursor-pointer text-xs font-medium text-gray-800">
-                    <input type="checkbox" defaultChecked className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500" />
+                  <label key={idx} className="flex items-center gap-3 p-2.5 rounded-lg border border-line hover:bg-surface cursor-pointer text-xs font-medium text-ink">
+                    <input type="checkbox" defaultChecked className="w-4 h-4 text-emerald-600 rounded border-line focus:ring-emerald-500" />
                     <span>{epp}</span>
-                    <span className="ml-auto text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">Verificado</span>
+                    <span className="ml-auto text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">Verificado</span>
                   </label>
                 ))}
               </div>
@@ -726,13 +726,13 @@ async function generateSha256Hash(dataString: string): Promise<string> {
       {/* MODAL: EMITIR NUEVO PERMISO PTS */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-6 my-8">
-            <div className="flex justify-between items-center border-b border-gray-200 pb-4">
+          <div className="bg-surface border border-line rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-lift p-6 space-y-6 my-8">
+            <div className="flex justify-between items-center border-b border-line pb-4">
               <div>
-                <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest">Emisión Oficial PTS</span>
-                <h2 className="text-xl font-black text-gray-900">Permiso de Trabajo Seguro (PDVSA SI-S-04)</h2>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Emisión Oficial PTS</span>
+                <h2 className="text-xl font-black text-ink">Permiso de Trabajo Seguro (PDVSA SI-S-04)</h2>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-2">
+              <button onClick={() => setIsModalOpen(false)} className="text-ink-faint hover:text-ink p-2 cursor-pointer">
                 <XCircle size={24} />
               </button>
             </div>
@@ -740,17 +740,17 @@ async function generateSha256Hash(dataString: string): Promise<string> {
             <form onSubmit={handleCreatePTW} className="space-y-6">
               {/* Type selector */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Tipo de Trabajo a Ejecutar</label>
+                <label className="block text-xs font-bold text-ink-soft uppercase mb-2">Tipo de Trabajo a Ejecutar</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {[
-                    { id: 'caliente', label: 'Tipo A: Trabajo en Caliente', icon: Flame, color: 'text-red-600 border-red-300 bg-red-50' },
-                    { id: 'frio', label: 'Tipo B: Trabajo en Frío', icon: ShieldCheck, color: 'text-blue-600 border-blue-300 bg-blue-50' },
-                    { id: 'espacio_confinado', label: 'Tipo C: Espacio Confinado', icon: Wind, color: 'text-purple-600 border-purple-300 bg-purple-50' },
-                    { id: 'izamiento', label: 'Tipo D: Izamiento Crítico', icon: HardHat, color: 'text-amber-600 border-amber-300 bg-amber-50' },
-                    { id: 'excavacion', label: 'Tipo E: Excavación y Zanjas', icon: AlertTriangle, color: 'text-orange-600 border-orange-300 bg-orange-50' },
-                    { id: 'radiografia', label: 'Tipo F: Radiografía Industrial', icon: Sparkles, color: 'text-pink-600 border-pink-300 bg-pink-50' },
-                    { id: 'altura', label: 'Tipo G: Trabajos en Altura', icon: Calendar, color: 'text-indigo-600 border-indigo-300 bg-indigo-50' },
-                    { id: 'electrico', label: 'Tipo H: Eléctrico / LOTO', icon: Lock, color: 'text-yellow-600 border-yellow-300 bg-yellow-50' },
+                    { id: 'caliente', label: 'Tipo A: Trabajo en Caliente', icon: Flame, color: 'text-red-600 dark:text-red-400 border-red-500/30 bg-red-500/10' },
+                    { id: 'frio', label: 'Tipo B: Trabajo en Frío', icon: ShieldCheck, color: 'text-blue-600 dark:text-blue-400 border-blue-500/30 bg-blue-500/10' },
+                    { id: 'espacio_confinado', label: 'Tipo C: Espacio Confinado', icon: Wind, color: 'text-purple-600 dark:text-purple-400 border-purple-500/30 bg-purple-500/10' },
+                    { id: 'izamiento', label: 'Tipo D: Izamiento Crítico', icon: HardHat, color: 'text-amber-600 dark:text-amber-400 border-amber-500/30 bg-amber-500/10' },
+                    { id: 'excavacion', label: 'Tipo E: Excavación y Zanjas', icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400 border-orange-500/30 bg-orange-500/10' },
+                    { id: 'radiografia', label: 'Tipo F: Radiografía Industrial', icon: Sparkles, color: 'text-pink-600 dark:text-pink-400 border-pink-500/30 bg-pink-500/10' },
+                    { id: 'altura', label: 'Tipo G: Trabajos en Altura', icon: Calendar, color: 'text-indigo-600 dark:text-indigo-400 border-indigo-500/30 bg-indigo-500/10' },
+                    { id: 'electrico', label: 'Tipo H: Eléctrico / LOTO', icon: Lock, color: 'text-yellow-600 dark:text-yellow-400 border-yellow-500/30 bg-yellow-500/10' },
                   ].map((t) => {
                     const IconComp = t.icon;
                     const isSel = newType === t.id;
@@ -759,8 +759,8 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                         key={t.id}
                         type="button"
                         onClick={() => setNewType(t.id as any)}
-                        className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-bold transition-all text-left ${
-                          isSel ? `${t.color} ring-2 ring-emerald-500 shadow-sm` : 'border-gray-200 hover:bg-gray-50 text-gray-700'
+                        className={`p-3 rounded-xl border flex items-center gap-2.5 text-xs font-bold transition-all text-left cursor-pointer ${
+                          isSel ? `${t.color} ring-2 ring-emerald-500 shadow-2xs` : 'border-line hover:bg-surface-2 text-ink-soft'
                         }`}
                       >
                         <IconComp size={18} />
@@ -774,113 +774,113 @@ async function generateSha256Hash(dataString: string): Promise<string> {
               {/* General Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Ubicación / Unidad de Planta</label>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Ubicación / Unidad de Planta</label>
                   <input
                     type="text"
                     placeholder="Ej: Planta de Compresión H-2 / Módulo 4"
                     value={newLocation}
                     onChange={(e) => setNewLocation(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-line rounded-lg text-sm bg-surface-2 text-ink placeholder:text-ink-faint"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Supervisor SIHO Responsable</label>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Supervisor SIHO Responsable</label>
                   <input
                     type="text"
                     placeholder="Ej: Ing. Manuel Silva"
                     value={newSupervisor}
                     onChange={(e) => setNewSupervisor(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 border border-line rounded-lg text-sm bg-surface-2 text-ink placeholder:text-ink-faint"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Descripción del Trabajo</label>
+                <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Descripción del Trabajo</label>
                 <textarea
                   rows={2}
                   placeholder="Describa la tarea detalladamente (ej: Interconexión de tubería 12 in Sch 40 en caliente)..."
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-sm resize-none bg-surface-2 text-ink placeholder:text-ink-faint"
                   required
                 />
               </div>
 
               {/* CRITICAL: GASOTESTER READINGS */}
               <div className={`p-4 rounded-xl border transition-all ${
-                isAtmosphereHazardous ? 'bg-red-50 border-red-300' : 'bg-blue-50/60 border-blue-200'
+                isAtmosphereHazardous ? 'bg-red-500/10 border-red-500/30' : 'bg-blue-500/10 border-blue-500/20'
               }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <Wind className={isAtmosphereHazardous ? 'text-red-600' : 'text-blue-600'} size={20} />
-                    <h3 className="text-sm font-bold text-gray-900">
+                    <Wind className={isAtmosphereHazardous ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'} size={20} />
+                    <h3 className="text-sm font-bold text-ink">
                       Lecturas Obligatorias de Gasotester (Prueba Atmosférica)
                     </h3>
                   </div>
-                  <span className="text-xs font-mono bg-white px-2 py-0.5 border rounded text-gray-600">
+                  <span className="text-xs font-mono bg-surface px-2 py-0.5 border border-line rounded text-ink-soft">
                     Serial: {gasotesterSerial}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">H₂S (Sulfídrico - ppm)</label>
+                    <label className="block text-xs font-bold text-ink-soft mb-1">H₂S (Sulfídrico - ppm)</label>
                     <input
                       type="number"
                       step="0.5"
                       value={h2s}
                       onChange={(e) => setH2s(Number(e.target.value))}
                       className={`w-full px-3 py-2 border rounded-lg text-sm font-bold font-mono ${
-                        h2s > 10 ? 'border-red-500 bg-red-100 text-red-900' : 'border-gray-300 bg-white'
+                        h2s > 10 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
                       }`}
                     />
-                    <span className="text-[10px] text-gray-500">Límite max: 10 ppm</span>
+                    <span className="text-[10px] text-ink-faint">Límite max: 10 ppm</span>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">LEL (% Explosividad)</label>
+                    <label className="block text-xs font-bold text-ink-soft mb-1">LEL (% Explosividad)</label>
                     <input
                       type="number"
                       step="0.5"
                       value={lel}
                       onChange={(e) => setLel(Number(e.target.value))}
                       className={`w-full px-3 py-2 border rounded-lg text-sm font-bold font-mono ${
-                        lel > 10 ? 'border-red-500 bg-red-100 text-red-900' : 'border-gray-300 bg-white'
+                        lel > 10 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
                       }`}
                     />
-                    <span className="text-[10px] text-gray-500">Límite max: 10%</span>
+                    <span className="text-[10px] text-ink-faint">Límite max: 10%</span>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">O₂ (Oxígeno - %)</label>
+                    <label className="block text-xs font-bold text-ink-soft mb-1">O₂ (Oxígeno - %)</label>
                     <input
                       type="number"
                       step="0.1"
                       value={o2}
                       onChange={(e) => setO2(Number(e.target.value))}
                       className={`w-full px-3 py-2 border rounded-lg text-sm font-bold font-mono ${
-                        o2 < 19.5 || o2 > 23.5 ? 'border-red-500 bg-red-100 text-red-900' : 'border-gray-300 bg-white'
+                        o2 < 19.5 || o2 > 23.5 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
                       }`}
                     />
-                    <span className="text-[10px] text-gray-500">Rango: 19.5% - 23.5%</span>
+                    <span className="text-[10px] text-ink-faint">Rango: 19.5% - 23.5%</span>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1">CO (Monóxido - ppm)</label>
+                    <label className="block text-xs font-bold text-ink-soft mb-1">CO (Monóxido - ppm)</label>
                     <input
                       type="number"
                       step="1"
                       value={co}
                       onChange={(e) => setCo(Number(e.target.value))}
                       className={`w-full px-3 py-2 border rounded-lg text-sm font-bold font-mono ${
-                        co > 25 ? 'border-red-500 bg-red-100 text-red-900' : 'border-gray-300 bg-white'
+                        co > 25 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
                       }`}
                     />
-                    <span className="text-[10px] text-gray-500">Límite max: 25 ppm</span>
+                    <span className="text-[10px] text-ink-faint">Límite max: 25 ppm</span>
                   </div>
                 </div>
 
@@ -894,10 +894,10 @@ async function generateSha256Hash(dataString: string): Promise<string> {
 
               {/* Precautions checklist */}
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Precauciones Especiales Requeridas</label>
+                <label className="block text-xs font-bold text-ink-soft uppercase mb-2">Precauciones Especiales Requeridas</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   {defaultPrecautions.map((prec, i) => (
-                    <label key={i} className="flex items-center gap-2 p-2 border border-gray-200 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                    <label key={i} className="flex items-center gap-2 p-2 border border-line rounded-lg cursor-pointer bg-surface-2 hover:bg-surface-2/80">
                       <input
                         type="checkbox"
                         checked={selectedPrecautions.includes(prec)}
@@ -905,29 +905,29 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                           if (e.target.checked) setSelectedPrecautions([...selectedPrecautions, prec]);
                           else setSelectedPrecautions(selectedPrecautions.filter(p => p !== prec));
                         }}
-                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        className="rounded border-line text-emerald-600 focus:ring-emerald-500"
                       />
-                      <span className="font-medium text-gray-800">{prec}</span>
+                      <span className="font-medium text-ink">{prec}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               {/* Submit */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+              <div className="flex justify-end gap-3 pt-4 border-t border-line">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50"
+                  className="px-4 py-2 border border-line text-ink rounded-xl text-sm font-semibold hover:bg-surface-2 cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={isAtmosphereHazardous}
-                  className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition-all shadow-md ${
+                  className={`px-6 py-2 rounded-xl text-sm font-bold text-white transition-all shadow-md cursor-pointer ${
                     isAtmosphereHazardous
-                      ? 'bg-gray-400 cursor-not-allowed'
+                      ? 'bg-gray-500 cursor-not-allowed opacity-50'
                       : 'bg-emerald-600 hover:bg-emerald-700'
                   }`}
                 >
