@@ -1,7 +1,7 @@
 import { useState, useEffect, ChangeEvent } from 'react';
 import { motion } from 'motion/react';
 import { 
-  User, Building, Bell, Shield, Save, Loader2, Palette, Upload, Check, Sparkles, Sun, Moon
+  User, Building, Bell, Shield, Save, Loader2, Palette, Upload, Check, Sparkles, Layers, Square, Sun, Moon
 } from 'lucide-react';
 import { auth, db, useAppAuthState } from '../firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -12,7 +12,7 @@ import { THEME_PRESETS, ThemePresetId } from '../theme/themePresets';
 export default function Settings() {
   const [user] = useAppAuthState();
   const { brandKit, updateBrandKit } = useProject();
-  const { preset, setPreset, isDarkMode, toggleMode } = useTheme();
+  const { preset, setPreset, density, setDensity, borderRadius, setBorderRadius, isDarkMode, toggleMode } = useTheme();
 
   const [activeTab, setActiveTab] = useState('brand');
   const [budgetThreshold, setBudgetThreshold] = useState(90);
@@ -97,11 +97,10 @@ export default function Settings() {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      <header className="mb-4">
-        <h1 className="font-display text-3xl sm:text-4xl font-bold text-ink tracking-tight">Configuración y Temas de Diseño</h1>
+      <header className="mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">Configuración y Temas de Diseño</h1>
         <p className="text-ink-soft mt-1 text-xs sm:text-sm">Administra el sistema de temas de colores (Theming), identidad visual y datos fiscales de la organización</p>
       </header>
-      <div className="h-1 w-20 bg-gradient-to-r from-brand-500 to-brand-accent rounded-full mb-6" />
 
       <div className="flex flex-col md:flex-row gap-6">
         {/* Sidebar Tabs */}
@@ -121,11 +120,11 @@ export default function Settings() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all cursor-pointer ${
                   isActive 
-                    ? 'bg-brand-500 text-white font-bold border border-brand-500 shadow-xs' 
+                    ? 'bg-brand-500/10 text-brand-500 font-bold border border-brand-500/20 shadow-xs' 
                     : 'text-ink-soft hover:bg-surface-2 hover:text-ink border border-transparent'
                 }`}
               >
-                <Icon size={18} className={isActive ? 'text-white' : 'text-ink-faint'} />
+                <Icon size={18} className={isActive ? 'text-brand-500' : 'text-ink-faint'} />
                 {tab.label}
               </button>
             );
@@ -156,7 +155,7 @@ export default function Settings() {
                 </div>
 
                 {/* THEME PRESETS SELECTOR */}
-                <div className="space-y-6">
+                <div className="space-y-6 bg-surface-2 p-6 sm:p-8 rounded-3xl border border-line">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <h3 className="text-base font-bold text-ink flex items-center gap-2">
@@ -186,10 +185,10 @@ export default function Settings() {
                         <div
                           key={pKey}
                           onClick={() => setPreset(pKey)}
-                          className={`cursor-pointer p-5 rounded-2xl border transition-all duration-200 flex flex-col justify-between ${
+                          className={`cursor-pointer p-5 rounded-2xl border transition-all flex flex-col justify-between ${
                             isSelected
                               ? 'border-brand-500 bg-surface shadow-md ring-2 ring-brand-500/20'
-                              : 'border-line bg-surface hover:border-brand-500 hover:shadow-md hover:-translate-y-0.5'
+                              : 'border-line bg-surface hover:border-brand-500/40 hover:shadow-xs'
                           }`}
                         >
                           <div className="space-y-2.5">
@@ -207,10 +206,10 @@ export default function Settings() {
                           {/* Swatch preview */}
                           <div className="mt-4 flex items-center justify-between pt-3 border-t border-line">
                             <div className="flex items-center -space-x-1.5">
-                              <span className="w-6 h-6 rounded-full border-2 border-surface shadow-md" style={{ backgroundColor: pObj.colors.bgApp }} title="Fondo App"></span>
-                              <span className="w-6 h-6 rounded-full border-2 border-surface shadow-md" style={{ backgroundColor: pObj.colors.colorPrimary }} title="Primario"></span>
-                              <span className="w-6 h-6 rounded-full border-2 border-surface shadow-md" style={{ backgroundColor: pObj.colors.colorSecondary }} title="Secundario"></span>
-                              <span className="w-6 h-6 rounded-full border-2 border-surface shadow-md" style={{ backgroundColor: pObj.colors.colorAccent }} title="Acento"></span>
+                              <span className="w-5 h-5 rounded-full border-2 border-surface shadow-xs" style={{ backgroundColor: pObj.colors.bgApp }} title="Fondo App"></span>
+                              <span className="w-5 h-5 rounded-full border-2 border-surface shadow-xs" style={{ backgroundColor: pObj.colors.colorPrimary }} title="Primario"></span>
+                              <span className="w-5 h-5 rounded-full border-2 border-surface shadow-xs" style={{ backgroundColor: pObj.colors.colorSecondary }} title="Secundario"></span>
+                              <span className="w-5 h-5 rounded-full border-2 border-surface shadow-xs" style={{ backgroundColor: pObj.colors.colorAccent }} title="Acento"></span>
                             </div>
                             <span className="text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded-full bg-surface-2 text-ink-soft border border-line">
                               {pObj.colors.isDark ? 'Oscuro' : 'Claro'}
@@ -219,6 +218,69 @@ export default function Settings() {
                         </div>
                       );
                     })}
+                  </div>
+
+                  {/* VISUAL DENSITY & BORDER RADIUS CONTROLS */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-line">
+                    <div>
+                      <label className="block text-xs font-bold text-ink uppercase mb-2 flex items-center gap-1.5">
+                        <Layers size={14} className="text-ink-soft" /> Densidad Visual
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setDensity('compact')}
+                          className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                            density === 'compact'
+                              ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
+                              : 'bg-surface text-ink-soft border-line hover:bg-surface-2 hover:text-ink'
+                          }`}
+                        >
+                          Compacto (Alta Densidad)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDensity('spacious')}
+                          className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                            density === 'spacious'
+                              ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
+                              : 'bg-surface text-ink-soft border-line hover:bg-surface-2 hover:text-ink'
+                          }`}
+                        >
+                          Holgado (Ejecutivo)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-ink uppercase mb-2 flex items-center gap-1.5">
+                        <Square size={14} className="text-ink-soft" /> Estilo de Bordes
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setBorderRadius('rounded')}
+                          className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                            borderRadius === 'rounded'
+                              ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
+                              : 'bg-surface text-ink-soft border-line hover:bg-surface-2 hover:text-ink'
+                          }`}
+                        >
+                          Bordes Suaves (16px)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBorderRadius('sharp')}
+                          className={`px-3 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                            borderRadius === 'sharp'
+                              ? 'bg-brand-500 text-white border-brand-500 shadow-xs'
+                              : 'bg-surface text-ink-soft border-line hover:bg-surface-2 hover:text-ink'
+                          }`}
+                        >
+                          Bordes Afilados (4px)
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -453,7 +515,7 @@ export default function Settings() {
                   <button
                     onClick={handleSaveBrandKit}
                     disabled={isSavingBrand}
-                    className="flex items-center gap-2 px-8 py-3.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-bold rounded-2xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer"
+                    className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
                   >
                     {isSavingBrand ? <Loader2 size={18} className="animate-spin" /> : brandSavedSuccess ? <Check size={18} /> : <Save size={18} />}
                     {brandSavedSuccess ? '¡Guardado Correctamente!' : 'Guardar y Aplicar Kit de Marca'}
