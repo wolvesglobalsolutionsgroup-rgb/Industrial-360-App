@@ -192,36 +192,38 @@ export default function ProjectBrain() {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="h-[calc(100vh-8rem)] flex flex-col bg-surface rounded-2xl shadow-sm border border-line overflow-hidden">
       {/* Header */}
-      <div className="bg-emerald-900 text-white p-4 flex items-center justify-between shrink-0">
+      <div className="bg-surface-2 border-b border-line p-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-800 rounded-xl flex items-center justify-center">
-            <BrainCircuit size={24} className="text-emerald-400" />
+          <div className="w-10 h-10 bg-brand-500/10 text-brand-500 border border-brand-500/20 rounded-xl flex items-center justify-center">
+            <BrainCircuit size={24} className="text-brand-500" />
           </div>
           <div>
-            <h1 className="font-bold text-lg">Cerebro del Proyecto</h1>
-            <p className="text-emerald-300 text-xs">Asistente IA para Gestión y Análisis Documental</p>
+            <h1 className="font-bold text-lg text-ink">Cerebro del Proyecto</h1>
+            <p className="text-ink-soft text-xs">Asistente IA para Gestión y Análisis Documental</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {projectConfig?.notebookId && (
-            <div className="flex items-center gap-2 text-xs bg-purple-800/50 px-3 py-1.5 rounded-full text-purple-200 border border-purple-700 animate-pulse">
+            <div className="flex items-center gap-2 text-xs bg-purple-500/15 px-3 py-1.5 rounded-full text-purple-700 dark:text-purple-300 border border-purple-500/30 animate-pulse">
               <Link2 size={14} />
               Notebook Conectado
             </div>
           )}
           <button
             onClick={() => setIsHighThinking(!isHighThinking)}
-            className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full transition-colors ${
-              isHighThinking ? 'bg-purple-600 text-white' : 'bg-emerald-800 text-emerald-200 hover:bg-emerald-700'
+            className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full transition-colors cursor-pointer ${
+              isHighThinking 
+                ? 'bg-purple-600 text-white font-bold' 
+                : 'bg-surface hover:bg-elevated text-ink-soft hover:text-ink border border-line'
             }`}
             title="Modo de Pensamiento Profundo (Ideal para cálculos complejos o análisis de normativas)"
           >
             <Settings2 size={14} />
             {isHighThinking ? 'Pensamiento Profundo: ON' : 'Pensamiento Profundo: OFF'}
           </button>
-          <div className="flex items-center gap-2 text-xs bg-emerald-800 px-3 py-1.5 rounded-full text-emerald-200">
+          <div className="flex items-center gap-2 text-xs bg-brand-500/10 text-brand-500 border border-brand-500/20 px-3 py-1.5 rounded-full font-bold">
             <Sparkles size={14} />
             Gemini 3.1 Pro
           </div>
@@ -229,30 +231,30 @@ export default function ProjectBrain() {
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-gray-50/50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-surface-2/30">
         {messages.map((msg, idx) => (
           <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-4 ${
+            <div className={`max-w-[85%] md:max-w-[75%] rounded-2xl p-4 shadow-2xs ${
               msg.role === 'user' 
-                ? 'bg-emerald-600 text-white rounded-tr-sm' 
-                : 'bg-white border border-gray-200 text-gray-800 shadow-sm rounded-tl-sm'
+                ? 'bg-brand-500 text-white rounded-tr-sm font-medium' 
+                : 'bg-surface border border-line text-ink rounded-tl-sm'
             }`}>
               {msg.role === 'ai' && (
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 text-emerald-700 font-semibold text-sm">
+                  <div className="flex items-center gap-2 text-brand-500 dark:text-emerald-400 font-bold text-sm">
                     <BrainCircuit size={16} />
                     Cerebro IA
                   </div>
                   <button
                     onClick={() => playTTS(msg.content)}
-                    className={`p-1.5 rounded-lg transition-colors ${isPlayingAudio ? 'bg-emerald-100 text-emerald-700' : 'text-gray-400 hover:bg-gray-100 hover:text-emerald-600'}`}
+                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isPlayingAudio ? 'bg-brand-500/20 text-brand-500' : 'text-ink-faint hover:bg-surface-2 hover:text-ink'}`}
                     title={isPlayingAudio ? "Detener audio" : "Escuchar respuesta"}
                   >
                     {isPlayingAudio ? <Square size={14} /> : <Volume2 size={14} />}
                   </button>
                 </div>
               )}
-              <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-inherit">
                 {msg.content}
               </div>
             </div>
@@ -260,9 +262,9 @@ export default function ProjectBrain() {
         ))}
         {isProcessing && (
           <div className="flex justify-start">
-            <div className="bg-white border border-gray-200 shadow-sm rounded-2xl rounded-tl-sm p-4 flex items-center gap-3 text-gray-500">
-              <Loader2 size={18} className="animate-spin text-emerald-600" />
-              <span className="text-sm">Analizando proyecto y documentos...</span>
+            <div className="bg-surface border border-line shadow-2xs rounded-2xl rounded-tl-sm p-4 flex items-center gap-3 text-ink-soft">
+              <Loader2 size={18} className="animate-spin text-brand-500" />
+              <span className="text-sm font-medium">Analizando proyecto y documentos...</span>
             </div>
           </div>
         )}
@@ -270,11 +272,11 @@ export default function ProjectBrain() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-white border-t border-gray-200 shrink-0">
+      <div className="p-4 bg-surface border-t border-line shrink-0">
         <form onSubmit={handleAskBrain} className="relative flex items-end gap-2">
           <button 
             type="button"
-            className="p-3 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors shrink-0"
+            className="p-3 text-ink-faint hover:text-brand-500 hover:bg-surface-2 rounded-xl transition-colors shrink-0 cursor-pointer"
             title="Adjuntar documento (Plano, Excel, Spec)"
           >
             <Paperclip size={20} />
@@ -282,10 +284,10 @@ export default function ProjectBrain() {
           <button
             type="button"
             onClick={isRecording ? stopRecording : startRecording}
-            className={`p-3 rounded-xl transition-colors shrink-0 ${
+            className={`p-3 rounded-xl transition-colors shrink-0 cursor-pointer ${
               isRecording 
-                ? 'bg-red-100 text-red-600 animate-pulse' 
-                : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'
+                ? 'bg-rose-500/20 text-rose-600 animate-pulse' 
+                : 'text-ink-faint hover:text-brand-500 hover:bg-surface-2'
             }`}
             title={isRecording ? "Detener grabación" : "Dictar consulta"}
           >
@@ -296,7 +298,7 @@ export default function ProjectBrain() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ej: Extrae las partidas necesarias del plano estructural adjunto o calcula el cómputo métrico..."
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all resize-none"
+              className="w-full bg-surface-2 border border-line text-ink placeholder:text-ink-faint rounded-xl pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-all resize-none text-xs sm:text-sm font-medium"
               rows={2}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
@@ -309,19 +311,19 @@ export default function ProjectBrain() {
           <button
             type="submit"
             disabled={!query.trim() || isProcessing}
-            className="p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 shadow-sm"
+            className="p-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 shadow-sm cursor-pointer"
           >
             <Send size={20} />
           </button>
         </form>
         <div className="mt-2 flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
-          <button type="button" onClick={() => setQuery("¿Cuáles son las partidas críticas según las especificaciones técnicas?")} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-full whitespace-nowrap transition-colors">
+          <button type="button" onClick={() => setQuery("¿Cuáles son las partidas críticas según las especificaciones técnicas?")} className="text-xs bg-surface-2 hover:bg-elevated text-ink-soft hover:text-ink border border-line px-3 py-1.5 rounded-full whitespace-nowrap transition-colors cursor-pointer">
             Analizar Especificaciones
           </button>
-          <button type="button" onClick={() => setQuery("Ayúdame a hacer el cómputo métrico de la losa de fundación.")} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-full whitespace-nowrap transition-colors">
+          <button type="button" onClick={() => setQuery("Ayúdame a hacer el cómputo métrico de la losa de fundación.")} className="text-xs bg-surface-2 hover:bg-elevated text-ink-soft hover:text-ink border border-line px-3 py-1.5 rounded-full whitespace-nowrap transition-colors cursor-pointer">
             Cómputos Métricos
           </button>
-          <button type="button" onClick={() => setQuery("Genera un borrador de valuación para el avance de esta semana.")} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1.5 rounded-full whitespace-nowrap transition-colors">
+          <button type="button" onClick={() => setQuery("Genera un borrador de valuación para el avance de esta semana.")} className="text-xs bg-surface-2 hover:bg-elevated text-ink-soft hover:text-ink border border-line px-3 py-1.5 rounded-full whitespace-nowrap transition-colors cursor-pointer">
             Generar Valuación
           </button>
         </div>

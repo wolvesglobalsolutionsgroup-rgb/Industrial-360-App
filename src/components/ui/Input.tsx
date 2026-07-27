@@ -21,31 +21,31 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   return (
     <div className="space-y-1.5 w-full">
       {label && (
-        <label htmlFor={inputId} className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+        <label htmlFor={inputId} className="block text-xs font-extrabold uppercase tracking-wider text-ink-soft">
           {label}
         </label>
       )}
       <div className="relative flex items-center">
         {leftIcon && (
-          <div className="absolute left-3.5 text-slate-400 dark:text-slate-500 pointer-events-none">
+          <div className="absolute left-3.5 text-ink-faint pointer-events-none">
             {leftIcon}
           </div>
         )}
         <input
           ref={ref}
           id={inputId}
-          className={`w-full py-2.5 bg-slate-50 dark:bg-slate-800/70 border text-xs sm:text-sm text-slate-900 dark:text-slate-100 font-medium placeholder-slate-400 dark:placeholder-slate-500 rounded-2xl outline-none transition-all duration-150 focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-500 ${
+          className={`w-full py-2.5 bg-surface-2 border text-xs sm:text-sm text-ink font-medium placeholder-ink-faint rounded-2xl outline-none transition-all duration-150 focus:ring-2 focus:ring-brand-500 ${
             leftIcon ? 'pl-10' : 'pl-4'
           } ${rightIcon ? 'pr-10' : 'pr-4'} ${
             error 
-              ? 'border-red-500 focus:ring-red-500' 
-              : 'border-slate-200 dark:border-slate-700/80 focus:border-transparent'
+              ? 'border-error focus:ring-error' 
+              : 'border-line focus:border-transparent'
           } ${className}`}
           style={{ borderRadius: 'var(--theme-radius, 1rem)' }}
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-3.5 text-slate-400 dark:text-slate-500">
+          <div className="absolute right-3.5 text-ink-faint">
             {rightIcon}
           </div>
         )}

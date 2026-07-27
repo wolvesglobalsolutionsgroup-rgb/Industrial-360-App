@@ -35,23 +35,23 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   };
 
   const iconBgs = {
-    emerald: 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60',
-    cyan: 'bg-cyan-50 dark:bg-cyan-950/60 text-cyan-600 dark:text-cyan-400 border border-cyan-200/60 dark:border-cyan-800/60',
-    amber: 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60',
-    indigo: 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60',
-    slate: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700',
-    error: 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60',
-    rose: 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/60',
+    emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20',
+    cyan: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20',
+    amber: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20',
+    indigo: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20',
+    slate: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20',
+    error: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20',
+    rose: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20',
   };
 
   return (
     <Card className={`relative overflow-hidden before:absolute before:top-0 before:left-0 before:bottom-0 before:w-1.5 ${accentBorders[accentColor]} ${className}`}>
       <CardContent className="p-5 flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wide text-slate-500 dark:text-slate-400 line-clamp-1">
+          <p className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wide text-ink-soft line-clamp-1">
             {title}
           </p>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono tracking-tight select-none">
+          <div className="text-2xl sm:text-3xl font-black text-ink font-mono tracking-tight select-none">
             {value}
           </div>
           
@@ -60,10 +60,10 @@ export const MetricCard: React.FC<MetricCardProps> = ({
               {trend && (
                 <span className={`inline-flex items-center gap-1 font-extrabold px-2 py-0.5 rounded-md ${
                   trend.direction === 'up' 
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300' 
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' 
                     : trend.direction === 'down'
-                    ? 'bg-red-100 text-red-800 dark:bg-red-950/80 dark:text-red-300'
-                    : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                    ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300'
+                    : 'bg-surface-2 text-ink-soft'
                 }`}>
                   {trend.direction === 'up' && <TrendingUp size={12} />}
                   {trend.direction === 'down' && <TrendingDown size={12} />}
@@ -72,7 +72,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
                 </span>
               )}
               {sublabel && (
-                <span className="text-slate-500 dark:text-slate-400 font-medium">
+                <span className="text-ink-soft font-medium">
                   {sublabel}
                 </span>
               )}

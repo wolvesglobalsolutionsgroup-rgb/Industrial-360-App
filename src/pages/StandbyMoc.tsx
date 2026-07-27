@@ -184,44 +184,44 @@ CONTRATISTA DE OBRA / INDUSTRIAL CONTROL 360
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-slate-900 text-white p-6 rounded-2xl shadow-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-surface border border-line p-6 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+          <div className="flex items-center gap-2 text-brand-500 dark:text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
             <Clock size={16} /> Módulo Prioritario 4 · Protección Financiera & Gestión de Cambios
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Escudo Stand-by Claims & MOC</h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <h1 className="text-2xl font-black tracking-tight text-ink">Gestión de Standby, Tiempos Muertos & MOC</h1>
+          <p className="text-ink-soft text-sm mt-1 font-medium">
             Registro blindado de tiempos muertos no imputables, redacción de cartas legales con IA y control de Órdenes de Cambio.
           </p>
         </div>
-        <div className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl text-right">
-          <span className="text-[10px] font-mono text-emerald-400 uppercase block font-bold">Total Reclamos Acumulados</span>
-          <span className="text-2xl font-bold font-mono text-emerald-400">${totalStandbyClaimUsd.toLocaleString()} USD</span>
+        <div className="bg-brand-500/10 border border-brand-500/20 p-3.5 rounded-xl text-right">
+          <span className="text-[10px] font-mono text-brand-500 dark:text-emerald-400 uppercase block font-bold">Total Reclamos Acumulados</span>
+          <span className="text-2xl font-black font-mono text-brand-500 dark:text-emerald-400">${totalStandbyClaimUsd.toLocaleString()} USD</span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 bg-white rounded-xl p-1 shadow-sm overflow-x-auto">
+      <div className="flex border border-line bg-surface rounded-2xl p-1 shadow-2xs overflow-x-auto">
         <button
           onClick={() => setActiveTab('standby')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'standby' ? 'bg-slate-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'standby' ? 'bg-brand-500 text-white shadow-xs' : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
           }`}
         >
           <Clock size={16} /> Registro de Tiempos Muertos (Stand-by)
         </button>
         <button
           onClick={() => setActiveTab('letterGenerator')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'letterGenerator' ? 'bg-slate-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'letterGenerator' ? 'bg-brand-500 text-white shadow-xs' : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
           }`}
         >
           <Sparkles size={16} /> Generador IA de Cartas Legales
         </button>
         <button
           onClick={() => setActiveTab('moc')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
-            activeTab === 'moc' ? 'bg-slate-900 text-white' : 'text-gray-600 hover:bg-gray-100'
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'moc' ? 'bg-brand-500 text-white shadow-xs' : 'text-ink-soft hover:bg-surface-2 hover:text-ink'
           }`}
         >
           <Layers size={16} /> Management of Change (MOC)
@@ -232,73 +232,73 @@ CONTRATISTA DE OBRA / INDUSTRIAL CONTROL 360
       {activeTab === 'standby' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* New Standby Event Form */}
-          <div className="lg:col-span-1 bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-            <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-              <Plus size={18} className="text-emerald-600" />
+          <div className="lg:col-span-1 bg-surface p-5 rounded-2xl border border-line shadow-2xs space-y-4">
+            <h2 className="text-base font-bold text-ink flex items-center gap-2">
+              <Plus size={18} className="text-brand-500" />
               Registrar Evento de Stand-by
             </h2>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Causa de la Inactividad</label>
+                <label className="block font-bold text-ink-soft mb-1 uppercase tracking-wider">Causa de la Inactividad</label>
                 <textarea
                   rows={2}
                   value={cause}
                   onChange={(e) => setCause(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs"
+                  className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl text-xs font-medium text-ink outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Equipos Afectados</label>
+                <label className="block font-bold text-ink-soft mb-1 uppercase tracking-wider">Equipos Afectados</label>
                 <input
                   type="text"
                   value={equipment}
                   onChange={(e) => setEquipment(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs"
+                  className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl text-xs font-medium text-ink outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Personal Afectado</label>
+                  <label className="block font-bold text-ink-soft mb-1 uppercase tracking-wider">Personal Afectado</label>
                   <input
                     type="number"
                     value={personnelCount}
                     onChange={(e) => setPersonnelCount(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono"
+                    className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl text-xs font-mono font-medium text-ink outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">Horas Retraso</label>
+                  <label className="block font-bold text-ink-soft mb-1 uppercase tracking-wider">Horas Retraso</label>
                   <input
                     type="number"
                     step="0.5"
                     value={hours}
                     onChange={(e) => setHours(Number(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono"
+                    className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl text-xs font-mono font-medium text-ink outline-none focus:ring-2 focus:ring-brand-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-gray-700 mb-1">Tarifa Horaria Stand-by (USD/h)</label>
+                <label className="block font-bold text-ink-soft mb-1 uppercase tracking-wider">Tarifa Horaria Stand-by (USD/h)</label>
                 <input
                   type="number"
                   value={ratePerHour}
                   onChange={(e) => setRatePerHour(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono"
+                  className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl text-xs font-mono font-medium text-ink outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
-              <div className="p-3 bg-slate-900 text-white rounded-xl flex justify-between items-center font-mono">
-                <span className="text-[11px] text-slate-400">Total Reclamo:</span>
-                <span className="text-lg font-bold text-emerald-400">${(hours * ratePerHour).toLocaleString()} USD</span>
+              <div className="p-3 bg-surface-2 border border-line text-ink rounded-xl flex justify-between items-center font-mono">
+                <span className="text-[11px] text-ink-soft font-bold">Total Reclamo:</span>
+                <span className="text-lg font-black text-brand-500 dark:text-emerald-400">${(hours * ratePerHour).toLocaleString()} USD</span>
               </div>
 
               <button
                 onClick={handleAddEvent}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl transition-all shadow"
+                className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-2.5 rounded-xl transition-all shadow-xs cursor-pointer"
               >
                 Guardar Evento en Bitácora
               </button>
@@ -307,8 +307,8 @@ CONTRATISTA DE OBRA / INDUSTRIAL CONTROL 360
 
           {/* List & Detail */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-              <h2 className="text-base font-bold text-gray-900">Histórico de Reclamos Stand-by</h2>
+            <div className="bg-surface p-5 rounded-2xl border border-line shadow-2xs space-y-4">
+              <h2 className="text-base font-bold text-ink">Histórico de Reclamos Stand-by</h2>
               
               <div className="space-y-3">
                 {events.map((ev) => (
@@ -317,24 +317,24 @@ CONTRATISTA DE OBRA / INDUSTRIAL CONTROL 360
                     onClick={() => setSelectedEvent(ev)}
                     className={`p-4 rounded-xl border cursor-pointer transition-all ${
                       selectedEvent?.id === ev.id
-                        ? 'border-emerald-500 bg-emerald-50/40 ring-2 ring-emerald-400/20'
-                        : 'border-gray-200 hover:bg-gray-50'
+                        ? 'border-brand-500 bg-brand-500/10 ring-2 ring-brand-500/20'
+                        : 'border-line bg-surface hover:bg-surface-2'
                     }`}
                   >
                     <div className="flex justify-between items-start gap-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-slate-900">{ev.id}</span>
-                          <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-medium">{ev.date}</span>
+                          <span className="font-mono text-xs font-bold text-ink">{ev.id}</span>
+                          <span className="text-[10px] bg-surface-2 px-2 py-0.5 rounded text-ink-soft font-bold">{ev.date}</span>
                         </div>
-                        <p className="text-xs text-gray-800 font-semibold mt-1">{ev.cause}</p>
+                        <p className="text-xs text-ink font-semibold mt-1">{ev.cause}</p>
                       </div>
-                      <span className="text-sm font-bold font-mono text-emerald-700 shrink-0">
+                      <span className="text-sm font-black font-mono text-brand-500 dark:text-emerald-400 shrink-0">
                         ${ev.totalCostUsd.toLocaleString()} USD
                       </span>
                     </div>
 
-                    <div className="mt-3 pt-2 border-t border-gray-100 flex justify-between items-center text-[11px] text-gray-500">
+                    <div className="mt-3 pt-2 border-t border-line flex justify-between items-center text-[11px] text-ink-soft">
                       <span>Equipos: {ev.equipmentAffected} ({ev.hoursDelayed}h)</span>
                       <button
                         onClick={(e) => {
@@ -342,9 +342,9 @@ CONTRATISTA DE OBRA / INDUSTRIAL CONTROL 360
                           setSelectedEvent(ev);
                           handleGenerateLetter();
                         }}
-                        className="flex items-center gap-1 text-slate-900 font-bold hover:underline"
+                        className="flex items-center gap-1 text-ink font-bold hover:text-brand-500 cursor-pointer"
                       >
-                        <Sparkles size={12} className="text-emerald-600" /> Redactar Carta IA
+                        <Sparkles size={12} className="text-brand-500" /> Redactar Carta IA
                       </button>
                     </div>
                   </div>
@@ -357,20 +357,20 @@ CONTRATISTA DE OBRA / INDUSTRIAL CONTROL 360
 
       {/* TAB 2: AI LETTER GENERATOR */}
       {activeTab === 'letterGenerator' && (
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-          <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+        <div className="bg-surface p-6 rounded-2xl border border-line shadow-2xs space-y-6">
+          <div className="flex justify-between items-center border-b border-line pb-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <Sparkles size={18} className="text-emerald-600" /> Redactor IA de Notificación de Reclamo Stand-by
+              <h2 className="text-lg font-bold text-ink flex items-center gap-2">
+                <Sparkles size={18} className="text-brand-500" /> Redactor IA de Notificación de Reclamo Stand-by
               </h2>
-              <p className="text-xs text-gray-500">Documento formal redactado con respaldo contractual para el cliente.</p>
+              <p className="text-xs text-ink-soft">Documento formal redactado con respaldo contractual para el cliente.</p>
             </div>
             <button
               onClick={() => {
                 navigator.clipboard.writeText(generatedLetter);
                 alert('Carta copiada al portapapeles.');
               }}
-              className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold"
+              className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer"
             >
               Copiar Carta
             </button>
@@ -378,26 +378,26 @@ CONTRATISTA DE OBRA / INDUSTRIAL CONTROL 360
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
             <div>
-              <label className="block font-bold text-gray-700 mb-1">Destinatario / Representante Cliente</label>
+              <label className="block font-bold text-ink-soft mb-1 uppercase tracking-wider">Destinatario / Representante Cliente</label>
               <input
                 type="text"
                 value={letterRecipient}
                 onChange={(e) => setLetterRecipient(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl text-ink font-medium outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
             <div>
-              <label className="block font-bold text-gray-700 mb-1">Referencia Contrato</label>
+              <label className="block font-bold text-ink-soft mb-1 uppercase tracking-wider">Referencia Contrato</label>
               <input
                 type="text"
                 value={letterContractRef}
                 onChange={(e) => setLetterContractRef(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl text-ink font-medium outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
           </div>
 
-          <div className="bg-slate-900 text-slate-100 p-6 rounded-xl font-mono text-xs whitespace-pre-wrap leading-relaxed border border-slate-800">
+          <div className="bg-surface-2 text-ink p-6 rounded-xl font-mono text-xs whitespace-pre-wrap leading-relaxed border border-line shadow-inner">
             {generatedLetter || 'Selecciona un evento de Stand-by y presiona "Redactar Carta IA".'}
           </div>
         </div>
@@ -405,34 +405,34 @@ CONTRATISTA DE OBRA / INDUSTRIAL CONTROL 360
 
       {/* TAB 3: MANAGEMENT OF CHANGE (MOC) */}
       {activeTab === 'moc' && (
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-6">
-          <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+        <div className="bg-surface p-6 rounded-2xl border border-line shadow-2xs space-y-6">
+          <div className="flex justify-between items-center border-b border-line pb-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">Control de Órdenes de Cambio (MOC)</h2>
-              <p className="text-xs text-gray-500">Gestión de variaciones técnicas y de alcance aprobadas antes de su ejecución.</p>
+              <h2 className="text-lg font-bold text-ink">Control de Órdenes de Cambio (MOC)</h2>
+              <p className="text-xs text-ink-soft">Gestión de variaciones técnicas y de alcance aprobadas antes de su ejecución.</p>
             </div>
           </div>
 
           <div className="space-y-4">
             {mocList.map((m) => (
-              <div key={m.id} className="p-4 border border-gray-200 rounded-xl space-y-2">
+              <div key={m.id} className="p-4 border border-line rounded-xl space-y-2 bg-surface-2/40">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="font-mono text-xs font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded">{m.code}</span>
-                    <h3 className="text-sm font-bold text-gray-900 mt-1">{m.title}</h3>
+                    <span className="font-mono text-xs font-bold bg-surface-2 text-ink px-2 py-0.5 rounded border border-line">{m.code}</span>
+                    <h3 className="text-sm font-bold text-ink mt-1">{m.title}</h3>
                   </div>
                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                    m.status === 'Aprobada' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    m.status === 'Aprobada' ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300' : 'bg-amber-500/15 text-amber-700 dark:text-amber-300'
                   }`}>
                     {m.status}
                   </span>
                 </div>
 
-                <p className="text-xs text-gray-600">{m.description}</p>
+                <p className="text-xs text-ink-soft leading-relaxed">{m.description}</p>
 
-                <div className="flex justify-between items-center pt-2 border-t border-gray-100 text-xs font-mono">
-                  <span>Impacto Costo: <strong className="text-gray-900">${m.costImpactUsd.toLocaleString()} USD</strong></span>
-                  <span>Impacto Tiempo: <strong className="text-gray-900">+{m.timeImpactDays} días</strong></span>
+                <div className="flex justify-between items-center pt-2 border-t border-line text-xs font-mono">
+                  <span className="text-ink-soft">Impacto Costo: <strong className="text-ink">${m.costImpactUsd.toLocaleString()} USD</strong></span>
+                  <span className="text-ink-soft">Impacto Tiempo: <strong className="text-ink">+{m.timeImpactDays} días</strong></span>
                 </div>
               </div>
             ))}

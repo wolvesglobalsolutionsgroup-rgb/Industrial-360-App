@@ -93,26 +93,26 @@ export default function VoiceChat() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+    <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] bg-surface rounded-2xl border border-line shadow-sm p-8">
       <div className="text-center mb-12">
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-4">Asistente de Voz en Obra</h1>
-        <p className="text-gray-500 max-w-md mx-auto">
+        <h1 className="text-3xl font-black text-ink tracking-tight mb-4">Asistente de Voz en Obra</h1>
+        <p className="text-ink-soft max-w-md mx-auto font-medium">
           Habla directamente con la IA para reportar avances, consultar normativas o pedir cálculos rápidos sin usar las manos.
         </p>
       </div>
 
       <div className="relative">
         {isRecording && (
-          <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20 scale-150"></div>
+          <div className="absolute inset-0 bg-brand-500 rounded-full animate-ping opacity-20 scale-150"></div>
         )}
         
         <button
           onClick={isRecording ? stopRecording : startRecording}
           disabled={isProcessing}
-          className={`relative z-10 w-32 h-32 rounded-full flex items-center justify-center transition-all shadow-xl ${
+          className={`relative z-10 w-32 h-32 rounded-full flex items-center justify-center transition-all shadow-xl cursor-pointer ${
             isRecording 
-              ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-500/30' 
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/30'
+              ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/30' 
+              : 'bg-brand-500 hover:bg-brand-600 text-white shadow-brand-500/30'
           }`}
         >
           {isProcessing ? (
@@ -127,19 +127,19 @@ export default function VoiceChat() {
 
       <div className="mt-8 text-center max-w-lg">
         {isProcessing ? (
-          <p className="text-emerald-600 font-medium animate-pulse">Procesando audio y consultando al servidor...</p>
+          <p className="text-brand-500 dark:text-emerald-400 font-bold animate-pulse">Procesando audio y consultando al servidor...</p>
         ) : isRecording ? (
-          <div className="flex items-center justify-center gap-2 text-emerald-600 font-medium">
+          <div className="flex items-center justify-center gap-2 text-rose-600 dark:text-rose-400 font-bold">
             <Volume2 size={20} className="animate-pulse" />
             Grabando... Toca el botón para detener y procesar.
           </div>
         ) : (
-          <p className="text-gray-500 font-medium">Toca el micrófono para hablar con el asistente</p>
+          <p className="text-ink-soft font-medium">Toca el micrófono para hablar con el asistente</p>
         )}
 
         {transcript && (
-          <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-xl text-left text-sm text-gray-800 leading-relaxed">
-            <span className="font-bold text-emerald-700 block mb-1">Respuesta del Asistente:</span>
+          <div className="mt-6 p-4 bg-surface-2 border border-line rounded-xl text-left text-sm text-ink leading-relaxed">
+            <span className="font-bold text-brand-500 dark:text-emerald-400 block mb-1">Respuesta del Asistente:</span>
             {transcript}
           </div>
         )}

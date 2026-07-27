@@ -79,6 +79,7 @@ export default function Expenses() {
   });
 
   const scanFileInputRef = useRef<HTMLInputElement>(null);
+  const scanCameraInputRef = useRef<HTMLInputElement>(null);
 
   // Subscribe to Firestore expenses
   useEffect(() => {
@@ -332,12 +333,20 @@ export default function Expenses() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Hidden Scanner File Input */}
+      {/* Hidden Scanner File & Camera Inputs */}
       <input 
         type="file" 
         accept="image/*" 
         className="hidden" 
         ref={scanFileInputRef}
+        onChange={handleScanFileUpload}
+      />
+      <input 
+        type="file" 
+        accept="image/*"
+        capture="environment" 
+        className="hidden" 
+        ref={scanCameraInputRef}
         onChange={handleScanFileUpload}
       />
 
@@ -592,20 +601,28 @@ export default function Expenses() {
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-2 pt-2">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={() => setIsScanModalOpen(false)}
             >
               Cancelar
             </Button>
             <Button
-              variant="primary"
+              variant="outline"
               onClick={() => scanFileInputRef.current?.click()}
+              isLoading={isScanning}
+              leftIcon={<Upload size={16} />}
+            >
+              Seleccionar Archivo
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => scanCameraInputRef.current?.click()}
               isLoading={isScanning}
               leftIcon={<Camera size={16} />}
             >
-              Seleccionar Foto
+              Tomar Foto con Cámara
             </Button>
           </div>
         </div>
@@ -660,13 +677,13 @@ export default function Expenses() {
             />
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-ink-soft">
                 Categoría (PDVSA L-STC)
               </label>
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500 transition-all"
+                className="w-full py-2.5 px-3 bg-surface-2 border border-line rounded-2xl text-xs sm:text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-brand-500 transition-all"
               >
                 {EXPENSE_CATEGORIES.map(cat => (
                   <option key={cat.id} value={cat.id}>{cat.label}</option>
@@ -684,13 +701,13 @@ export default function Expenses() {
             />
 
             <div className="space-y-1.5">
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-ink-soft">
                 Estado del Comprobante
               </label>
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as any })}
-                className="w-full py-2.5 px-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500 transition-all"
+                className="w-full py-2.5 px-3 bg-surface-2 border border-line rounded-2xl text-xs sm:text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-brand-500 transition-all"
               >
                 <option value="aprobado">Aprobado / Contabilizado</option>
                 <option value="pendiente">Pendiente de Revisión</option>
@@ -700,7 +717,7 @@ export default function Expenses() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-ink-soft">
               Descripción / Concepto del Gasto
             </label>
             <textarea
@@ -708,7 +725,7 @@ export default function Expenses() {
               placeholder="Detalle de insumos comprados, especificaciones o motivo del gasto..."
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              className="w-full p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-2xl text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-brand-500 transition-all resize-none"
+              className="w-full p-3 bg-surface-2 border border-line rounded-2xl text-xs sm:text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-brand-500 transition-all resize-none"
             />
           </div>
 

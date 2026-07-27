@@ -54,24 +54,24 @@ export const Dialog: React.FC<DialogProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2 }}
-            className={`relative w-full ${widthClasses[maxWidth]} my-auto backdrop-blur-2xl bg-white/95 dark:bg-slate-900/95 border border-white/80 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 z-10 overflow-hidden text-slate-900 dark:text-slate-100`}
+            className={`relative w-full ${widthClasses[maxWidth]} my-auto bg-surface border border-line rounded-3xl shadow-2xl p-6 sm:p-8 z-10 overflow-hidden text-ink`}
             style={{ borderRadius: 'var(--theme-radius, 1.5rem)' }}
           >
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-start justify-between gap-4 pb-4 border-b border-line">
               <div>
-                <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                <h2 className="text-xl font-black tracking-tight text-ink">
                   {title}
                 </h2>
                 {description && (
-                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                  <p className="text-xs sm:text-sm text-ink-soft mt-1 font-medium">
                     {description}
                   </p>
                 )}
               </div>
               <button
                 onClick={onClose}
-                className="p-2 rounded-2xl text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                className="p-2 rounded-2xl text-ink-faint hover:text-ink hover:bg-surface-2 transition-colors cursor-pointer shrink-0"
               >
                 <X size={20} />
               </button>

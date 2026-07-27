@@ -38,7 +38,7 @@ const financieroLegalItems = [
   { path: '/expenses', label: 'Mod 1: Costos y Tesorería', icon: CircleDollarSign },
   { path: '/client-portal-builder', label: 'Portales Cliente B2B', icon: Globe },
   { path: '/modulos/procura', label: 'Mod 3: Procura & Salvamento', icon: PackageSearch },
-  { path: '/modulos/standby-moc', label: 'Stand-by Claims & MOC', icon: Clock },
+  { path: '/modulos/standby-moc', label: 'Gestión Standby & MOC', icon: Clock },
   { path: '/modulos/cierre', label: 'Mod 5: Dossier As-Built', icon: FileArchive },
   { path: '/modulos/auditoria', label: 'Mod 6: Auditoría Blockchain', icon: Database },
 ];
