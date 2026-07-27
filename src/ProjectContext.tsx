@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { collection, query, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
+import { seedDemoData } from './lib/seedDemoData';
 
 export type UserRole = 'superadmin' | 'gerente' | 'supervisor' | 'inspector' | 'campo' | 'cliente_readonly';
 
@@ -124,8 +125,6 @@ interface ProjectContextType {
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
-
-import { seedDemoData } from './lib/seedDemoData';
 
 export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const [currentOrganization, setCurrentOrganization] = useState<Organization>(() => {
