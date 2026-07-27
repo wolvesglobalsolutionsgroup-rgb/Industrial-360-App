@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { THEME_PRESETS } from './themePresets';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -8,14 +7,13 @@ interface ThemeContextType {
   toggleMode: () => void;
   setMode: (mode: ThemeMode) => void;
   isDarkMode: boolean;
-  // Compatibility properties
   preset: string;
   setPreset: (preset: string) => void;
   density: string;
   setDensity: (density: string) => void;
   borderRadius: string;
   setBorderRadius: (radius: string) => void;
-  activeTheme: typeof THEME_PRESETS['default'];
+  activeTheme: { name: string };
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -27,10 +25,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
-  const [preset, setPresetState] = useState<string>('default');
-  const [density, setDensityState] = useState<string>('spacious');
-  const [borderRadius, setBorderRadiusState] = useState<string>('rounded');
-
   const setMode = (newMode: ThemeMode) => {
     setModeState(newMode);
     localStorage.setItem('ic360_theme_mode', newMode);
@@ -38,30 +32,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const toggleMode = () => setMode(mode === 'dark' ? 'light' : 'dark');
 
-  const setPreset = (p: string) => {
-    setPresetState(p);
-    // If user selects a dark-leaning preset name, switch mode to dark, else light
-    if (p.includes('dark') || p.includes('midnight') || p.includes('slate') || p.includes('titanium')) {
-      setMode('dark');
-    } else if (p.includes('light') || p.includes('arctic') || p.includes('sandstone')) {
-      setMode('light');
-    }
-  };
-
   useEffect(() => {
-    const root = document.documentElement;
-    root.classList.toggle('dark', mode === 'dark');
-    root.style.colorScheme = mode;
+    document.documentElement.classList.toggle('dark', mode === 'dark');
+    document.documentElement.style.colorScheme = mode;
   }, [mode]);
-
-  const activeTheme = {
-    ...THEME_PRESETS.default,
-    name: mode === 'dark' ? 'Modo Oscuro' : 'Modo Claro',
-    colors: {
-      ...THEME_PRESETS.default.colors,
-      isDark: mode === 'dark',
-    },
-  };
 
   return (
     <ThemeContext.Provider
@@ -70,13 +44,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         toggleMode,
         setMode,
         isDarkMode: mode === 'dark',
-        preset,
-        setPreset,
-        density,
-        setDensity: setDensityState,
-        borderRadius,
-        setBorderRadius: setBorderRadiusState,
-        activeTheme,
+        preset: 'default',
+        setPreset: () => {},
+        density: 'spacious',
+        setDensity: () => {},
+        borderRadius: 'rounded',
+        setBorderRadius: () => {},
+        activeTheme: { name: mode === 'dark' ? 'Modo Oscuro' : 'Modo Claro' },
       }}
     >
       {children}
