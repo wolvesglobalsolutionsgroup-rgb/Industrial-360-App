@@ -10,14 +10,14 @@ export const Table = ({ children, className = '' }: { children: React.ReactNode;
 
 export const TableHeader = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
   <thead>
-    <tr className={`bg-slate-50/80 dark:bg-slate-800/80 border-b border-slate-200/80 dark:border-slate-800 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider ${className}`}>
+    <tr className={`bg-surface-2 border-b border-line text-ink-soft text-xs font-bold uppercase tracking-wider ${className}`}>
       {children}
     </tr>
   </thead>
 );
 
 export const TableBody = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <tbody className={`divide-y divide-slate-100 dark:divide-slate-800/60 ${className}`}>
+  <tbody className={`divide-y divide-line ${className}`}>
     {children}
   </tbody>
 );
@@ -25,7 +25,7 @@ export const TableBody = ({ children, className = '' }: { children: React.ReactN
 export const TableRow = ({ children, className = '', onClick }: { children: React.ReactNode; className?: string; onClick?: () => void }) => (
   <tr 
     onClick={onClick}
-    className={`hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    className={`hover:bg-surface-2/70 transition-colors ${onClick ? 'cursor-pointer' : ''} ${className}`}
   >
     {children}
   </tr>
@@ -38,7 +38,7 @@ export const TableHead = ({ children, className = '' }: { children: React.ReactN
 );
 
 export const TableCell = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
-  <td className={`p-4 text-xs sm:text-sm text-slate-800 dark:text-slate-200 font-medium ${className}`}>
+  <td className={`p-4 text-xs sm:text-sm text-ink font-medium ${className}`}>
     {children}
   </td>
 );

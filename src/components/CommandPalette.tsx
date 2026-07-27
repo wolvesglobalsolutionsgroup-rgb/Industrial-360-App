@@ -82,14 +82,14 @@ export function CommandPalette() {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-slate-950/60 backdrop-blur-md transition-all">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-md transition-all">
       <div 
-        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col"
+        className="bg-surface border border-line rounded-3xl shadow-lift w-full max-w-xl overflow-hidden flex flex-col"
         onKeyDown={handleKeyDown}
       >
         {/* Search Header */}
-        <div className="flex items-center px-4 py-3.5 border-b border-slate-200 dark:border-slate-800 gap-3">
-          <Search size={18} className="text-slate-400 shrink-0" />
+        <div className="flex items-center px-4 py-3.5 border-b border-line gap-3">
+          <Search size={18} className="text-ink-faint shrink-0" />
           <input 
             type="text" 
             autoFocus
@@ -99,14 +99,14 @@ export function CommandPalette() {
               setSearch(e.target.value);
               setSelectedIndex(0);
             }}
-            className="w-full bg-transparent border-none outline-none text-xs sm:text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400"
+            className="w-full bg-transparent border-none outline-none text-xs sm:text-sm font-medium text-ink placeholder:text-ink-faint"
           />
-          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-1 rounded-lg">
+          <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-surface-2 text-ink-soft px-2 py-1 rounded-lg">
             <Command size={10} /> K
           </span>
           <button 
             onClick={() => setIsOpen(false)}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 cursor-pointer"
+            className="p-1 hover:bg-surface-2 rounded-lg text-ink-faint hover:text-ink cursor-pointer"
           >
             <X size={16} />
           </button>
@@ -115,7 +115,7 @@ export function CommandPalette() {
         {/* Results List */}
         <div className="max-h-80 overflow-y-auto p-2 space-y-1">
           {filteredCommands.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-400 font-medium">
+            <div className="p-8 text-center text-xs text-ink-faint font-medium">
               No se encontraron resultados para "{search}"
             </div>
           ) : (
@@ -134,20 +134,20 @@ export function CommandPalette() {
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`w-full flex items-center justify-between p-3 rounded-2xl text-left transition-all cursor-pointer ${
                     isSelected 
-                      ? 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 font-bold' 
-                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                      ? 'bg-brand-accent/15 text-brand-accent font-bold' 
+                      : 'text-ink hover:bg-surface-2'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl ${isSelected ? 'bg-amber-500 text-slate-950' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>
+                    <div className={`p-2 rounded-xl ${isSelected ? 'bg-brand-accent text-white' : 'bg-surface-2 text-ink-soft'}`}>
                       <Icon size={16} />
                     </div>
                     <div>
                       <span className="text-xs font-bold block">{cmd.title}</span>
-                      <span className="text-[10px] text-slate-400 uppercase font-mono font-semibold">{cmd.category}</span>
+                      <span className="text-[10px] text-ink-faint uppercase font-mono font-semibold">{cmd.category}</span>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400">{cmd.path}</span>
+                  <span className="text-[10px] font-mono text-ink-faint">{cmd.path}</span>
                 </button>
               );
             })
@@ -155,7 +155,7 @@ export function CommandPalette() {
         </div>
 
         {/* Footer info */}
-        <div className="bg-slate-50 dark:bg-slate-900/90 border-t border-slate-100 dark:border-slate-800/80 px-4 py-2.5 flex justify-between items-center text-[10px] text-slate-400 font-mono">
+        <div className="bg-surface-2 border-t border-line px-4 py-2.5 flex justify-between items-center text-[10px] text-ink-faint font-mono">
           <span>Industrial Control 360 • Búsqueda Rápida</span>
           <div className="flex items-center gap-2">
             <span>↑↓ para navegar</span>

@@ -32,8 +32,16 @@
   --color-ink: #0f172a;
   --color-ink-soft: #64748b;
   --color-ink-faint: #94a3b8;
+  --color-muted: #64748b;
+  --color-faint: #94a3b8;
   --color-line: #e2e8f0;
   --color-interactive: var(--color-brand-500);
+
+  /* Priorities semánticas */
+  --color-priority-low: #10b981;
+  --color-priority-medium: #f59e0b;
+  --color-priority-high: #f97316;
+  --color-priority-urgent: #ef4444;
 
   /* Feedback */
   --color-success: #059669;
@@ -48,6 +56,7 @@
 
   --radius-xl: 1rem;
   --radius-2xl: 1.25rem;
+  --radius-pill: 9999px;
 
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
@@ -63,8 +72,15 @@
   --color-ink: #eef2f6;
   --color-ink-soft: #9aa8bb;
   --color-ink-faint: #64748b;
+  --color-muted: #9aa8bb;
+  --color-faint: #64748b;
   --color-line: #1f2b3a;
   --color-interactive: var(--color-brand-300);
+
+  --color-priority-low: #34d399;
+  --color-priority-medium: #fbbf24;
+  --color-priority-high: #fb923c;
+  --color-priority-urgent: #f87171;
 
   --color-success: #34d399;
   --color-warning: #fbbf24;
@@ -77,6 +93,9 @@
 }
 
 /* ===== UTILIDADES ===== */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
 .glass {
   background: color-mix(in oklab, var(--color-bg) 72%, transparent);
   backdrop-filter: blur(20px) saturate(160%);
