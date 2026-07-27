@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
-import { collection, query, onSnapshot, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, where, collectionGroup } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { callGeminiProxy } from '../lib/geminiProxy';
 import { motion } from 'motion/react';
@@ -41,57 +41,69 @@ export default function Dashboard() {
   const [ptwList, setPtwList] = useState<any[]>([]);
   const [weldJoints, setWeldJoints] = useState<any[]>([]);
 
-  // Subscribe to Firestore Collections
+  // Subscribe to Firestore Collections (Multi-tenant)
   useEffect(() => {
     setIsLoadingData(true);
     setErrorState(null);
-    const isSingle = currentProject && currentProject.id !== 'all';
+    const isSingle = currentProject && currentProject.id !== 'all' && currentProject.id !== undefined;
+    const orgId = currentOrganization?.id || 'default_org';
+    const projId = currentProject?.id;
 
     const timer = setTimeout(() => {
       setIsLoadingData(false);
     }, 1000);
     
     try {
-      const tasksQ = isSingle 
-        ? query(collection(db, 'tasks'), where('projectId', '==', currentProject.id))
-        : query(collection(db, 'tasks'));
+      const tasksPath = isSingle ? `organizations/${orgId}/projects/${projId}/tasks` : null;
+      const tasksQ = tasksPath 
+        ? query(collection(db, tasksPath))
+        : query(collectionGroup(db, 'tasks'), where('orgId', '==', orgId));
+
       const unsubTasks = onSnapshot(tasksQ, (snap) => {
         setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         setIsLoadingData(false);
         clearTimeout(timer);
       }, (err) => {
-        handleFirestoreError(err, OperationType.GET, 'tasks');
+        handleFirestoreError(err, OperationType.GET, tasksPath || 'tasks');
         setIsLoadingData(false);
         clearTimeout(timer);
       });
 
-      const expensesQ = isSingle
-        ? query(collection(db, 'expenses'), where('projectId', '==', currentProject.id))
-        : query(collection(db, 'expenses'));
+      const expensesPath = isSingle ? `organizations/${orgId}/projects/${projId}/expenses` : null;
+      const expensesQ = expensesPath
+        ? query(collection(db, expensesPath))
+        : query(collectionGroup(db, 'expenses'), where('orgId', '==', orgId));
+
       const unsubExpenses = onSnapshot(expensesQ, (snap) => {
         setExpenses(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      }, (err) => handleFirestoreError(err, OperationType.GET, 'expenses'));
+      }, (err) => handleFirestoreError(err, OperationType.GET, expensesPath || 'expenses'));
 
-      const valsQ = isSingle
-        ? query(collection(db, 'valuations'), where('projectId', '==', currentProject.id))
-        : query(collection(db, 'valuations'));
+      const valsPath = isSingle ? `organizations/${orgId}/projects/${projId}/valuations` : null;
+      const valsQ = valsPath
+        ? query(collection(db, valsPath))
+        : query(collectionGroup(db, 'valuations'), where('orgId', '==', orgId));
+
       const unsubValuations = onSnapshot(valsQ, (snap) => {
         setValuations(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      }, (err) => handleFirestoreError(err, OperationType.GET, 'valuations'));
+      }, (err) => handleFirestoreError(err, OperationType.GET, valsPath || 'valuations'));
 
-      const ptwQ = isSingle
-        ? query(collection(db, 'siho_ptw'), where('projectId', '==', currentProject.id))
-        : query(collection(db, 'siho_ptw'));
+      const ptwPath = isSingle ? `organizations/${orgId}/projects/${projId}/siho_ptw` : null;
+      const ptwQ = ptwPath
+        ? query(collection(db, ptwPath))
+        : query(collectionGroup(db, 'siho_ptw'), where('orgId', '==', orgId));
+
       const unsubPtw = onSnapshot(ptwQ, (snap) => {
         setPtwList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      }, (err) => handleFirestoreError(err, OperationType.GET, 'siho_ptw'));
+      }, (err) => handleFirestoreError(err, OperationType.GET, ptwPath || 'siho_ptw'));
 
-      const weldsQ = isSingle
-        ? query(collection(db, 'weld_joints'), where('projectId', '==', currentProject.id))
-        : query(collection(db, 'weld_joints'));
+      const weldsPath = isSingle ? `organizations/${orgId}/projects/${projId}/weld_joints` : null;
+      const weldsQ = weldsPath
+        ? query(collection(db, weldsPath))
+        : query(collectionGroup(db, 'weld_joints'), where('orgId', '==', orgId));
+
       const unsubWelds = onSnapshot(weldsQ, (snap) => {
         setWeldJoints(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      }, (err) => handleFirestoreError(err, OperationType.GET, 'weld_joints'));
+      }, (err) => handleFirestoreError(err, OperationType.GET, weldsPath || 'weld_joints'));
 
       return () => {
         clearTimeout(timer);
@@ -105,7 +117,7 @@ export default function Dashboard() {
       clearTimeout(timer);
       setIsLoadingData(false);
     }
-  }, [currentProject]);
+  }, [currentProject, currentOrganization]);
 
   // Weather Context Effect
   useEffect(() => {
