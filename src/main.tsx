@@ -7,19 +7,20 @@ import { initOfflineAutoSync } from './lib/offlineSync.ts';
 // Initialize offline background sync handlers
 initOfflineAutoSync();
 
-// Register Service Worker for PWA & Background Sync
-if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(
-      (reg) => console.log('[PWA] Service Worker registered:', reg.scope),
-      (err) => console.warn('[PWA] Service Worker registration failed:', err)
-    );
+// Always unregister service workers in dev/preview environment to prevent stale JS bundle caching
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      registration.unregister();
+    }
   });
-} else if ('serviceWorker' in navigator) {
-  // Register in dev/preview environment as well
-  navigator.serviceWorker.register('/sw.js').catch((err) => {
-    console.warn('[PWA Dev] SW registration note:', err);
-  });
+  if (typeof caches !== 'undefined') {
+    caches.keys().then((names) => {
+      for (const name of names) {
+        caches.delete(name);
+      }
+    });
+  }
 }
 
 createRoot(document.getElementById('root')!).render(
