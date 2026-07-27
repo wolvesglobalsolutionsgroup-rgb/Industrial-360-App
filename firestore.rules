@@ -64,127 +64,28 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Root Operational Collections (Public Read for Client Portals & App Users)
+    // Root Operational Collections — Bloqueado (Migrado a /organizations/{orgId})
     // ===============================================================
-    match /projects/{projectId} {
-      allow read: if true;
-      allow create, update: if isGerente();
-      allow delete: if isSuperadmin();
-    }
-
-    match /tasks/{taskId} {
-      allow read: if true;
-      allow create, update: if isSupervisor();
-      allow delete: if isGerente();
-    }
-
-    match /valuations/{valuationId} {
-      allow read: if true;
-      allow create, update: if isGerente();
-      allow delete: if isSuperadmin();
-    }
-
-    match /expenses/{expenseId} {
-      allow read: if true;
-      allow create, update: if isGerente();
-      allow delete: if isSuperadmin();
-    }
-
-    match /field_reports/{reportId} {
-      allow read: if true;
-      allow create, update: if isCampo();
-      allow delete: if isSupervisor();
-    }
-
-    match /siho_ptw/{ptwId} {
-      allow read: if true;
-      allow create, update: if isCampo();
-      allow delete: if isGerente();
-    }
-
-    match /ptws/{ptwId} {
-      allow read: if true;
-      allow create, update: if isCampo();
-      allow delete: if isGerente();
-    }
-
-    match /weld_joints/{jointId} {
-      allow read: if true;
-      allow create, update: if isInspector();
-      allow delete: if isGerente();
-    }
-
-    match /welds/{weldId} {
-      allow read: if true;
-      allow create, update: if isInspector();
-      allow delete: if isGerente();
-    }
-
-    match /ndt_reports/{reportId} {
-      allow read: if true;
-      allow create, update: if isInspector();
-      allow delete: if isGerente();
-    }
-
-    match /inventory/{itemId} {
-      allow read: if true;
-      allow create, update: if isSupervisor();
-      allow delete: if isGerente();
-    }
-
-    match /documents/{documentId} {
-      allow read: if true;
-      allow create, update: if isCampo();
-      allow delete: if isGerente();
-    }
-
-    match /ili_runs/{runId} {
-      allow read: if true;
-      allow create, update: if isInspector();
-      allow delete: if isGerente();
-    }
-
-    match /standby_claims/{claimId} {
-      allow read: if true;
-      allow create, update: if isGerente();
-      allow delete: if isSuperadmin();
-    }
-
-    match /moc_requests/{mocId} {
-      allow read: if true;
-      allow create, update: if isSupervisor();
-      allow delete: if isGerente();
-    }
-
-    match /fleet_equipment/{equipId} {
-      allow read: if true;
-      allow create, update: if isSupervisor();
-      allow delete: if isGerente();
-    }
-
-    match /interop_imports/{importId} {
-      allow read: if true;
-      allow create, update: if isGerente();
-      allow delete: if isSuperadmin();
-    }
-
-    match /dossier_compilations/{dossierId} {
-      allow read: if true;
-      allow create, update: if isGerente();
-      allow delete: if isSuperadmin();
-    }
-
-    match /settings/{settingId} {
-      allow read: if true;
-      allow create, update: if isGerente();
-      allow delete: if isSuperadmin();
-    }
-
-    match /engineering_calcs/{calcId} {
-      allow read: if true;
-      allow create, update: if isCampo();
-      allow delete: if isGerente();
-    }
+    match /projects/{document} { allow read, write: if false; }
+    match /tasks/{document} { allow read, write: if false; }
+    match /valuations/{document} { allow read, write: if false; }
+    match /expenses/{document} { allow read, write: if false; }
+    match /field_reports/{document} { allow read, write: if false; }
+    match /siho_ptw/{document} { allow read, write: if false; }
+    match /ptws/{document} { allow read, write: if false; }
+    match /weld_joints/{document} { allow read, write: if false; }
+    match /welds/{document} { allow read, write: if false; }
+    match /ndt_reports/{document} { allow read, write: if false; }
+    match /inventory/{document} { allow read, write: if false; }
+    match /documents/{document} { allow read, write: if false; }
+    match /ili_runs/{document} { allow read, write: if false; }
+    match /standby_claims/{document} { allow read, write: if false; }
+    match /moc_requests/{document} { allow read, write: if false; }
+    match /fleet_equipment/{document} { allow read, write: if false; }
+    match /interop_imports/{document} { allow read, write: if false; }
+    match /dossier_compilations/{document} { allow read, write: if false; }
+    match /settings/{document} { allow read, write: if false; }
+    match /engineering_calcs/{document} { allow read, write: if false; }
 
     // ===============================================================
     // Multi-Tenancy Hierarchy: /organizations/{orgId}
