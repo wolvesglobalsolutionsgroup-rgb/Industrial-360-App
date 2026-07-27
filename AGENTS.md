@@ -83,6 +83,13 @@ Si una instrucción del usuario es ambigua entre "hazlo rápido para la demo" y 
 
 ---
 
-## 7. Registro de decisiones
+## 8. Sistema de tema — regla única
 
-Cada vez que se tome una decisión de arquitectura no trivial (elegir una librería de mapas, un formato de parser, una estructura de rol nuevo), el agente debe agregar una línea a un archivo `DECISIONS.md` en la raíz (crearlo si no existe) con: fecha, decisión tomada, alternativas consideradas, y por qué. Esto evita que decisiones se reviertan sin querer en sesiones futuras de AI Studio.
+Existe exactamente un lugar donde se definen colores, sombras y radios: el bloque `@theme` de `src/index.css`, con sus overrides en `.dark`. Existe exactamente un mecanismo de modo oscuro: la clase `dark` en `<html>`, controlada por `ThemeContext.tsx`. No existe ningún otro sistema de temas.
+
+Ningún componente:
+- Define colores hardcodeados (`bg-slate-800`, `#0b2239` inline, etc.) — siempre `bg-surface`, `text-ink`, `bg-brand-500`, etc.
+- Inyecta variables CSS por JavaScript, excepto ThemeContext.tsx para el color de marca dinámico.
+- Usa `dark:` como prefijo de Tailwind — el modo oscuro se resuelve solo a nivel de variable en index.css.
+
+Antes de dar por terminada cualquier pantalla: alternar modo oscuro y confirmar que la pantalla completa cambia. Si algo se queda congelado en un color, es un hardcodeo que hay que migrar a una variable.

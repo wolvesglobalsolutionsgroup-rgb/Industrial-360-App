@@ -78,7 +78,7 @@ export const HeroCard: React.FC<HeroCardProps> = ({
           <div className="pt-2 border-t border-white/10">
             <Link
               to="/tasks"
-              className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-white text-ink rounded-xl font-bold text-xs hover:bg-white/90 transition-all shadow-sm cursor-pointer"
+              className="w-full flex items-center justify-center gap-2 py-2 px-3 bg-white text-slate-950 rounded-xl font-bold text-xs hover:bg-slate-100 transition-all shadow-sm cursor-pointer"
             >
               <span>Ver Kanban de Partidas</span>
               <ArrowRight size={14} />
