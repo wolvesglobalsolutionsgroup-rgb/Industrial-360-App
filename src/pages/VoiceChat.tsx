@@ -53,7 +53,7 @@ export default function VoiceChat() {
         const base64Audio = (reader.result as string).split(',')[1];
         
         const response = await callGeminiProxy({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           contents: [
             { text: 'Eres un ingeniero civil experto y asistente de obra. Responde a la consulta de voz del usuario de manera concisa y profesional.' },
             { inlineData: { data: base64Audio, mimeType: 'audio/webm' } }
@@ -65,7 +65,7 @@ export default function VoiceChat() {
           // Play TTS audio response
           try {
             const ttsRes = await callGeminiProxy({
-              model: 'gemini-2.5-flash-preview-tts',
+              model: 'gemini-3.1-flash-tts-preview',
               contents: [{ parts: [{ text: response.text }] }],
               config: {
                 responseModalities: ['AUDIO'],

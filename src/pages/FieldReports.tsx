@@ -191,7 +191,7 @@ export default function FieldReports() {
         const base64Audio = (reader.result as string).split(',')[1];
         
         const response = await callGeminiProxy({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           contents: [
             { text: 'Transcribe este reporte diario de obra dictado por el ingeniero de campo. Devuelve únicamente la transcripción limpia y técnica sin comentarios introductorios.' },
             { inlineData: { data: base64Audio, mimeType: 'audio/webm' } }
@@ -237,7 +237,7 @@ ${tasksContext}
 Responde de forma ejecutiva, concisa y profesional.`;
 
         const response = await callGeminiProxy({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           contents: [
             { text: prompt },
             { inlineData: { data: base64Image, mimeType: file.type } }

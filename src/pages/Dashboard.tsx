@@ -112,7 +112,7 @@ export default function Dashboard() {
     const fetchWeatherContext = async () => {
       try {
         const response = await callGeminiProxy({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           prompt: '¿Cuál es el clima actual y pronóstico para los próximos 3 días en la zona de operaciones petroleras e industriales de Anzoátegui, Venezuela? Responde en 2 oraciones indicando cómo podría afectar labores de construcción e ingeniería petrolera al aire libre.',
           config: {
             tools: [{ googleSearch: {} }]

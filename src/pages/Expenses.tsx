@@ -250,7 +250,7 @@ export default function Expenses() {
       Devuelve SOLO el objeto JSON sin marcas markdown ni texto adicional.`;
 
       const response = await callGeminiProxy({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: [
           {
             inlineData: {

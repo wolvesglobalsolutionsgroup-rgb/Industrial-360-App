@@ -84,7 +84,7 @@ export default function ProjectBrain() {
         const base64Audio = (reader.result as string).split(',')[1];
         
         const response = await callGeminiProxy({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.6-flash',
           contents: [
             { text: 'Transcribe el siguiente audio del usuario. Solo devuelve el texto transcrito.' },
             { inlineData: { data: base64Audio, mimeType: 'audio/webm' } }
@@ -113,7 +113,7 @@ export default function ProjectBrain() {
       setIsPlayingAudio(true);
 
       const response = await callGeminiProxy({
-        model: "gemini-2.5-flash-preview-tts",
+        model: "gemini-3.1-flash-tts-preview",
         contents: [{ parts: [{ text }] }],
         config: {
           responseModalities: ['AUDIO'],
@@ -175,7 +175,7 @@ export default function ProjectBrain() {
       Consulta del usuario: "${userQuery}"`;
 
       const response = await callGeminiProxy({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: prompt,
         config: {
           tools: [{ googleSearch: {} }],

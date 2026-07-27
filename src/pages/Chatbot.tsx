@@ -79,7 +79,7 @@ export default function Chatbot() {
       contents.push(prompt);
 
       const response = await callGeminiProxy({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: contents,
       });
 

@@ -237,7 +237,7 @@ Consulta: ${queryText}
 Ofrece una respuesta técnica, indicando rutas de acceso recomendadas, estaciones de servicio, proveedores o puntos logísticos clave.`;
 
       const res = await callGeminiProxy({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.6-flash',
         contents: prompt,
         config: {
           tools: [{ googleMaps: {} }],
