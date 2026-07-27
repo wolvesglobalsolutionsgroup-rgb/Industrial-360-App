@@ -156,44 +156,7 @@ export enum OperationType {
   WRITE = 'write',
 }
 
-export interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: {
-    userId: string | undefined;
-    email: string | undefined;
-    emailVerified: boolean | undefined;
-    isAnonymous: boolean | undefined;
-    tenantId: string | undefined;
-    providerInfo: {
-      providerId: string;
-      displayName: string | null;
-      email: string | null;
-      photoUrl: string | null;
-    }[];
-  }
-}
-
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const user = getAuthUser();
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: user?.uid,
-      email: user?.email || undefined,
-      emailVerified: user?.emailVerified,
-      isAnonymous: user?.isAnonymous,
-      tenantId: user?.tenantId || undefined,
-      providerInfo: user?.providerData?.map((provider: any) => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  }
-  console.warn('Firestore Operation Notice: ', JSON.stringify(errInfo));
+export function handleFirestoreError(error: unknown, operationType: OperationType | string, collection?: string | null) {
+  const errMsg = error instanceof Error ? error.message : String(error);
+  console.warn(`Firestore error [${operationType}]${collection ? ' on ' + collection : ''}:`, errMsg);
 }

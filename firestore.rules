@@ -17,27 +17,27 @@ service cloud.firestore {
     function getUserRole() {
       return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
         ? getUserData().role
-        : 'campo';
+        : null;
     }
 
     function isSuperadmin() {
-      return isAuthenticated() && (getUserRole() == 'superadmin' || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
+      return isAuthenticated() && getUserRole() == 'superadmin';
     }
 
     function isGerente() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente'] || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
+      return isAuthenticated() && getUserRole() in ['superadmin', 'gerente'];
     }
 
     function isSupervisor() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor'] || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
+      return isAuthenticated() && getUserRole() in ['superadmin', 'gerente', 'supervisor'];
     }
 
     function isInspector() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector'] || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
+      return isAuthenticated() && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector'];
     }
 
     function isCampo() {
-      return isAuthenticated() && (getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'] || !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
+      return isAuthenticated() && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'];
     }
 
     // ===============================================================
@@ -53,14 +53,14 @@ service cloud.firestore {
     // Public Client Portals & Access Logs (Secure External Access)
     // ===============================================================
     match /client_portals/{portalId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /client_portal_access_logs/{logId} {
       allow read: if isGerente();
-      allow create: if true;
+      allow create: if isAuthenticated();
     }
 
     // ===============================================================
@@ -91,28 +91,28 @@ service cloud.firestore {
     // Multi-Tenancy Hierarchy: /organizations/{orgId}
     // ===============================================================
     match /organizations/{orgId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create, update, delete: if isSuperadmin();
 
       match /client_portals/{portalId} {
-        allow read: if true;
+        allow read: if isAuthenticated();
         allow create, update: if isGerente();
         allow delete: if isSuperadmin();
       }
 
       match /engineering_calcs/{calcId} {
-        allow read: if true;
+        allow read: if isAuthenticated();
         allow create, update: if isCampo();
         allow delete: if isGerente();
       }
 
       match /projects/{projId} {
-        allow read: if true;
+        allow read: if isAuthenticated();
         allow create, update: if isGerente();
         allow delete: if isSuperadmin();
 
         match /{subcollection=**} {
-          allow read: if true;
+          allow read: if isAuthenticated();
           allow create, update: if isCampo();
           allow delete: if isGerente();
         }
@@ -123,31 +123,31 @@ service cloud.firestore {
     // Collection Group Queries Support
     // ===============================================================
     match /{path=**}/tasks/{taskId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create, update: if isSupervisor();
       allow delete: if isGerente();
     }
 
     match /{path=**}/expenses/{expenseId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /{path=**}/valuations/{valuationId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create, update: if isGerente();
       allow delete: if isSuperadmin();
     }
 
     match /{path=**}/siho_ptw/{ptwId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create, update: if isCampo();
       allow delete: if isGerente();
     }
 
     match /{path=**}/weld_joints/{jointId} {
-      allow read: if true;
+      allow read: if isAuthenticated();
       allow create, update: if isInspector();
       allow delete: if isGerente();
     }
