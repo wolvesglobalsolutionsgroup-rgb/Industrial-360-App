@@ -4,58 +4,51 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===============================================================
-    // Helper Functions & Role Enforcement
+    // HELPERS — Perfil de usuario
     // ===============================================================
+    function userProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    function getUserRole() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        ? getUserData().role
-        : null;
-    }
-
     function isSuperadmin() {
-      return isAuthenticated() && getUserRole() == 'superadmin';
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userProfile().role == 'superadmin';
     }
 
     function belongsToOrg(orgId) {
-      return isAuthenticated() && getUserData().orgId == orgId;
+      return isAuthenticated()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && userProfile().orgId == orgId;
     }
 
-    function isGerenteInOrg(orgId) {
-      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente'];
+    function hasRoleInOrg(orgId, roles) {
+      return isSuperadmin() || (belongsToOrg(orgId) && userProfile().role in roles);
     }
 
-    function isSupervisorInOrg(orgId) {
-      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente', 'supervisor'];
+    function isOrgDocument(orgId) {
+      return request.resource.data.orgId == orgId;
     }
 
-    function isInspectorInOrg(orgId) {
-      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector'];
-    }
-
-    function isCampoInOrg(orgId) {
-      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'];
+    function preservesOrg(orgId) {
+      return request.resource.data.orgId == orgId
+        && request.resource.data.orgId == resource.data.orgId;
     }
 
     // ===============================================================
-    // User Profiles
+    // USUARIOS
     // ===============================================================
     match /users/{userId} {
-      // Puede leerse a sí mismo, o alguien de su misma organización
       allow read: if isAuthenticated() && (
-        request.auth.uid == userId ||
-        getUserData().orgId == resource.data.orgId
+        request.auth.uid == userId
+        || userProfile().orgId == resource.data.orgId
       );
-      // Al crear: no puede auto-asignarse rol
-      allow create: if isAuthenticated() && request.auth.uid == userId && !request.resource.data.keys().hasAny(['role']);
-      // Al actualizar: puede editar su perfil pero NO su rol ni orgId
+      allow create: if isAuthenticated()
+        && request.auth.uid == userId
+        && !request.resource.data.keys().hasAny(['role']);
       allow update: if isAuthenticated() && (
         (request.auth.uid == userId && !request.resource.data.keys().hasAny(['role', 'orgId']))
         || isSuperadmin()
@@ -64,24 +57,7 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Public Client Portals & Access Logs (RAÍZ — deprecated, migrar a /organizations/{orgId}/client_portals)
-    // NOTA: Estas reglas existen por compatibilidad con datos legacy.
-    //       Los datos nuevos deben ir bajo /organizations/{orgId}/client_portals/
-    // ===============================================================
-    match /client_portals/{portalId} {
-      allow read: if isAuthenticated();
-      allow create: if isGerenteInOrg(request.resource.data.orgId);
-      allow update: if isGerenteInOrg(resource.data.orgId);
-      allow delete: if isSuperadmin();
-    }
-
-    match /client_portal_access_logs/{logId} {
-      allow read: if isGerenteInOrg(resource.data.orgId);
-      allow create: if isAuthenticated();
-    }
-
-    // ===============================================================
-    // Root Collections — Bloqueado definitivamente
+    // COLECCIONES LEGACY — BLOQUEADAS
     // ===============================================================
     match /projects/{document} { allow read, write: if false; }
     match /tasks/{document} { allow read, write: if false; }
@@ -101,166 +77,142 @@ service cloud.firestore {
     match /fleet_equipment/{document} { allow read, write: if false; }
     match /interop_imports/{document} { allow read, write: if false; }
     match /dossier_compilations/{document} { allow read, write: if false; }
-    match /settings/{document} { allow read, write: if false; }
     match /engineering_calcs/{document} { allow read, write: if false; }
+    match /settings/{document} { allow read, write: if false; }
 
     // ===============================================================
-    // Multi-Tenancy: /organizations/{orgId}
+    // CLIENT PORTALS — SOLO VÍA ANIDADA (raíz eliminada)
+    // NOTA: No permitimos escritura directa desde cliente.
+    //       Los portales se gestionan vía Cloud Function.
+    // ===============================================================
+    match /client_portals/{portalId} { allow read, write: if false; }
+    match /client_portal_access_logs/{logId} { allow read, write: if false; }
+
+    // ===============================================================
+    // MULTI-TENANCY
     // ===============================================================
     match /organizations/{orgId} {
-      // Superadmin puede leer cualquier org; miembros solo la suya
-      allow read: if belongsToOrg(orgId) || isSuperadmin();
-      allow create: if isSuperadmin();
-      allow update, delete: if isSuperadmin();
+      allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+      allow create, update, delete: if isSuperadmin();
 
+      // CLIENT PORTALS (anidados)
       match /client_portals/{portalId} {
-        allow read: if isAuthenticated();
-        allow create: if isGerenteInOrg(orgId);
-        allow update: if isGerenteInOrg(orgId);
+        allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+        allow create: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
+          && isOrgDocument(orgId);
+        allow update: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
+          && preservesOrg(orgId);
         allow delete: if isSuperadmin();
-      }
-
-      match /engineering_calcs/{calcId} {
-        allow read: if isCampoInOrg(orgId);
-        allow create, update: if isCampoInOrg(orgId);
-        allow delete: if isGerenteInOrg(orgId);
       }
 
       match /projects/{projId} {
-        allow read: if isCampoInOrg(orgId);
-        allow create, update: if isGerenteInOrg(orgId);
+        allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+        allow create: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
+          && isOrgDocument(orgId);
+        allow update: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
+          && preservesOrg(orgId);
         allow delete: if isSuperadmin();
 
-        // Subcolecciones explícitas de proyectos
+        // TASKS
         match /tasks/{taskId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isSupervisorInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+          allow create: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
+            && preservesOrg(orgId);
+          allow delete: if hasRoleInOrg(orgId, ['gerente']);
         }
 
+        // EXPENSES
         match /expenses/{expenseId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+          allow create: if hasRoleInOrg(orgId, ['gerente'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['gerente'])
+            && preservesOrg(orgId);
           allow delete: if isSuperadmin();
         }
 
+        // VALUATIONS
         match /valuations/{valuationId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+          allow create: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
+            && preservesOrg(orgId);
           allow delete: if isSuperadmin();
         }
 
+        // SIHO PTW
         match /siho_ptw/{ptwId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isCampoInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+          allow create: if hasRoleInOrg(orgId, ['campo', 'inspector'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['campo', 'inspector'])
+            && preservesOrg(orgId);
+          allow delete: if hasRoleInOrg(orgId, ['gerente']);
         }
 
+        // QA/QC WELD JOINTS
         match /weld_joints/{jointId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isInspectorInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector']);
+          allow create: if hasRoleInOrg(orgId, ['inspector'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['inspector'])
+            && preservesOrg(orgId);
+          allow delete: if hasRoleInOrg(orgId, ['gerente']);
         }
 
+        // FIELD REPORTS
         match /field_reports/{reportId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isCampoInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+          allow create: if hasRoleInOrg(orgId, ['campo'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['campo'])
+            && preservesOrg(orgId);
+          allow delete: if hasRoleInOrg(orgId, ['gerente']);
         }
 
+        // INVENTORY
         match /inventory/{itemId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isSupervisorInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+          allow create: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
+            && preservesOrg(orgId);
+          allow delete: if hasRoleInOrg(orgId, ['gerente']);
         }
 
+        // DOCUMENTS
         match /documents/{documentId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isSupervisorInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+          allow create: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
+            && preservesOrg(orgId);
+          allow delete: if hasRoleInOrg(orgId, ['gerente']);
         }
 
+        // ILI RUNS
         match /ili_runs/{runId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isInspectorInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector']);
+          allow create: if hasRoleInOrg(orgId, ['inspector'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['inspector'])
+            && preservesOrg(orgId);
+          allow delete: if hasRoleInOrg(orgId, ['gerente']);
         }
 
-        match /standby_claims/{claimId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isSupervisorInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
-        }
-
-        match /moc_requests/{requestId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isSupervisorInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
-        }
-
-        match /fleet_equipment/{equipmentId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isSupervisorInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
-        }
-
+        // DOSSIER COMPILATIONS
         match /dossier_compilations/{compilationId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isSupervisorInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
-        }
-
-        match /engineering_calcs/{calcId} {
-          allow read: if isCampoInOrg(orgId);
-          allow create, update: if isCampoInOrg(orgId);
-          allow delete: if isGerenteInOrg(orgId);
+          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+          allow create: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
+            && isOrgDocument(orgId);
+          allow update: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
+            && preservesOrg(orgId);
+          allow delete: if hasRoleInOrg(orgId, ['gerente']);
         }
       }
-    }
-
-    // ===============================================================
-    // Collection Group Queries — Protegidas por orgId
-    // NOTA: Para CREATE se usa request.resource.data (datos entrantes),
-    //       para READ/UPDATE/DELETE se usa resource.data (documento existente)
-    // ===============================================================
-    match /{path=**}/tasks/{taskId} {
-      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
-      allow create: if isSupervisorInOrg(request.resource.data.orgId)
-                  && request.resource.data.orgId == getUserData().orgId;
-      allow update: if isSupervisorInOrg(resource.data.orgId);
-      allow delete: if isGerenteInOrg(resource.data.orgId);
-    }
-
-    match /{path=**}/expenses/{expenseId} {
-      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
-      allow create: if isGerenteInOrg(request.resource.data.orgId)
-                  && request.resource.data.orgId == getUserData().orgId;
-      allow update: if isGerenteInOrg(resource.data.orgId);
-      allow delete: if isSuperadmin();
-    }
-
-    match /{path=**}/valuations/{valuationId} {
-      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
-      allow create: if isGerenteInOrg(request.resource.data.orgId)
-                  && request.resource.data.orgId == getUserData().orgId;
-      allow update: if isGerenteInOrg(resource.data.orgId);
-      allow delete: if isSuperadmin();
-    }
-
-    match /{path=**}/siho_ptw/{ptwId} {
-      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
-      allow create: if isCampoInOrg(request.resource.data.orgId)
-                  && request.resource.data.orgId == getUserData().orgId;
-      allow update: if isCampoInOrg(resource.data.orgId);
-      allow delete: if isGerenteInOrg(resource.data.orgId);
-    }
-
-    match /{path=**}/weld_joints/{jointId} {
-      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
-      allow create: if isInspectorInOrg(request.resource.data.orgId)
-                  && request.resource.data.orgId == getUserData().orgId;
-      allow update: if isInspectorInOrg(resource.data.orgId);
-      allow delete: if isGerenteInOrg(resource.data.orgId);
     }
   }
 }
