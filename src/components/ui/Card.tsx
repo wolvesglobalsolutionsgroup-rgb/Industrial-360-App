@@ -13,7 +13,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(({
   style,
   ...props
 }, ref) => {
-  const hoverClass = hoverEffect ? 'hover:shadow-md transition-all duration-200' : '';
+  const hoverClass = hoverEffect ? 'hover:shadow-md hover:-translate-y-0.5 transition-all duration-200' : '';  // ← CAMBIO AQUÍ
   const glassClass = glass ? 'glass' : '';
 
   return (

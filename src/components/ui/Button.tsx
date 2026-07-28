@@ -21,12 +21,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
   ...props
 }, ref) => {
   const baseStyles = 'inline-flex items-center justify-center font-bold transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none';
-  
+
   const variantStyles = {
     primary: 'bg-brand-500 hover:bg-brand-600 text-white shadow-sm hover:shadow-md active:scale-[0.99]',
     secondary: 'bg-surface-2 hover:bg-elevated text-ink border border-line active:scale-[0.99]',
     outline: 'border border-line bg-transparent hover:bg-surface-2 text-ink active:scale-[0.99]',
-    ghost: 'bg-transparent hover:bg-surface-2 text-ink-soft hover:text-ink',
+    ghost: 'bg-transparent hover:bg-surface-2 text-ink-soft hover:text-ink active:scale-[0.97]',  // ← ESTA ES LA ÚNICA LÍNEA QUE CAMBIA
     danger: 'bg-error hover:bg-red-700 text-white shadow-sm hover:shadow-md active:scale-[0.99]',
     success: 'bg-success hover:bg-emerald-700 text-white shadow-sm hover:shadow-md active:scale-[0.99]',
     accent: 'bg-brand-accent hover:bg-brand-accent-600 text-white font-black shadow-sm hover:shadow-md active:scale-[0.99]',
@@ -53,7 +53,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({
       ) : leftIcon ? (
         <span className="shrink-0">{leftIcon}</span>
       ) : null}
-      
+
       <span>{children}</span>
 
       {!isLoading && rightIcon && (

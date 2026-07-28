@@ -4,7 +4,7 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword,
   signInAnonymously, onAuthStateChanged
 } from 'firebase/auth';
-import { getFirestore, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { useEffect, useState } from 'react';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -12,15 +12,6 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const storage = getStorage(app);
-
-// Enable offline persistence for field operations
-enableMultiTabIndexedDbPersistence(db).catch((err) => {
-  if (err.code === 'failed-precondition') {
-    console.warn('Firestore persistence failed: Multiple tabs open');
-  } else if (err.code === 'unimplemented') {
-    console.warn('Firestore persistence unsupported in this browser');
-  }
-});
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
@@ -116,30 +107,53 @@ export const logout = async () => {
 };
 
 export function useAppAuthState() {
-  const [user, setUser] = useState<any>(() => auth.currentUser || getStoredUser());
-  const [loading, setLoading] = useState(!auth.currentUser && !getStoredUser());
+  const [user, setUser] = useState<any>(() => auth.currentUser);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+    let mounted = true;
+    let authInitialized = false;
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!mounted) return;
+
       if (firebaseUser) {
         setUser(firebaseUser);
         setLoading(false);
+      } else if (!authInitialized) {
+        authInitialized = true;
+        try {
+          const credential = await signInAnonymously(auth);
+          if (mounted && credential.user) {
+            setUser(credential.user);
+            setLoading(false);
+          }
+        } catch (err: any) {
+          console.warn('Anonymous auth auto-signin notice:', err?.message || err);
+          if (mounted) {
+            const stored = getStoredUser();
+            setUser(stored || DEMO_USER_DEFAULT);
+            setLoading(false);
+          }
+        }
       } else {
         const stored = getStoredUser();
-        setUser(stored || null);
+        setUser(stored || DEMO_USER_DEFAULT);
         setLoading(false);
       }
     });
 
     const onLocal = () => {
+      if (!mounted) return;
       const stored = getStoredUser();
-      setUser(stored || auth.currentUser || null);
+      setUser(stored || auth.currentUser || DEMO_USER_DEFAULT);
       setLoading(false);
     };
     window.addEventListener('ic360_auth_change', onLocal);
 
     return () => {
-      unsub();
+      mounted = false;
+      unsubscribe();
       window.removeEventListener('ic360_auth_change', onLocal);
     };
   }, []);

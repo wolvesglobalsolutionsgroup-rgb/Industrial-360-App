@@ -218,8 +218,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   const hasAttemptedSeedRef = useRef(false);
 
   useEffect(() => {
-    // Escuchar proyectos planos y de la organización actual
-    const q = query(collection(db, 'projects'));
+    // Escuchar proyectos de la organización actual
+    const projectsPath = `organizations/${currentOrganization.id}/projects`;
+    const q = query(collection(db, projectsPath));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) {
         if (!hasAttemptedSeedRef.current) {

@@ -74,7 +74,7 @@ function AppContent() {
   }
 
   return (
-    <>
+    <ProjectProvider>
       <CommandPalette />
       <Suspense fallback={<PageSkeleton />}>
         <Routes>
@@ -145,18 +145,16 @@ function AppContent() {
           </Route>
         </Routes>
       </Suspense>
-    </>
+    </ProjectProvider>
   );
 }
 
 export default function App() {
   return (
     <Router>
-      <ProjectProvider>
-        <ThemeProvider>
-          <AppContent />
-        </ThemeProvider>
-      </ProjectProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
     </Router>
   );
 }

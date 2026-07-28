@@ -45,12 +45,14 @@ service cloud.firestore {
     // ===============================================================
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAuthenticated() && (request.auth.uid == userId || isSuperadmin());
+      // 🔒 FIX SEGURIDAD: Ningún usuario puede auto-asignarse rol
+      allow create: if isAuthenticated() && request.auth.uid == userId && !request.resource.data.keys().hasAny(['role']);
+      allow update: if isSuperadmin();
       allow delete: if isSuperadmin();
     }
 
     // ===============================================================
-    // Public Client Portals & Access Logs (Secure External Access)
+    // Public Client Portals & Access Logs
     // ===============================================================
     match /client_portals/{portalId} {
       allow read: if isAuthenticated();
@@ -64,7 +66,7 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Root Operational Collections — Bloqueado (Migrado a /organizations/{orgId})
+    // Root Collections — Bloqueado
     // ===============================================================
     match /projects/{document} { allow read, write: if false; }
     match /tasks/{document} { allow read, write: if false; }
@@ -88,7 +90,7 @@ service cloud.firestore {
     match /engineering_calcs/{document} { allow read, write: if false; }
 
     // ===============================================================
-    // Multi-Tenancy Hierarchy: /organizations/{orgId}
+    // Multi-Tenancy: /organizations/{orgId}
     // ===============================================================
     match /organizations/{orgId} {
       allow read: if isAuthenticated();
@@ -120,7 +122,7 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Collection Group Queries Support
+    // Collection Group Queries
     // ===============================================================
     match /{path=**}/tasks/{taskId} {
       allow read: if isAuthenticated();
