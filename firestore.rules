@@ -24,28 +24,32 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole() == 'superadmin';
     }
 
-    function isGerente() {
-      return isAuthenticated() && getUserRole() in ['superadmin', 'gerente'];
+    // 🔐 Roles VERIFICAN pertenencia a la organización
+    function belongsToOrg(orgId) {
+      return isAuthenticated() && getUserData().orgId == orgId;
     }
 
-    function isSupervisor() {
-      return isAuthenticated() && getUserRole() in ['superadmin', 'gerente', 'supervisor'];
+    function isGerenteInOrg(orgId) {
+      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente'];
     }
 
-    function isInspector() {
-      return isAuthenticated() && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector'];
+    function isSupervisorInOrg(orgId) {
+      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente', 'supervisor'];
     }
 
-    function isCampo() {
-      return isAuthenticated() && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'];
+    function isInspectorInOrg(orgId) {
+      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector'];
+    }
+
+    function isCampoInOrg(orgId) {
+      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'];
     }
 
     // ===============================================================
     // User Profiles
     // ===============================================================
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      // 🔒 FIX SEGURIDAD: Ningún usuario puede auto-asignarse rol
+      allow read: if isAuthenticated() && (request.auth.uid == userId || getUserData().orgId == getUserData().orgId);
       allow create: if isAuthenticated() && request.auth.uid == userId && !request.resource.data.keys().hasAny(['role']);
       allow update: if isSuperadmin();
       allow delete: if isSuperadmin();
@@ -56,12 +60,12 @@ service cloud.firestore {
     // ===============================================================
     match /client_portals/{portalId} {
       allow read: if isAuthenticated();
-      allow create, update: if isGerente();
+      allow create, update: if isGerenteInOrg(orgId);
       allow delete: if isSuperadmin();
     }
 
     match /client_portal_access_logs/{logId} {
-      allow read: if isGerente();
+      allow read: if isGerenteInOrg(orgId);
       allow create: if isAuthenticated();
     }
 
@@ -93,65 +97,65 @@ service cloud.firestore {
     // Multi-Tenancy: /organizations/{orgId}
     // ===============================================================
     match /organizations/{orgId} {
-      allow read: if isAuthenticated();
+      allow read: if belongsToOrg(orgId);
       allow create, update, delete: if isSuperadmin();
 
       match /client_portals/{portalId} {
         allow read: if isAuthenticated();
-        allow create, update: if isGerente();
+        allow create, update: if isGerenteInOrg(orgId);
         allow delete: if isSuperadmin();
       }
 
       match /engineering_calcs/{calcId} {
-        allow read: if isAuthenticated();
-        allow create, update: if isCampo();
-        allow delete: if isGerente();
+        allow read: if isCampoInOrg(orgId);
+        allow create, update: if isCampoInOrg(orgId);
+        allow delete: if isGerenteInOrg(orgId);
       }
 
       match /projects/{projId} {
-        allow read: if isAuthenticated();
-        allow create, update: if isGerente();
+        allow read: if isCampoInOrg(orgId);
+        allow create, update: if isGerenteInOrg(orgId);
         allow delete: if isSuperadmin();
 
         match /{subcollection=**} {
-          allow read: if isAuthenticated();
-          allow create, update: if isCampo();
-          allow delete: if isGerente();
+          allow read: if isCampoInOrg(orgId);
+          allow create, update: if isCampoInOrg(orgId);
+          allow delete: if isGerenteInOrg(orgId);
         }
       }
     }
 
     // ===============================================================
-    // Collection Group Queries
+    // Collection Group Queries — PROTEGIDAS por orgId
     // ===============================================================
     match /{path=**}/tasks/{taskId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isSupervisor();
-      allow delete: if isGerente();
+      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
+      allow create, update: if isSupervisorInOrg(resource.data.orgId);
+      allow delete: if isGerenteInOrg(resource.data.orgId);
     }
 
     match /{path=**}/expenses/{expenseId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isGerente();
+      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
+      allow create, update: if isGerenteInOrg(resource.data.orgId);
       allow delete: if isSuperadmin();
     }
 
     match /{path=**}/valuations/{valuationId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isGerente();
+      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
+      allow create, update: if isGerenteInOrg(resource.data.orgId);
       allow delete: if isSuperadmin();
     }
 
     match /{path=**}/siho_ptw/{ptwId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isCampo();
-      allow delete: if isGerente();
+      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
+      allow create, update: if isCampoInOrg(resource.data.orgId);
+      allow delete: if isGerenteInOrg(resource.data.orgId);
     }
 
     match /{path=**}/weld_joints/{jointId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isInspector();
-      allow delete: if isGerente();
+      allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
+      allow create, update: if isInspectorInOrg(resource.data.orgId);
+      allow delete: if isGerenteInOrg(resource.data.orgId);
     }
   }
 }
