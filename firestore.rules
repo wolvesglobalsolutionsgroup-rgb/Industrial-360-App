@@ -4,60 +4,382 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===============================================================
-    // HELPERS — Perfil de usuario
+    // IDENTIDAD Y AUTORIZACIÓN
     // ===============================================================
-    function userProfile() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
 
-    function isAuthenticated() {
+    function signedIn() {
       return request.auth != null;
     }
 
-    function isSuperadmin() {
-      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && userProfile().role == 'superadmin';
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasUserProfile() {
+      return signedIn() && exists(userPath());
+    }
+
+    function userData() {
+      return get(userPath()).data;
+    }
+
+    function userRole() {
+      return hasUserProfile() ? userData().role : null;
+    }
+
+    function isPlatformSuperadmin() {
+      return hasUserProfile() && userRole() == 'superadmin';
     }
 
     function belongsToOrg(orgId) {
-      return isAuthenticated()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && userProfile().orgId == orgId;
+      return hasUserProfile() && userData().orgId == orgId;
     }
 
     function hasRoleInOrg(orgId, roles) {
-      return isSuperadmin() || (belongsToOrg(orgId) && userProfile().role in roles);
+      return isPlatformSuperadmin() || (belongsToOrg(orgId) && userRole() in roles);
     }
 
-    function isOrgDocument(orgId) {
+    function canManageOrg(orgId) {
+      return hasRoleInOrg(orgId, ['gerente']);
+    }
+
+    function canSuperviseOrg(orgId) {
+      return hasRoleInOrg(orgId, ['gerente', 'supervisor']);
+    }
+
+    function canInspectOrg(orgId) {
+      return hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector']);
+    }
+
+    function canWorkInOrg(orgId) {
+      return hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+    }
+
+    // ===============================================================
+    // INTEGRIDAD DE DATOS MULTI-TENANT
+    // ===============================================================
+
+    function belongsToRouteOrg(orgId) {
       return request.resource.data.orgId == orgId;
     }
 
-    function preservesOrg(orgId) {
+    function preservesRouteOrg(orgId) {
       return request.resource.data.orgId == orgId
+        && resource.data.orgId == orgId
         && request.resource.data.orgId == resource.data.orgId;
     }
 
-    // ===============================================================
-    // USUARIOS
-    // ===============================================================
-    match /users/{userId} {
-      allow read: if isAuthenticated() && (
-        request.auth.uid == userId
-        || userProfile().orgId == resource.data.orgId
-      );
-      allow create: if isAuthenticated()
-        && request.auth.uid == userId
-        && !request.resource.data.keys().hasAny(['role']);
-      allow update: if isAuthenticated() && (
-        (request.auth.uid == userId && !request.resource.data.keys().hasAny(['role', 'orgId']))
-        || isSuperadmin()
-      );
-      allow delete: if isSuperadmin();
+    function belongsToRouteProject(orgId, projectId) {
+      return belongsToRouteOrg(orgId)
+        && request.resource.data.projectId == projectId;
+    }
+
+    function preservesRouteProject(orgId, projectId) {
+      return preservesRouteOrg(orgId)
+        && request.resource.data.projectId == projectId
+        && resource.data.projectId == projectId;
+    }
+
+    function isCreator() {
+      return request.resource.data.createdBy == request.auth.uid;
+    }
+
+    function hasServerCreationTimestamp() {
+      return request.resource.data.createdAt == request.time;
+    }
+
+    function hasServerUpdateTimestamp() {
+      return request.resource.data.updatedAt == request.time;
+    }
+
+    function preservesImmutableFields(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
     }
 
     // ===============================================================
-    // COLECCIONES LEGACY — BLOQUEADAS
+    // PERFIL DE USUARIO
+    // ===============================================================
+    //
+    // Importante: la creación inicial NO puede asignar role ni orgId.
+    // Una Cloud Function/Admin SDK debe asignarlos luego de invitación,
+    // onboarding o aprobación administrativa.
+    //
+    match /users/{userId} {
+      allow get: if signedIn() && (
+        request.auth.uid == userId
+        || (hasUserProfile() && resource.data.orgId == userData().orgId)
+        || isPlatformSuperadmin()
+      );
+      allow list: if false;
+
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly([
+          'displayName', 'email', 'photoURL', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['email', 'createdAt', 'updatedAt'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'photoURL', 'updatedAt'
+        ])
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if false;
+    }
+
+    // ===============================================================
+    // ORGANIZACIONES
+    // ===============================================================
+
+    match /organizations/{orgId} {
+      allow get: if belongsToOrg(orgId) || isPlatformSuperadmin();
+      allow list: if false;
+      allow create, update, delete: if false;
+
+      // -------------------------------------------------------------
+      // PROYECTOS
+      // -------------------------------------------------------------
+      match /projects/{projectId} {
+        allow read: if canWorkInOrg(orgId);
+        allow create: if canManageOrg(orgId)
+          && belongsToRouteOrg(orgId)
+          && isCreator()
+          && hasServerCreationTimestamp()
+          && hasServerUpdateTimestamp();
+        allow update: if canManageOrg(orgId)
+          && preservesRouteOrg(orgId)
+          && preservesImmutableFields(['orgId', 'createdBy', 'createdAt'])
+          && hasServerUpdateTimestamp();
+        allow delete: if canManageOrg(orgId);
+
+        // -----------------------------------------------------------
+        // TAREAS
+        // -----------------------------------------------------------
+        match /tasks/{taskId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canSuperviseOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canSuperviseOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
+            && hasServerUpdateTimestamp();
+          allow delete: if canManageOrg(orgId);
+        }
+
+        // -----------------------------------------------------------
+        // GASTOS
+        // -----------------------------------------------------------
+        match /expenses/{expenseId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canManageOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canManageOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
+            && hasServerUpdateTimestamp();
+          allow delete: if canManageOrg(orgId);
+        }
+
+        // -----------------------------------------------------------
+        // VALUACIONES
+        // -----------------------------------------------------------
+        match /valuations/{valuationId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canManageOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canManageOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields([
+              'orgId', 'projectId', 'createdBy', 'createdAt',
+              'approvedBy', 'approvedAt', 'status'
+            ])
+            && hasServerUpdateTimestamp();
+          allow delete: if false;
+        }
+
+        // -----------------------------------------------------------
+        // SIHO / PTW
+        // -----------------------------------------------------------
+        match /siho_ptw/{ptwId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canWorkInOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canWorkInOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields([
+              'orgId', 'projectId', 'createdBy', 'createdAt',
+              'approvedBy', 'approvedAt'
+            ])
+            && hasServerUpdateTimestamp();
+          allow delete: if canManageOrg(orgId);
+        }
+
+        // -----------------------------------------------------------
+        // QA/QC SOLDADURA
+        // -----------------------------------------------------------
+        match /weld_joints/{jointId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canInspectOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canInspectOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields([
+              'orgId', 'projectId', 'createdBy', 'createdAt',
+              'approvedBy', 'approvedAt'
+            ])
+            && hasServerUpdateTimestamp();
+          allow delete: if canManageOrg(orgId);
+        }
+
+        // -----------------------------------------------------------
+        // REPORTES DE CAMPO
+        // -----------------------------------------------------------
+        match /field_reports/{reportId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canWorkInOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canWorkInOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields([
+              'orgId', 'projectId', 'createdBy', 'createdAt',
+              'approvedBy', 'approvedAt'
+            ])
+            && hasServerUpdateTimestamp();
+          allow delete: if canManageOrg(orgId);
+        }
+
+        // -----------------------------------------------------------
+        // INVENTARIO
+        // -----------------------------------------------------------
+        match /inventory/{itemId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canSuperviseOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canSuperviseOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
+            && hasServerUpdateTimestamp();
+          allow delete: if canManageOrg(orgId);
+        }
+
+        // -----------------------------------------------------------
+        // DOCUMENTOS
+        // -----------------------------------------------------------
+        match /documents/{documentId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canSuperviseOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canSuperviseOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
+            && hasServerUpdateTimestamp();
+          allow delete: if canManageOrg(orgId);
+        }
+
+        // -----------------------------------------------------------
+        // INTEGRIDAD / ILI
+        // -----------------------------------------------------------
+        match /ili_runs/{runId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canInspectOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canInspectOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields([
+              'orgId', 'projectId', 'createdBy', 'createdAt',
+              'approvedBy', 'approvedAt'
+            ])
+            && hasServerUpdateTimestamp();
+          allow delete: if canManageOrg(orgId);
+        }
+
+        // -----------------------------------------------------------
+        // DOSSIER
+        // -----------------------------------------------------------
+        match /dossier_compilations/{compilationId} {
+          allow read: if canWorkInOrg(orgId);
+          allow create: if canSuperviseOrg(orgId)
+            && belongsToRouteProject(orgId, projectId)
+            && isCreator()
+            && hasServerCreationTimestamp()
+            && hasServerUpdateTimestamp();
+          allow update: if canSuperviseOrg(orgId)
+            && preservesRouteProject(orgId, projectId)
+            && preservesImmutableFields([
+              'orgId', 'projectId', 'createdBy', 'createdAt',
+              'signedBy', 'signedAt'
+            ])
+            && hasServerUpdateTimestamp();
+          allow delete: if canManageOrg(orgId);
+        }
+      }
+
+      // -------------------------------------------------------------
+      // PORTAL CLIENTE: ANIDADO EN ORGANIZACIÓN
+      // -------------------------------------------------------------
+      match /client_portals/{portalId} {
+        allow read: if belongsToOrg(orgId) || isPlatformSuperadmin();
+        allow create: if canManageOrg(orgId)
+          && belongsToRouteOrg(orgId)
+          && isCreator()
+          && hasServerCreationTimestamp()
+          && hasServerUpdateTimestamp();
+        allow update: if canManageOrg(orgId)
+          && preservesRouteOrg(orgId)
+          && preservesImmutableFields(['orgId', 'createdBy', 'createdAt'])
+          && hasServerUpdateTimestamp();
+        allow delete: if canManageOrg(orgId);
+      }
+
+      // -------------------------------------------------------------
+      // AUDIT LOGS: SOLO BACKEND
+      // -------------------------------------------------------------
+      match /audit_logs/{logId} {
+        allow read: if canManageOrg(orgId);
+        allow create, update, delete: if false;
+      }
+    }
+
+    // ===============================================================
+    // PORTALES Y LOGS ROOT LEGACY: CERRADOS
+    // ===============================================================
+    match /client_portals/{portalId} { allow read, write: if false; }
+    match /client_portal_access_logs/{logId} { allow read, write: if false; }
+
+    // ===============================================================
+    // COLECCIONES LEGACY RAÍZ: BLOQUEO TOTAL
     // ===============================================================
     match /projects/{document} { allow read, write: if false; }
     match /tasks/{document} { allow read, write: if false; }
@@ -77,142 +399,12 @@ service cloud.firestore {
     match /fleet_equipment/{document} { allow read, write: if false; }
     match /interop_imports/{document} { allow read, write: if false; }
     match /dossier_compilations/{document} { allow read, write: if false; }
-    match /engineering_calcs/{document} { allow read, write: if false; }
     match /settings/{document} { allow read, write: if false; }
+    match /engineering_calcs/{document} { allow read, write: if false; }
 
     // ===============================================================
-    // CLIENT PORTALS — SOLO VÍA ANIDADA (raíz eliminada)
-    // NOTA: No permitimos escritura directa desde cliente.
-    //       Los portales se gestionan vía Cloud Function.
+    // DEFAULT DENY — CATCH-ALL FINAL
     // ===============================================================
-    match /client_portals/{portalId} { allow read, write: if false; }
-    match /client_portal_access_logs/{logId} { allow read, write: if false; }
-
-    // ===============================================================
-    // MULTI-TENANCY
-    // ===============================================================
-    match /organizations/{orgId} {
-      allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-      allow create, update, delete: if isSuperadmin();
-
-      // CLIENT PORTALS (anidados)
-      match /client_portals/{portalId} {
-        allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-        allow create: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
-          && isOrgDocument(orgId);
-        allow update: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
-          && preservesOrg(orgId);
-        allow delete: if isSuperadmin();
-      }
-
-      match /projects/{projId} {
-        allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-        allow create: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
-          && isOrgDocument(orgId);
-        allow update: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
-          && preservesOrg(orgId);
-        allow delete: if isSuperadmin();
-
-        // TASKS
-        match /tasks/{taskId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-          allow create: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
-            && preservesOrg(orgId);
-          allow delete: if hasRoleInOrg(orgId, ['gerente']);
-        }
-
-        // EXPENSES
-        match /expenses/{expenseId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-          allow create: if hasRoleInOrg(orgId, ['gerente'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['gerente'])
-            && preservesOrg(orgId);
-          allow delete: if isSuperadmin();
-        }
-
-        // VALUATIONS
-        match /valuations/{valuationId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-          allow create: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['gerente', 'supervisor'])
-            && preservesOrg(orgId);
-          allow delete: if isSuperadmin();
-        }
-
-        // SIHO PTW
-        match /siho_ptw/{ptwId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-          allow create: if hasRoleInOrg(orgId, ['campo', 'inspector'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['campo', 'inspector'])
-            && preservesOrg(orgId);
-          allow delete: if hasRoleInOrg(orgId, ['gerente']);
-        }
-
-        // QA/QC WELD JOINTS
-        match /weld_joints/{jointId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector']);
-          allow create: if hasRoleInOrg(orgId, ['inspector'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['inspector'])
-            && preservesOrg(orgId);
-          allow delete: if hasRoleInOrg(orgId, ['gerente']);
-        }
-
-        // FIELD REPORTS
-        match /field_reports/{reportId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-          allow create: if hasRoleInOrg(orgId, ['campo'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['campo'])
-            && preservesOrg(orgId);
-          allow delete: if hasRoleInOrg(orgId, ['gerente']);
-        }
-
-        // INVENTORY
-        match /inventory/{itemId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-          allow create: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
-            && preservesOrg(orgId);
-          allow delete: if hasRoleInOrg(orgId, ['gerente']);
-        }
-
-        // DOCUMENTS
-        match /documents/{documentId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-          allow create: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
-            && preservesOrg(orgId);
-          allow delete: if hasRoleInOrg(orgId, ['gerente']);
-        }
-
-        // ILI RUNS
-        match /ili_runs/{runId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector']);
-          allow create: if hasRoleInOrg(orgId, ['inspector'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['inspector'])
-            && preservesOrg(orgId);
-          allow delete: if hasRoleInOrg(orgId, ['gerente']);
-        }
-
-        // DOSSIER COMPILATIONS
-        match /dossier_compilations/{compilationId} {
-          allow read: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-          allow create: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
-            && isOrgDocument(orgId);
-          allow update: if hasRoleInOrg(orgId, ['supervisor', 'gerente'])
-            && preservesOrg(orgId);
-          allow delete: if hasRoleInOrg(orgId, ['gerente']);
-        }
-      }
-    }
+    match /{document=**} { allow read, write: if false; }
   }
 }
