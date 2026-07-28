@@ -31,12 +31,18 @@ service cloud.firestore {
       return hasUserProfile() && userRole() == 'superadmin';
     }
 
+    // 🔥 ANTI-REPLAY: Rechazar tokens con más de 5 minutos de antigüedad
+    // Esto destruye ataques de secuestro de sesión basados en tokens robados
+    function isTokenFresh() {
+      return request.auth.token.auth_time > request.time - duration.value(5, 'm');
+    }
+
     function belongsToOrg(orgId) {
       return hasUserProfile() && userData().orgId == orgId;
     }
 
     function hasRoleInOrg(orgId, roles) {
-      return isPlatformSuperadmin() || (belongsToOrg(orgId) && userRole() in roles);
+      return isPlatformSuperadmin() || (belongsToOrg(orgId) && isTokenFresh() && userRole() in roles);
     }
 
     function canManageOrg(orgId) {

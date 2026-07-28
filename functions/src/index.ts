@@ -63,7 +63,7 @@ export const onFirstUserCreated = functions.firestore
 // ASIGNACIÓN DE ROLES — CON CUSTOM CLAIMS + REVOCACIÓN + AUDIT
 // ===============================================================
 
-export const assignUserRole = functions.https.onCall(async (data, context) => {
+export const assignUserRole = functions.runWith({ minInstances: 1 }).https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
   const callerUid = context.auth.uid;
@@ -122,7 +122,7 @@ export const assignUserRole = functions.https.onCall(async (data, context) => {
 // CREAR USUARIO CON ROL — CON ROLLBACK DE SEGURIDAD
 // ===============================================================
 
-export const createUserWithRole = functions.https.onCall(async (data, context) => {
+export const createUserWithRole = functions.runWith({ minInstances: 1 }).https.onCall(async (data, context) => {
   if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
   const callerUid = context.auth.uid;
@@ -156,11 +156,22 @@ export const createUserWithRole = functions.https.onCall(async (data, context) =
   const newUid = userRecord.uid;
 
   try {
-    await db.collection('users').doc(newUid).set({
+    // 🔥 BATCH ATÓMICO: usuario + audit_log en una sola operación
+    const batch = db.batch();
+    batch.set(db.collection('users').doc(newUid), {
       email, displayName: displayName || email, role, orgId: targetOrgId, status: 'active',
       createdBy: callerUid, createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+    const auditOrgId = targetOrgId || 'system-platform';
+    batch.set(db.collection('organizations').doc(auditOrgId).collection('audit_logs').doc(), {
+      action: 'user.created', actor: { uid: callerUid, email: callerData.email, role: callerData.role, ipAddress: getClientIp(context.rawRequest), userAgent: context.rawRequest?.headers['user-agent'] || 'unknown' },
+      targetUser: newUid, email, role, severity: 'info',
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    await batch.commit();
+
+    // Custom Claims después del batch exitoso
     await admin.auth().setCustomUserClaims(newUid, { role, orgId: targetOrgId, status: 'active' });
   } catch (dbError: any) {
     // 🔥 ROLLBACK: eliminar usuario de Auth si falla Firestore
@@ -168,13 +179,6 @@ export const createUserWithRole = functions.https.onCall(async (data, context) =
     functions.logger.error(`❌ Rollback: usuario ${newUid} eliminado por fallo en BD`);
     throw new functions.https.HttpsError('internal', 'Error de consistencia. Creación revertida.');
   }
-
-  const auditOrgId = targetOrgId || 'system-platform';
-  await db.collection('organizations').doc(auditOrgId).collection('audit_logs').add({
-    action: 'user.created', actor: { uid: callerUid, email: callerData.email, role: callerData.role, ipAddress: getClientIp(context.rawRequest), userAgent: context.rawRequest?.headers['user-agent'] || 'unknown' },
-    targetUser: newUid, email, role, severity: 'info',
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-  });
 
   return { success: true, uid: newUid, email, role };
 });
