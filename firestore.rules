@@ -24,7 +24,6 @@ service cloud.firestore {
       return isAuthenticated() && getUserRole() == 'superadmin';
     }
 
-    // 🔐 Roles VERIFICAN pertenencia a la organización
     function belongsToOrg(orgId) {
       return isAuthenticated() && getUserData().orgId == orgId;
     }
@@ -49,7 +48,7 @@ service cloud.firestore {
     // User Profiles
     // ===============================================================
     match /users/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || getUserData().orgId == getUserData().orgId);
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isSuperadmin());
       allow create: if isAuthenticated() && request.auth.uid == userId && !request.resource.data.keys().hasAny(['role']);
       allow update: if isSuperadmin();
       allow delete: if isSuperadmin();
@@ -126,7 +125,7 @@ service cloud.firestore {
     }
 
     // ===============================================================
-    // Collection Group Queries — PROTEGIDAS por orgId
+    // Collection Group Queries — Protegidas por orgId
     // ===============================================================
     match /{path=**}/tasks/{taskId} {
       allow read: if isAuthenticated() && resource.data.orgId == getUserData().orgId;
