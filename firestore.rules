@@ -42,7 +42,7 @@ service cloud.firestore {
     }
 
     function hasRoleInOrg(orgId, roles) {
-      return isPlatformSuperadmin() || (belongsToOrg(orgId) && isTokenFresh() && userRole() in roles);
+      return isPlatformSuperadmin() || (belongsToOrg(orgId) && userRole() in roles);
     }
 
     function canManageOrg(orgId) {
@@ -161,7 +161,7 @@ service cloud.firestore {
           && preservesRouteOrg(orgId)
           && preservesImmutableFields(['orgId', 'createdBy', 'createdAt'])
           && hasServerUpdateTimestamp();
-        allow delete: if canManageOrg(orgId);
+        allow delete: if canManageOrg(orgId) && isTokenFresh();
 
         // -----------------------------------------------------------
         // TAREAS
@@ -177,7 +177,7 @@ service cloud.firestore {
             && preservesRouteProject(orgId, projectId)
             && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
             && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId);
+          allow delete: if canManageOrg(orgId) && isTokenFresh();
         }
 
         // -----------------------------------------------------------
@@ -194,7 +194,7 @@ service cloud.firestore {
             && preservesRouteProject(orgId, projectId)
             && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
             && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId);
+          allow delete: if canManageOrg(orgId) && isTokenFresh();
         }
 
         // -----------------------------------------------------------
@@ -234,7 +234,7 @@ service cloud.firestore {
               'approvedBy', 'approvedAt'
             ])
             && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId);
+          allow delete: if canManageOrg(orgId) && isTokenFresh();
         }
 
         // -----------------------------------------------------------
@@ -254,7 +254,7 @@ service cloud.firestore {
               'approvedBy', 'approvedAt'
             ])
             && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId);
+          allow delete: if canManageOrg(orgId) && isTokenFresh();
         }
 
         // -----------------------------------------------------------
@@ -274,7 +274,7 @@ service cloud.firestore {
               'approvedBy', 'approvedAt'
             ])
             && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId);
+          allow delete: if canManageOrg(orgId) && isTokenFresh();
         }
 
         // -----------------------------------------------------------
@@ -291,7 +291,7 @@ service cloud.firestore {
             && preservesRouteProject(orgId, projectId)
             && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
             && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId);
+          allow delete: if canManageOrg(orgId) && isTokenFresh();
         }
 
         // -----------------------------------------------------------
@@ -308,7 +308,7 @@ service cloud.firestore {
             && preservesRouteProject(orgId, projectId)
             && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
             && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId);
+          allow delete: if canManageOrg(orgId) && isTokenFresh();
         }
 
         // -----------------------------------------------------------
@@ -328,7 +328,7 @@ service cloud.firestore {
               'approvedBy', 'approvedAt'
             ])
             && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId);
+          allow delete: if canManageOrg(orgId) && isTokenFresh();
         }
 
         // -----------------------------------------------------------
@@ -348,7 +348,7 @@ service cloud.firestore {
               'signedBy', 'signedAt'
             ])
             && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId);
+          allow delete: if canManageOrg(orgId) && isTokenFresh();
         }
       }
 
@@ -366,7 +366,7 @@ service cloud.firestore {
           && preservesRouteOrg(orgId)
           && preservesImmutableFields(['orgId', 'createdBy', 'createdAt'])
           && hasServerUpdateTimestamp();
-        allow delete: if canManageOrg(orgId);
+        allow delete: if canManageOrg(orgId) && isTokenFresh();
       }
 
       // -------------------------------------------------------------
