@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
-  collection, query, onSnapshot, addDoc, updateDoc, doc, where, getDocs, orderBy 
+  collection, query, onSnapshot, addDoc, updateDoc, doc, where, getDocs, orderBy, collectionGroup
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getAuthUser } from '../firebase';
 import { 
@@ -78,7 +78,8 @@ export default function Valuations() {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [availablePhotos, setAvailablePhotos] = useState<{ url: string; date?: string; note?: string }[]>([]);
 
-  // TODO: Migrar a jerarquía multi-tenant (/organizations/{orgId}/projects/{projId}/valuations)
+  const orgId = currentOrganization?.id || 'semax_pino';
+
   useEffect(() => {
     if (!currentProject) {
       setValuations([]);
@@ -90,9 +91,12 @@ export default function Valuations() {
     setIsLoading(true);
 
     const isSingle = currentProject.id !== 'all';
-    const valQuery = isSingle
-      ? query(collection(db, 'valuations'), where('projectId', '==', currentProject.id))
-      : query(collection(db, 'valuations'));
+    const valPath = isSingle
+      ? `organizations/${orgId}/projects/${currentProject.id}/valuations`
+      : null;
+    const valQuery = valPath
+      ? query(collection(db, valPath))
+      : query(collectionGroup(db, 'valuations'), where('orgId', '==', orgId));
 
     const unsubscribe = onSnapshot(valQuery, (snapshot) => {
       const vals = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })) as ValuationItem[];
@@ -104,9 +108,12 @@ export default function Valuations() {
     });
 
     // Fetch photos from field reports of this project
-    const reportQuery = isSingle
-      ? query(collection(db, 'field_reports'), where('projectId', '==', currentProject.id))
-      : query(collection(db, 'field_reports'));
+    const repPath = isSingle
+      ? `organizations/${orgId}/projects/${currentProject.id}/field_reports`
+      : null;
+    const reportQuery = repPath
+      ? query(collection(db, repPath))
+      : query(collectionGroup(db, 'field_reports'), where('orgId', '==', orgId));
 
     const unsubReports = onSnapshot(reportQuery, (snapshot) => {
       const photosList: { url: string; date?: string; note?: string }[] = [];

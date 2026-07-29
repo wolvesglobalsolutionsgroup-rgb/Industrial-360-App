@@ -4,7 +4,7 @@ import {
   Lock, Unlock, Camera, FileText, Plus, Search, Filter, HardHat, 
   Calendar, User, FileSpreadsheet, Eye, Sparkles, Check, RefreshCw
 } from 'lucide-react';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, collectionGroup } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 
@@ -136,13 +136,19 @@ export default function SihoPtw() {
   // Gasotester Hazard Check
   const isAtmosphereHazardous = h2s > 10 || lel > 10 || o2 < 19.5 || o2 > 23.5 || co > 25;
 
+  const { currentOrganization } = useProject();
+  const orgId = currentOrganization?.id || 'semax_pino';
+
   useEffect(() => {
     if (!currentProject) return;
 
-    const q = query(
-      collection(db, 'siho_ptw'),
-      where('projectId', '==', currentProject.id)
-    );
+    const isSingle = currentProject.id !== 'all';
+    const ptwPath = isSingle
+      ? `organizations/${orgId}/projects/${currentProject.id}/siho_ptw`
+      : null;
+    const q = ptwPath
+      ? query(collection(db, ptwPath))
+      : query(collectionGroup(db, 'siho_ptw'), where('orgId', '==', orgId));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PTW));
@@ -152,7 +158,7 @@ export default function SihoPtw() {
     });
 
     return () => unsubscribe();
-  }, [currentProject]);
+  }, [currentProject, orgId]);
 
 async function generateSha256Hash(dataString: string): Promise<string> {
   const encoder = new TextEncoder();

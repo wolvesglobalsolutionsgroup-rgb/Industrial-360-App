@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { callGeminiProxy } from '../lib/geminiProxy';
 import { 
-  collection, query, onSnapshot, where, addDoc, serverTimestamp, orderBy 
+  collection, query, onSnapshot, where, addDoc, serverTimestamp, orderBy, collectionGroup
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getAuthUser } from '../firebase';
 import { useProject } from '../ProjectContext';
@@ -95,11 +95,15 @@ export default function FieldReports() {
     setIsLoadingReports(true);
 
     const isSingle = currentProject.id !== 'all';
+    const orgId = currentOrganization?.id || 'semax_pino';
     
     // Fetch WBS tasks for AI correlation
-    const qTasks = isSingle
-      ? query(collection(db, 'tasks'), where('projectId', '==', currentProject.id))
-      : query(collection(db, 'tasks'));
+    const tasksPath = isSingle
+      ? `organizations/${orgId}/projects/${currentProject.id}/tasks`
+      : null;
+    const qTasks = tasksPath
+      ? query(collection(db, tasksPath))
+      : query(collectionGroup(db, 'tasks'), where('orgId', '==', orgId));
 
     const unsubTasks = onSnapshot(qTasks, (snapshot) => {
       setTasks(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
@@ -108,9 +112,12 @@ export default function FieldReports() {
     });
 
     // Fetch field reports history
-    const qReports = isSingle
-      ? query(collection(db, 'field_reports'), where('projectId', '==', currentProject.id))
-      : query(collection(db, 'field_reports'));
+    const repPath = isSingle
+      ? `organizations/${orgId}/projects/${currentProject.id}/field_reports`
+      : null;
+    const qReports = repPath
+      ? query(collection(db, repPath))
+      : query(collectionGroup(db, 'field_reports'), where('orgId', '==', orgId));
 
     const unsubReports = onSnapshot(qReports, (snapshot) => {
       const docs = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })) as FieldReportItem[];

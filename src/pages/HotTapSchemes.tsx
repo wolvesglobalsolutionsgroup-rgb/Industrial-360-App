@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { useProject } from '../ProjectContext';
 import { db } from '../firebase';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, collectionGroup } from 'firebase/firestore';
 
 export type HotTapType = 'HOT_TAP' | 'STOPPLE' | 'LINE_STOP' | 'FREEZE' | 'BYPASS';
 
@@ -80,14 +80,12 @@ export default function HotTapSchemes() {
   // Load Saved Interventions from Firestore
   useEffect(() => {
     setLoading(true);
-    let colRef;
-    try {
-      colRef = collection(db, 'organizations', orgId, 'projects', projId, 'hot_tap_interventions');
-    } catch {
-      colRef = collection(db, 'hot_tap_interventions');
-    }
+    const isSingle = projId !== 'all';
+    const q = isSingle
+      ? collection(db, 'organizations', orgId, 'projects', projId, 'hot_tap_interventions')
+      : query(collectionGroup(db, 'hot_tap_interventions'), where('orgId', '==', orgId));
 
-    const unsub = onSnapshot(colRef, (snap) => {
+    const unsub = onSnapshot(q, (snap) => {
       const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HotTapIntervention));
       setInterventions(items);
       setLoading(false);

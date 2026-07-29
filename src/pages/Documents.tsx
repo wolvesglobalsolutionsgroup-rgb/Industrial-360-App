@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, onSnapshot, addDoc, deleteDoc, doc, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, deleteDoc, doc, where, collectionGroup } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth, handleFirestoreError, OperationType } from '../firebase';
 import { FolderOpen, Upload, FileText, File, Image as ImageIcon, Trash2, Search, Filter, Loader2, Download as DownloadIcon } from 'lucide-react';
@@ -21,10 +21,14 @@ export default function Documents() {
       return;
     }
 
-    const q = query(
-      collection(db, 'documents'),
-      where('projectId', '==', currentProject.id)
-    );
+    const isSingle = currentProject.id !== 'all';
+    const orgId = currentOrganization?.id || 'semax_pino';
+    const docPath = isSingle
+      ? `organizations/${orgId}/projects/${currentProject.id}/documents`
+      : null;
+    const q = docPath
+      ? query(collection(db, docPath))
+      : query(collectionGroup(db, 'documents'), where('orgId', '==', orgId));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -33,7 +37,7 @@ export default function Documents() {
       handleFirestoreError(error, OperationType.GET, 'documents');
     });
     return () => unsubscribe();
-  }, [currentProject]);
+  }, [currentProject, currentOrganization]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

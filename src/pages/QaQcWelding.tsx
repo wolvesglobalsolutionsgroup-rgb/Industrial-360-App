@@ -6,7 +6,7 @@ import {
   UserCheck, Award, Printer, Download, Flame, FileCode2,
   Trash2, RefreshCw, BookmarkCheck
 } from 'lucide-react';
-import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, collectionGroup } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 
@@ -226,13 +226,19 @@ export default function QaQcWelding() {
   // Selected joint for NDT report preview
   const [selectedJointForReport, setSelectedJointForReport] = useState<WeldJoint | null>(null);
 
+  const { currentOrganization } = useProject();
+  const orgId = currentOrganization?.id || 'semax_pino';
+
   useEffect(() => {
     if (!currentProject) return;
 
-    const q = query(
-      collection(db, 'weld_joints'),
-      where('projectId', '==', currentProject.id)
-    );
+    const isSingle = currentProject.id !== 'all';
+    const weldsPath = isSingle
+      ? `organizations/${orgId}/projects/${currentProject.id}/weld_joints`
+      : null;
+    const q = weldsPath
+      ? query(collection(db, weldsPath))
+      : query(collectionGroup(db, 'weld_joints'), where('orgId', '==', orgId));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WeldJoint));
@@ -245,7 +251,7 @@ export default function QaQcWelding() {
     });
 
     return () => unsubscribe();
-  }, [currentProject]);
+  }, [currentProject, orgId]);
 
   const handleCreateJoint = async (e: React.FormEvent) => {
     e.preventDefault();

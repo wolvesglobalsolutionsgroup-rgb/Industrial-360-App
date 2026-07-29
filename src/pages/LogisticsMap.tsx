@@ -5,7 +5,7 @@ import {
   Shield, Sparkles, AlertCircle, FileSpreadsheet, Network
 } from 'lucide-react';
 import { callGeminiProxy } from '../lib/geminiProxy';
-import { collection, query, onSnapshot, where, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, where, addDoc, serverTimestamp, orderBy, collectionGroup } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useProject } from '../ProjectContext';
 import { Card, CardHeader, CardContent, Button, StatusBadge, Input } from '../components/ui';
@@ -20,7 +20,7 @@ import { exportRouteToKML, exportMarkersToKML, downloadKMLFile, importKMLToGeoJS
 import * as turf from '@turf/turf';
 
 export default function LogisticsMap() {
-  const { currentProject } = useProject();
+  const { currentProject, currentOrganization } = useProject();
 
   // Active view tab
   const [activeTab, setActiveTab] = useState<'map' | 'drawer' | 'network' | 'assistant'>('map');
@@ -74,11 +74,15 @@ export default function LogisticsMap() {
   useEffect(() => {
     setIsLoadingData(true);
     const projId = currentProject?.id || 'all';
+    const orgId = currentOrganization?.id || 'semax_pino';
 
     // Query field reports
-    const qReports = projId !== 'all'
-      ? query(collection(db, 'field_reports'), where('projectId', '==', projId))
-      : query(collection(db, 'field_reports'));
+    const repPath = projId !== 'all'
+      ? `organizations/${orgId}/projects/${projId}/field_reports`
+      : null;
+    const qReports = repPath
+      ? query(collection(db, repPath))
+      : query(collectionGroup(db, 'field_reports'), where('orgId', '==', orgId));
 
     const unsubReports = onSnapshot(qReports, (snapshot) => {
       const reportsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -90,9 +94,12 @@ export default function LogisticsMap() {
     });
 
     // Query saved routes
-    const qRoutes = projId !== 'all'
-      ? query(collection(db, 'routes'), where('projectId', '==', projId))
-      : query(collection(db, 'routes'));
+    const routesPath = projId !== 'all'
+      ? `organizations/${orgId}/projects/${projId}/routes`
+      : null;
+    const qRoutes = routesPath
+      ? query(collection(db, routesPath))
+      : query(collectionGroup(db, 'routes'), where('orgId', '==', orgId));
 
     const unsubRoutes = onSnapshot(qRoutes, (snapshot) => {
       const routesData = snapshot.docs.map(doc => {

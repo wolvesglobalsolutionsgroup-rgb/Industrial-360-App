@@ -19,7 +19,7 @@ import {
   FolderCheck,
   Check
 } from 'lucide-react';
-import { doc, onSnapshot, collection, query, where, addDoc } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, addDoc, collectionGroup } from 'firebase/firestore';
 import { db } from '../firebase';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ClientPortalConfig } from './ClientPortalBuilder';
@@ -98,35 +98,41 @@ export default function ClientPortalView() {
     if (!portal || !portal.linkedProjectIds || portal.linkedProjectIds.length === 0) return;
 
     const projIds = portal.linkedProjectIds;
+    const portalOrgId = portal.orgId || 'semax_pino';
 
     // Tasks Query
-    const tasksQ = query(collection(db, 'tasks'), where('projectId', 'in', projIds.slice(0, 10)));
+    const tasksQ = query(collectionGroup(db, 'tasks'), where('orgId', '==', portalOrgId));
     const unsubTasks = onSnapshot(tasksQ, (snap) => {
-      setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setTasks(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
     }, err => console.warn('Tasks query error:', err));
 
     // Valuations Query
-    const valsQ = query(collection(db, 'valuations'), where('projectId', 'in', projIds.slice(0, 10)));
+    const valsQ = query(collectionGroup(db, 'valuations'), where('orgId', '==', portalOrgId));
     const unsubVals = onSnapshot(valsQ, (snap) => {
-      setValuations(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setValuations(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
     }, err => console.warn('Valuations query error:', err));
 
     // PTW SIHO Query
-    const ptwQ = query(collection(db, 'siho_ptw'), where('projectId', 'in', projIds.slice(0, 10)));
+    const ptwQ = query(collectionGroup(db, 'siho_ptw'), where('orgId', '==', portalOrgId));
     const unsubPtw = onSnapshot(ptwQ, (snap) => {
-      setPtwList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setPtwList(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
     }, err => console.warn('PTW query error:', err));
 
     // Weld Joints NDT Query
-    const weldsQ = query(collection(db, 'weld_joints'), where('projectId', 'in', projIds.slice(0, 10)));
+    const weldsQ = query(collectionGroup(db, 'weld_joints'), where('orgId', '==', portalOrgId));
     const unsubWelds = onSnapshot(weldsQ, (snap) => {
-      setWeldJoints(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setWeldJoints(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
     }, err => console.warn('Welds query error:', err));
 
     // Field Reports Query
-    const reportsQ = query(collection(db, 'field_reports'), where('projectId', 'in', projIds.slice(0, 10)));
+    const reportsQ = query(collectionGroup(db, 'field_reports'), where('orgId', '==', portalOrgId));
     const unsubReports = onSnapshot(reportsQ, (snap) => {
-      setFieldReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setFieldReports(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
     }, err => console.warn('Reports query error:', err));
 
     // Dossiers Query

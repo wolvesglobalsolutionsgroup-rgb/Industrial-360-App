@@ -1,4 +1,10 @@
+import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
 import { handleGeminiProxy } from '../../src/lib/geminiServer';
+
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
 
 // HTTPS Cloud Function endpoint export style (Firebase Functions compatible)
 export const callGeminiProxy = async (req: any, res: any) => {
@@ -30,4 +36,71 @@ export const callGeminiProxy = async (req: any, res: any) => {
     }
   }
 };
+
+/**
+ * Callable Cloud Function para establecer Custom Claims a un usuario.
+ * Exige autenticación y que el solicitante sea 'superadmin' o 'gerente' de la orgId objetivo.
+ */
+export const setUserCustomClaims = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError(
+      'unauthenticated',
+      'El usuario debe estar autenticado para realizar esta acción.'
+    );
+  }
+
+  const callerUid = context.auth.uid;
+  const callerRole = context.auth.token?.role;
+  const callerOrgId = context.auth.token?.orgId;
+
+  const { targetUid, role, orgId } = data || {};
+
+  if (!targetUid || !role || !orgId) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Faltan parámetros requeridos: targetUid, role y orgId.'
+    );
+  }
+
+  const isSuperadmin = callerRole === 'superadmin';
+  const isGerenteOfOrg = callerRole === 'gerente' && callerOrgId === orgId;
+
+  if (!isSuperadmin && !isGerenteOfOrg) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'No tiene permisos suficientes para modificar roles en esta organización.'
+    );
+  }
+
+  // 1. Asignar Custom Claims (SIN 'status')
+  await admin.auth().setCustomUserClaims(targetUid, { role, orgId });
+
+  // 2. Revocar tokens de refresco
+  await admin.auth().revokeRefreshTokens(targetUid);
+
+  // 3. Determinar IP del solicitante
+  const headers = context.rawRequest?.headers || {};
+  const rawIp = headers['x-forwarded-for'] ||
+                headers['fastly-client-ip'] ||
+                headers['x-real-ip'] ||
+                context.rawRequest?.ip || 'unknown';
+  const ip = typeof rawIp === 'string' ? rawIp.split(',')[0].trim() : String(rawIp);
+
+  // 4. Registrar Audit Log en /organizations/{orgId}/audit_logs
+  const auditRef = admin.firestore().collection(`organizations/${orgId}/audit_logs`);
+  await auditRef.add({
+    action: 'USER_ROLE_UPDATED',
+    callerUid,
+    targetUid,
+    newRole: role,
+    ip,
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  return {
+    success: true,
+    message: `Custom claims asignados exitosamente al usuario ${targetUid}`,
+  };
+});
+
 

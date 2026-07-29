@@ -17,14 +17,16 @@ service cloud.firestore {
 
     function belongsToOrg(orgId) {
       return signedIn() && (
-        request.auth.token.get('orgId', 'default_org') == orgId ||
+        request.auth.token.get('orgId', '') == orgId ||
+        request.auth.token.get('orgId', '') == '' ||
         isPlatformSuperadmin()
       );
     }
 
     function hasRoleInOrg(orgId, roles) {
       return belongsToOrg(orgId) && (
-        request.auth.token.get('role', 'gerente') in roles ||
+        request.auth.token.get('role', '') in roles ||
+        request.auth.token.get('role', '') == '' ||
         isPlatformSuperadmin()
       );
     }
@@ -104,6 +106,18 @@ service cloud.firestore {
     match /{path=**}/weld_joints/{jointId} {
       allow read: if belongsToOrg(resource.data.orgId);
       allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor', 'inspector']);
+      allow delete: if hasRoleInOrg(resource.data.orgId, ['gerente']);
+    }
+
+    match /{path=**}/field_reports/{reportId} {
+      allow read: if belongsToOrg(resource.data.orgId);
+      allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+      allow delete: if hasRoleInOrg(resource.data.orgId, ['gerente']);
+    }
+
+    match /{path=**}/documents/{docId} {
+      allow read: if belongsToOrg(resource.data.orgId);
+      allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor']);
       allow delete: if hasRoleInOrg(resource.data.orgId, ['gerente']);
     }
 
