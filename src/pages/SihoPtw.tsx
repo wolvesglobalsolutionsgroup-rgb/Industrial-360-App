@@ -2,19 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, Flame, Wind, AlertTriangle, CheckCircle2, XCircle, 
   Lock, Unlock, Camera, FileText, Plus, Search, Filter, HardHat, 
-  Calendar, User, FileSpreadsheet, Eye, Sparkles, Check, RefreshCw
+  Calendar, User, FileSpreadsheet, Eye, Sparkles, Check, RefreshCw, AlertOctagon
 } from 'lucide-react';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, collectionGroup } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import AstForm from '../components/siho/AstForm';
 
 interface GasReadings {
   h2s: number; // Max 10 ppm
-  lel: number; // Max 10%
+  lel: number; // Max 0% (caliente) / 10% (general)
   o2: number;  // 19.5% - 23.5%
   co: number;  // Max 25 ppm
+  voc: number; // Max 10 ppm
+  so2: number; // Max 2 ppm
   gasotesterSerial: string;
   calibratedAt: string;
+  isCalibrationValid?: boolean;
 }
 
 export type PTWType = 'caliente' | 'frio' | 'espacio_confinado' | 'izamiento' | 'excavacion' | 'radiografia' | 'altura' | 'electrico';
@@ -84,16 +88,40 @@ export default function SihoPtw() {
   const [validFrom, setValidFrom] = useState(new Date().toISOString().slice(0, 16));
   const [validTo, setValidTo] = useState(new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 16));
   
-  // Gasotester readings
+  // Gasotester 6-Gases readings
   const [h2s, setH2s] = useState<number>(0);
   const [lel, setLel] = useState<number>(0);
   const [o2, setO2] = useState<number>(20.9);
   const [co, setCo] = useState<number>(0);
+  const [voc, setVoc] = useState<number>(0);
+  const [so2, setSo2] = useState<number>(0);
   const [gasotesterSerial, setGasotesterSerial] = useState('GT-PDVSA-9942');
   const [calibratedAt, setCalibratedAt] = useState(new Date().toISOString().slice(0, 10));
 
   const [selectedEpp, setSelectedEpp] = useState<string[]>(defaultEppOptions.slice(0, 5));
   const [selectedPrecautions, setSelectedPrecautions] = useState<string[]>(defaultPrecautions.slice(0, 3));
+
+  // Calibration check (valid within 30 days)
+  const isCalibrationValid = (calDateStr: string): boolean => {
+    if (!calDateStr) return false;
+    const calDate = new Date(calDateStr);
+    const now = new Date();
+    const diffDays = (now.getTime() - calDate.getTime()) / (1000 * 3600 * 24);
+    return diffDays >= 0 && diffDays <= 30;
+  };
+
+  const isCalibValid = isCalibrationValid(calibratedAt);
+
+  // Gasotester Hazard Check (PDVSA SI-S-04 6-Gas limits + Calibration)
+  const isAtmosphereHazardous = 
+    h2s > 10 || 
+    (newType === 'caliente' ? lel > 0 : lel > 10) || 
+    o2 < 19.5 || 
+    o2 > 23.5 || 
+    co > 25 || 
+    voc > 10 || 
+    so2 > 2 ||
+    !isCalibValid;
 
   // AST State
   const [astSteps, setAstSteps] = useState<ASTStep[]>([
@@ -132,9 +160,6 @@ export default function SihoPtw() {
   const [talkInstructor, setTalkInstructor] = useState('Ing. Carlos Mendoza (Inspector SIHO)');
   const [attendeesCount, setAttendeesCount] = useState(14);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-
-  // Gasotester Hazard Check
-  const isAtmosphereHazardous = h2s > 10 || lel > 10 || o2 < 19.5 || o2 > 23.5 || co > 25;
 
   const { currentOrganization } = useProject();
   const orgId = currentOrganization?.id || 'semax_pino';
@@ -176,13 +201,13 @@ async function generateSha256Hash(dataString: string): Promise<string> {
     }
 
     if (isAtmosphereHazardous) {
-      alert("ATENCIÓN: La atmósfera es peligrosa según las lecturas del gasotester. Corrija los niveles antes de aprobar.");
+      alert("ATENCIÓN: La atmósfera es peligrosa o la calibración del Gasotester no está vigente. Corrija los parámetros antes de aprobar.");
       return;
     }
 
     try {
       const ptwCode = `PTS-${newType.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const signaturePayload = `${ptwCode}|${currentProject.id}|${newSupervisor || 'Ing. Manuel Silva'}|${validFrom}|${validTo}|H2S:${h2s}|LEL:${lel}|O2:${o2}|CO:${co}|${Date.now()}`;
+      const signaturePayload = `${ptwCode}|${currentProject.id}|${newSupervisor || 'Ing. Manuel Silva'}|${validFrom}|${validTo}|H2S:${h2s}|LEL:${lel}|O2:${o2}|CO:${co}|VOC:${voc}|SO2:${so2}|${Date.now()}`;
       const digitalSignatureHash = await generateSha256Hash(signaturePayload);
 
       const ptwData: Omit<PTW, 'id'> = {
@@ -202,15 +227,20 @@ async function generateSha256Hash(dataString: string): Promise<string> {
           lel,
           o2,
           co,
+          voc,
+          so2,
           gasotesterSerial,
-          calibratedAt
+          calibratedAt,
+          isCalibrationValid: isCalibValid
         },
         eppList: selectedEpp,
         precautions: selectedPrecautions,
         createdAt: serverTimestamp()
       };
 
-      await addDoc(collection(db, 'siho_ptw'), ptwData);
+      const targetPath = `organizations/${orgId}/projects/${currentProject.id}/siho_ptw`;
+      await addDoc(collection(db, targetPath), { ...ptwData, orgId });
+
       setIsModalOpen(false);
       resetForm();
     } catch (error) {
@@ -225,6 +255,8 @@ async function generateSha256Hash(dataString: string): Promise<string> {
     setLel(0);
     setO2(20.9);
     setCo(0);
+    setVoc(0);
+    setSo2(0);
   };
 
   const handleAddASTStep = (e: React.FormEvent) => {
@@ -513,14 +545,25 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                       <td className="p-4">{getTypeBadge(ptw.type)}</td>
                       <td className="p-4 font-medium text-ink">{ptw.location}</td>
                       <td className="p-4">
-                        <div className="text-xs font-mono">
+                        <div className="text-[11px] font-mono grid grid-cols-2 gap-x-2 gap-y-0.5">
                           <span className={(ptw.gasReadings?.h2s ?? 0) > 10 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-600 dark:text-emerald-400'}>
                             H₂S: {ptw.gasReadings?.h2s ?? 0} ppm
-                          </span> | 
-                          <span className={(ptw.gasReadings?.lel ?? 0) > 10 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-ink'}>
+                          </span>
+                          <span className={(ptw.gasReadings?.lel ?? 0) > (ptw.type === 'caliente' ? 0 : 10) ? 'text-red-600 dark:text-red-400 font-bold' : 'text-ink'}>
                             LEL: {ptw.gasReadings?.lel ?? 0}%
-                          </span> | 
-                          <span className="text-blue-600 dark:text-blue-400">O₂: {ptw.gasReadings?.o2 ?? 20.9}%</span>
+                          </span>
+                          <span className={((ptw.gasReadings?.o2 ?? 20.9) < 19.5 || (ptw.gasReadings?.o2 ?? 20.9) > 23.5) ? 'text-red-600 dark:text-red-400 font-bold' : 'text-blue-600 dark:text-blue-400'}>
+                            O₂: {ptw.gasReadings?.o2 ?? 20.9}%
+                          </span>
+                          <span className={(ptw.gasReadings?.co ?? 0) > 25 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-ink-soft'}>
+                            CO: {ptw.gasReadings?.co ?? 0} ppm
+                          </span>
+                          <span className={(ptw.gasReadings?.voc ?? 0) > 10 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-ink-faint'}>
+                            VOC: {ptw.gasReadings?.voc ?? 0} ppm
+                          </span>
+                          <span className={(ptw.gasReadings?.so2 ?? 0) > 2 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-ink-faint'}>
+                            SO₂: {ptw.gasReadings?.so2 ?? 0} ppm
+                          </span>
                         </div>
                       </td>
                       <td className="p-4 text-ink-soft">{ptw.supervisor}</td>
@@ -543,104 +586,103 @@ async function generateSha256Hash(dataString: string): Promise<string> {
       {/* TAB 2: MATRIZ IPER / AST */}
       {activeTab === 'ast' && (
         <div className="bg-surface rounded-b-xl border border-line border-t-0 p-6 space-y-6">
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-start gap-3">
-            <Sparkles className="text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" size={20} />
-            <div>
-              <h3 className="text-sm font-bold text-ink">Análisis de Riesgo en el Trabajo (AST) conforme a PDVSA SI-S-04</h3>
-              <p className="text-xs text-ink-soft mt-0.5">
-                La matriz de control exige identificar secuencialmente cada paso operativo, establecer el nivel de riesgo inherente y dictaminar las medidas de control de ingeniería, administrativas y EPP obligatorio antes de iniciar.
-              </p>
-            </div>
-          </div>
+          <AstForm />
 
-          <div className="overflow-x-auto rounded-xl border border-line">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-surface-2 text-ink-soft text-xs uppercase font-bold border-b border-line">
-                  <th className="p-3">Paso / Secuencia Operativa</th>
-                  <th className="p-3">Peligro y Riesgo Asociado</th>
-                  <th className="p-3 text-center">Riesgo Inicial</th>
-                  <th className="p-3">Medidas de Control Requeridas (Ingeniería + SIHO)</th>
-                  <th className="p-3 text-center">Riesgo Residual</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line text-sm">
-                {astSteps.map((step, idx) => (
-                  <tr key={step.id} className="hover:bg-surface-2/60">
-                    <td className="p-3 font-semibold text-ink">
-                      <span className="text-emerald-600 dark:text-emerald-400 font-mono mr-2">{idx + 1}.</span>
-                      {step.sequence}
-                    </td>
-                    <td className="p-3 text-ink-soft">{step.hazard}</td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
-                        step.initialRisk === 'Alto' ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20' :
-                        step.initialRisk === 'Medio' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
-                      }`}>
-                        {step.initialRisk}
-                      </span>
-                    </td>
-                    <td className="p-3 text-ink font-medium">{step.controls}</td>
-                    <td className="p-3 text-center">
-                      <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        {step.residualRisk}
-                      </span>
-                    </td>
+          <div className="pt-6 border-t border-line space-y-4">
+            <h3 className="text-base font-bold text-ink flex items-center gap-2">
+              <Sparkles className="text-emerald-600 dark:text-emerald-400" size={18} />
+              Secuencia Rápida de Trabajo y Controles de Campo (Norma PDVSA SI-S-04)
+            </h3>
+
+            <div className="overflow-x-auto rounded-xl border border-line">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-surface-2 text-ink-soft text-xs uppercase font-bold border-b border-line">
+                    <th className="p-3">Paso / Secuencia Operativa</th>
+                    <th className="p-3">Peligro y Riesgo Asociado</th>
+                    <th className="p-3 text-center">Riesgo Inicial</th>
+                    <th className="p-3">Medidas de Control Requeridas (Ingeniería + SIHO)</th>
+                    <th className="p-3 text-center">Riesgo Residual</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Form to add new step */}
-          <form onSubmit={handleAddASTStep} className="bg-surface-2 border border-line rounded-xl p-4 space-y-4">
-            <h4 className="text-sm font-bold text-ink flex items-center gap-2">
-              <Plus size={16} className="text-emerald-600 dark:text-emerald-400" />
-              Agregar Paso a la Matriz AST de Obra
-            </h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              <input
-                type="text"
-                placeholder="Secuencia de trabajo (Ej: Izamiento de carrete de 8 pulg)"
-                value={newSeq}
-                onChange={(e) => setNewSeq(e.target.value)}
-                className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Peligro / Riesgo (Ej: Falla de guaya de grúa)"
-                value={newHazard}
-                onChange={(e) => setNewHazard(e.target.value)}
-                className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-emerald-500"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Controles (Ej: Inspección pre-uso, delimitación)"
-                value={newControls}
-                onChange={(e) => setNewControls(e.target.value)}
-                className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-              <div className="flex gap-2">
-                <select
-                  value={newRisk}
-                  onChange={(e) => setNewRisk(e.target.value as any)}
-                  className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink font-medium"
-                >
-                  <option value="Alto">Riesgo: Alto</option>
-                  <option value="Medio">Riesgo: Medio</option>
-                  <option value="Bajo">Riesgo: Bajo</option>
-                </select>
-                <button
-                  type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm shrink-0 transition-all cursor-pointer"
-                >
-                  Agregar
-                </button>
-              </div>
+                </thead>
+                <tbody className="divide-y divide-line text-sm">
+                  {astSteps.map((step, idx) => (
+                    <tr key={step.id} className="hover:bg-surface-2/60">
+                      <td className="p-3 font-semibold text-ink">
+                        <span className="text-emerald-600 dark:text-emerald-400 font-mono mr-2">{idx + 1}.</span>
+                        {step.sequence}
+                      </td>
+                      <td className="p-3 text-ink-soft">{step.hazard}</td>
+                      <td className="p-3 text-center">
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+                          step.initialRisk === 'Alto' ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20' :
+                          step.initialRisk === 'Medio' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20'
+                        }`}>
+                          {step.initialRisk}
+                        </span>
+                      </td>
+                      <td className="p-3 text-ink font-medium">{step.controls}</td>
+                      <td className="p-3 text-center">
+                        <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          {step.residualRisk}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </form>
+
+            {/* Form to add new step */}
+            <form onSubmit={handleAddASTStep} className="bg-surface-2 border border-line rounded-xl p-4 space-y-4">
+              <h4 className="text-sm font-bold text-ink flex items-center gap-2">
+                <Plus size={16} className="text-emerald-600 dark:text-emerald-400" />
+                Agregar Paso Rápido a la Matriz
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <input
+                  type="text"
+                  placeholder="Secuencia de trabajo (Ej: Izamiento de carrete de 8 pulg)"
+                  value={newSeq}
+                  onChange={(e) => setNewSeq(e.target.value)}
+                  className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-emerald-500"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Peligro / Riesgo (Ej: Falla de guaya de grúa)"
+                  value={newHazard}
+                  onChange={(e) => setNewHazard(e.target.value)}
+                  className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-emerald-500"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Controles (Ej: Inspección pre-uso, delimitación)"
+                  value={newControls}
+                  onChange={(e) => setNewControls(e.target.value)}
+                  className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink placeholder:text-ink-faint outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <div className="flex gap-2">
+                  <select
+                    value={newRisk}
+                    onChange={(e) => setNewRisk(e.target.value as any)}
+                    className="px-3 py-2 border border-line rounded-lg text-sm bg-surface text-ink font-medium"
+                  >
+                    <option value="Alto">Riesgo: Alto</option>
+                    <option value="Medio">Riesgo: Medio</option>
+                    <option value="Bajo">Riesgo: Bajo</option>
+                  </select>
+                  <button
+                    type="submit"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-lg text-sm shrink-0 transition-all cursor-pointer"
+                  >
+                    Agregar
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -816,84 +858,166 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                 />
               </div>
 
-              {/* CRITICAL: GASOTESTER READINGS */}
+              {/* CRITICAL: GASOTESTER 6-GASES READINGS & CALIBRATION */}
               <div className={`p-4 rounded-xl border transition-all ${
                 isAtmosphereHazardous ? 'bg-red-500/10 border-red-500/30' : 'bg-blue-500/10 border-blue-500/20'
               }`}>
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-line">
                   <div className="flex items-center gap-2">
                     <Wind className={isAtmosphereHazardous ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400'} size={20} />
                     <h3 className="text-sm font-bold text-ink">
-                      Lecturas Obligatorias de Gasotester (Prueba Atmosférica)
+                      Prueba Atmosférica de 6 Gases (PDVSA SI-S-04)
                     </h3>
                   </div>
-                  <span className="text-xs font-mono bg-surface px-2 py-0.5 border border-line rounded text-ink-soft">
-                    Serial: {gasotesterSerial}
-                  </span>
+                  
+                  <div className="flex items-center gap-3 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-ink-soft">Serial Gasotester:</span>
+                      <input
+                        type="text"
+                        value={gasotesterSerial}
+                        onChange={(e) => setGasotesterSerial(e.target.value)}
+                        className="px-2 py-1 border border-line rounded bg-surface text-ink font-mono font-bold text-xs w-32"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-ink-soft">Calibración:</span>
+                      <input
+                        type="date"
+                        value={calibratedAt}
+                        onChange={(e) => setCalibratedAt(e.target.value)}
+                        className="px-2 py-1 border border-line rounded bg-surface text-ink font-mono text-xs"
+                      />
+                      {isCalibValid ? (
+                        <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-500/20">
+                          ✓ Vigente
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded bg-red-500/20 text-red-600 dark:text-red-400 font-bold text-[10px] border border-red-500/30">
+                          🚨 Vencida (&gt;30d)
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  {/* Gas 1: H2S */}
                   <div>
-                    <label className="block text-xs font-bold text-ink-soft mb-1">H₂S (Sulfídrico - ppm)</label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={h2s}
-                      onChange={(e) => setH2s(Number(e.target.value))}
-                      className={`w-full px-3 py-2 border rounded-lg text-sm font-bold font-mono ${
-                        h2s > 10 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
-                      }`}
-                    />
-                    <span className="text-[10px] text-ink-faint">Límite max: 10 ppm</span>
+                    <label className="block text-[11px] font-bold text-ink-soft mb-1">H₂S (Sulfídrico)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={h2s}
+                        onChange={(e) => setH2s(Number(e.target.value))}
+                        className={`w-full px-2.5 py-1.5 border rounded-lg text-sm font-bold font-mono ${
+                          h2s > 10 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
+                        }`}
+                      />
+                      <span className="absolute right-2 top-2 text-[10px] text-ink-faint">ppm</span>
+                    </div>
+                    <span className="text-[10px] text-ink-faint block mt-0.5">Max: 10 ppm</span>
                   </div>
 
+                  {/* Gas 2: LEL */}
                   <div>
-                    <label className="block text-xs font-bold text-ink-soft mb-1">LEL (% Explosividad)</label>
-                    <input
-                      type="number"
-                      step="0.5"
-                      value={lel}
-                      onChange={(e) => setLel(Number(e.target.value))}
-                      className={`w-full px-3 py-2 border rounded-lg text-sm font-bold font-mono ${
-                        lel > 10 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
-                      }`}
-                    />
-                    <span className="text-[10px] text-ink-faint">Límite max: 10%</span>
+                    <label className="block text-[11px] font-bold text-ink-soft mb-1">LEL (Explosividad)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={lel}
+                        onChange={(e) => setLel(Number(e.target.value))}
+                        className={`w-full px-2.5 py-1.5 border rounded-lg text-sm font-bold font-mono ${
+                          (newType === 'caliente' ? lel > 0 : lel > 10) ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
+                        }`}
+                      />
+                      <span className="absolute right-2 top-2 text-[10px] text-ink-faint">%</span>
+                    </div>
+                    <span className="text-[10px] text-ink-faint block mt-0.5">Max: {newType === 'caliente' ? '0% (Caliente)' : '10%'}</span>
                   </div>
 
+                  {/* Gas 3: O2 */}
                   <div>
-                    <label className="block text-xs font-bold text-ink-soft mb-1">O₂ (Oxígeno - %)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={o2}
-                      onChange={(e) => setO2(Number(e.target.value))}
-                      className={`w-full px-3 py-2 border rounded-lg text-sm font-bold font-mono ${
-                        o2 < 19.5 || o2 > 23.5 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
-                      }`}
-                    />
-                    <span className="text-[10px] text-ink-faint">Rango: 19.5% - 23.5%</span>
+                    <label className="block text-[11px] font-bold text-ink-soft mb-1">O₂ (Oxígeno)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={o2}
+                        onChange={(e) => setO2(Number(e.target.value))}
+                        className={`w-full px-2.5 py-1.5 border rounded-lg text-sm font-bold font-mono ${
+                          o2 < 19.5 || o2 > 23.5 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
+                        }`}
+                      />
+                      <span className="absolute right-2 top-2 text-[10px] text-ink-faint">%</span>
+                    </div>
+                    <span className="text-[10px] text-ink-faint block mt-0.5">Norma: 19.5-23.5%</span>
                   </div>
 
+                  {/* Gas 4: CO */}
                   <div>
-                    <label className="block text-xs font-bold text-ink-soft mb-1">CO (Monóxido - ppm)</label>
-                    <input
-                      type="number"
-                      step="1"
-                      value={co}
-                      onChange={(e) => setCo(Number(e.target.value))}
-                      className={`w-full px-3 py-2 border rounded-lg text-sm font-bold font-mono ${
-                        co > 25 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
-                      }`}
-                    />
-                    <span className="text-[10px] text-ink-faint">Límite max: 25 ppm</span>
+                    <label className="block text-[11px] font-bold text-ink-soft mb-1">CO (Monóxido)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="1"
+                        value={co}
+                        onChange={(e) => setCo(Number(e.target.value))}
+                        className={`w-full px-2.5 py-1.5 border rounded-lg text-sm font-bold font-mono ${
+                          co > 25 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
+                        }`}
+                      />
+                      <span className="absolute right-2 top-2 text-[10px] text-ink-faint">ppm</span>
+                    </div>
+                    <span className="text-[10px] text-ink-faint block mt-0.5">Max: 25 ppm</span>
+                  </div>
+
+                  {/* Gas 5: VOC */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-ink-soft mb-1">VOC (Vapores Org.)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={voc}
+                        onChange={(e) => setVoc(Number(e.target.value))}
+                        className={`w-full px-2.5 py-1.5 border rounded-lg text-sm font-bold font-mono ${
+                          voc > 10 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
+                        }`}
+                      />
+                      <span className="absolute right-2 top-2 text-[10px] text-ink-faint">ppm</span>
+                    </div>
+                    <span className="text-[10px] text-ink-faint block mt-0.5">Max: 10 ppm</span>
+                  </div>
+
+                  {/* Gas 6: SO2 */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-ink-soft mb-1">SO₂ (Dióxido Azufre)</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={so2}
+                        onChange={(e) => setSo2(Number(e.target.value))}
+                        className={`w-full px-2.5 py-1.5 border rounded-lg text-sm font-bold font-mono ${
+                          so2 > 2 ? 'border-red-500 bg-red-500/20 text-red-600 dark:text-red-300' : 'border-line bg-surface text-ink'
+                        }`}
+                      />
+                      <span className="absolute right-2 top-2 text-[10px] text-ink-faint">ppm</span>
+                    </div>
+                    <span className="text-[10px] text-ink-faint block mt-0.5">Max: 2 ppm</span>
                   </div>
                 </div>
 
                 {isAtmosphereHazardous && (
                   <div className="mt-3 p-3 bg-red-600 text-white rounded-lg flex items-center gap-2 text-xs font-bold animate-pulse">
                     <Lock size={18} />
-                    ¡ALERTA SIHO: ATMÓSFERA PELIGROSA DETECTADA! EL PERMISO QUEDARÁ BLOQUEADO Y SE PROHÍBE LA ENTRADA/TRABAJO.
+                    {!isCalibValid 
+                      ? '¡ALERTA SIHO: CALIBRACIÓN DEL GASOTESTER VENCIDA O INVÁLIDA! NO SE PERMITE EMITIR PERMISOS HASTA RECERTIFICAR EL EQUIPO.'
+                      : '¡ALERTA SIHO: ATMÓSFERA PELIGROSA DETECTADA (LÍMITES NORMA PDVSA SUPERADOS)! EL PERMISO QUEDARÁ BLOQUEADO Y SE PROHÍBE LA ENTRADA.'}
                   </div>
                 )}
               </div>
