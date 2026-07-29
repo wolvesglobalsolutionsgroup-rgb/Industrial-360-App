@@ -68,11 +68,11 @@ describe('Firestore Security Rules - Multi-Tenant Isolation (IC360-008)', () => 
     await assertSucceeds(getDoc(projDocRef));
   });
 
-  it('Caso 2 (INTRUSIÓN BLOQUEADA): Usuario de semax_pino NO PUEDE leer ni escribir en /organizations/prointeca/projects/proj_2', async () => {
+  it('Caso 2 (INTRUSIÓN BLOQUEADA): Usuario de semax_pino NO PUEDE leer ni escribir en /organizations/prointeca/projects/proj_456', async () => {
     // Seed project document in prointeca
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await setDoc(doc(context.firestore(), 'organizations/prointeca/projects/proj_2'), {
-        name: 'Proyecto 2 Prointeca',
+      await setDoc(doc(context.firestore(), 'organizations/prointeca/projects/proj_456'), {
+        name: 'Proyecto Prointeca 456',
         orgId: 'prointeca',
       });
     });
@@ -84,7 +84,7 @@ describe('Firestore Security Rules - Multi-Tenant Isolation (IC360-008)', () => 
       })
       .firestore();
 
-    const prointecaProjRef = doc(semaxUserDb, 'organizations/prointeca/projects/proj_2');
+    const prointecaProjRef = doc(semaxUserDb, 'organizations/prointeca/projects/proj_456');
 
     // Attempt read - MUST FAIL
     await assertFails(getDoc(prointecaProjRef));
