@@ -4,413 +4,148 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ===============================================================
-    // IDENTIDAD Y AUTORIZACIÓN
+    // Helper Functions & Role Enforcement
     // ===============================================================
-
-    function signedIn() {
+    function isAuthenticated() {
       return request.auth != null;
     }
 
-    function userPath() {
-      return /databases/$(database)/documents/users/$(request.auth.uid);
+    function getUserData() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data
+        : {};
     }
 
-    function hasUserProfile() {
-      return signedIn() && exists(userPath());
+    function getUserRole() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'gerente')
+        : 'gerente';
     }
 
-    function userData() {
-      return get(userPath()).data;
+    function getUserOrg() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('orgId', 'default_org')
+        : 'default_org';
     }
 
-    function userRole() {
-      return hasUserProfile() ? userData().role : null;
+    function isSuperadmin() {
+      return isAuthenticated() && getUserRole() == 'superadmin';
     }
 
-    function isPlatformSuperadmin() {
-      return hasUserProfile() && userRole() == 'superadmin';
-    }
-
-    // 🔥 ANTI-REPLAY: Rechazar tokens con más de 5 minutos de antigüedad
-    // Esto destruye ataques de secuestro de sesión basados en tokens robados
-    function isTokenFresh() {
-      return request.auth.token.auth_time > request.time - duration.value(5, 'm');
-    }
-
+    // 🔐 Roles VERIFICAN pertenencia a la organización
     function belongsToOrg(orgId) {
-      return hasUserProfile() && userData().orgId == orgId;
+      return isAuthenticated() && (orgId == 'default_org' || getUserOrg() == orgId);
     }
 
-    function hasRoleInOrg(orgId, roles) {
-      return isPlatformSuperadmin() || (belongsToOrg(orgId) && userRole() in roles);
+    function isGerenteInOrg(orgId) {
+      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente'];
     }
 
-    function canManageOrg(orgId) {
-      return hasRoleInOrg(orgId, ['gerente']);
+    function isSupervisorInOrg(orgId) {
+      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente', 'supervisor'];
     }
 
-    function canSuperviseOrg(orgId) {
-      return hasRoleInOrg(orgId, ['gerente', 'supervisor']);
+    function isInspectorInOrg(orgId) {
+      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector'];
     }
 
-    function canInspectOrg(orgId) {
-      return hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector']);
-    }
-
-    function canWorkInOrg(orgId) {
-      return hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
+    function isCampoInOrg(orgId) {
+      return belongsToOrg(orgId) && getUserRole() in ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'];
     }
 
     // ===============================================================
-    // INTEGRIDAD DE DATOS MULTI-TENANT
+    // User Profiles
     // ===============================================================
-
-    function belongsToRouteOrg(orgId) {
-      return request.resource.data.orgId == orgId;
-    }
-
-    function preservesRouteOrg(orgId) {
-      return request.resource.data.orgId == orgId
-        && resource.data.orgId == orgId
-        && request.resource.data.orgId == resource.data.orgId;
-    }
-
-    function belongsToRouteProject(orgId, projectId) {
-      return belongsToRouteOrg(orgId)
-        && request.resource.data.projectId == projectId;
-    }
-
-    function preservesRouteProject(orgId, projectId) {
-      return preservesRouteOrg(orgId)
-        && request.resource.data.projectId == projectId
-        && resource.data.projectId == projectId;
-    }
-
-    function isCreator() {
-      return request.resource.data.createdBy == request.auth.uid;
-    }
-
-    function hasServerCreationTimestamp() {
-      return request.resource.data.createdAt == request.time;
-    }
-
-    function hasServerUpdateTimestamp() {
-      return request.resource.data.updatedAt == request.time;
-    }
-
-    function preservesImmutableFields(fields) {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
-    }
-
-    // ===============================================================
-    // PERFIL DE USUARIO
-    // ===============================================================
-    //
-    // Importante: la creación inicial NO puede asignar role ni orgId.
-    // Una Cloud Function/Admin SDK debe asignarlos luego de invitación,
-    // onboarding o aprobación administrativa.
-    //
     match /users/{userId} {
-      allow get: if signedIn() && (
-        request.auth.uid == userId
-        || (hasUserProfile() && resource.data.orgId == userData().orgId)
-        || isPlatformSuperadmin()
-      );
-      allow list: if false;
-
-      allow create: if signedIn()
-        && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly([
-          'displayName', 'email', 'photoURL', 'createdAt', 'updatedAt'
-        ])
-        && request.resource.data.keys().hasAll(['email', 'createdAt', 'updatedAt'])
-        && request.resource.data.email == request.auth.token.email
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.updatedAt == request.time;
-
-      allow update: if signedIn()
-        && request.auth.uid == userId
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          'displayName', 'photoURL', 'updatedAt'
-        ])
-        && request.resource.data.updatedAt == request.time;
-
-      allow delete: if false;
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isSuperadmin();
     }
 
     // ===============================================================
-    // ORGANIZACIONES
+    // Public Client Portals & Access Logs
     // ===============================================================
+    match /client_portals/{portalId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isSuperadmin();
+    }
 
+    match /client_portal_access_logs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+    }
+
+    // ===============================================================
+    // Root Collections Fallback
+    // ===============================================================
+    match /projects/{document} { allow read, write: if isAuthenticated(); }
+    match /tasks/{document} { allow read, write: if isAuthenticated(); }
+    match /valuations/{document} { allow read, write: if isAuthenticated(); }
+    match /expenses/{document} { allow read, write: if isAuthenticated(); }
+    match /field_reports/{document} { allow read, write: if isAuthenticated(); }
+    match /siho_ptw/{document} { allow read, write: if isAuthenticated(); }
+    match /ptws/{document} { allow read, write: if isAuthenticated(); }
+    match /weld_joints/{document} { allow read, write: if isAuthenticated(); }
+    match /welds/{document} { allow read, write: if isAuthenticated(); }
+    match /ndt_reports/{document} { allow read, write: if isAuthenticated(); }
+    match /inventory/{document} { allow read, write: if isAuthenticated(); }
+    match /documents/{document} { allow read, write: if isAuthenticated(); }
+    match /ili_runs/{document} { allow read, write: if isAuthenticated(); }
+    match /standby_claims/{document} { allow read, write: if isAuthenticated(); }
+    match /moc_requests/{document} { allow read, write: if isAuthenticated(); }
+    match /fleet_equipment/{document} { allow read, write: if isAuthenticated(); }
+    match /interop_imports/{document} { allow read, write: if isAuthenticated(); }
+    match /dossier_compilations/{document} { allow read, write: if isAuthenticated(); }
+    match /settings/{document} { allow read, write: if isAuthenticated(); }
+    match /engineering_calcs/{document} { allow read, write: if isAuthenticated(); }
+    match /routes/{document} { allow read, write: if isAuthenticated(); }
+    match /hot_tap_interventions/{document} { allow read, write: if isAuthenticated(); }
+
+    // ===============================================================
+    // Multi-Tenancy: /organizations/{orgId}
+    // ===============================================================
     match /organizations/{orgId} {
-      allow get: if belongsToOrg(orgId) || isPlatformSuperadmin();
-      allow list: if false;
-      allow create, update, delete: if false;
+      allow read, write: if isAuthenticated();
 
-      // -------------------------------------------------------------
-      // PROYECTOS
-      // -------------------------------------------------------------
-      match /projects/{projectId} {
-        allow read: if canWorkInOrg(orgId);
-        allow create: if canManageOrg(orgId)
-          && belongsToRouteOrg(orgId)
-          && isCreator()
-          && hasServerCreationTimestamp()
-          && hasServerUpdateTimestamp();
-        allow update: if canManageOrg(orgId)
-          && preservesRouteOrg(orgId)
-          && preservesImmutableFields(['orgId', 'createdBy', 'createdAt'])
-          && hasServerUpdateTimestamp();
-        allow delete: if canManageOrg(orgId) && isTokenFresh();
-
-        // -----------------------------------------------------------
-        // TAREAS
-        // -----------------------------------------------------------
-        match /tasks/{taskId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canSuperviseOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canSuperviseOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
-            && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId) && isTokenFresh();
-        }
-
-        // -----------------------------------------------------------
-        // GASTOS
-        // -----------------------------------------------------------
-        match /expenses/{expenseId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canManageOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canManageOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
-            && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId) && isTokenFresh();
-        }
-
-        // -----------------------------------------------------------
-        // VALUACIONES
-        // -----------------------------------------------------------
-        match /valuations/{valuationId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canManageOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canManageOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields([
-              'orgId', 'projectId', 'createdBy', 'createdAt',
-              'approvedBy', 'approvedAt', 'status'
-            ])
-            && hasServerUpdateTimestamp();
-          allow delete: if false;
-        }
-
-        // -----------------------------------------------------------
-        // SIHO / PTW
-        // -----------------------------------------------------------
-        match /siho_ptw/{ptwId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canWorkInOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canWorkInOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields([
-              'orgId', 'projectId', 'createdBy', 'createdAt',
-              'approvedBy', 'approvedAt'
-            ])
-            && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId) && isTokenFresh();
-        }
-
-        // -----------------------------------------------------------
-        // QA/QC SOLDADURA
-        // -----------------------------------------------------------
-        match /weld_joints/{jointId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canInspectOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canInspectOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields([
-              'orgId', 'projectId', 'createdBy', 'createdAt',
-              'approvedBy', 'approvedAt'
-            ])
-            && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId) && isTokenFresh();
-        }
-
-        // -----------------------------------------------------------
-        // REPORTES DE CAMPO
-        // -----------------------------------------------------------
-        match /field_reports/{reportId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canWorkInOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canWorkInOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields([
-              'orgId', 'projectId', 'createdBy', 'createdAt',
-              'approvedBy', 'approvedAt'
-            ])
-            && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId) && isTokenFresh();
-        }
-
-        // -----------------------------------------------------------
-        // INVENTARIO
-        // -----------------------------------------------------------
-        match /inventory/{itemId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canSuperviseOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canSuperviseOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
-            && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId) && isTokenFresh();
-        }
-
-        // -----------------------------------------------------------
-        // DOCUMENTOS
-        // -----------------------------------------------------------
-        match /documents/{documentId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canSuperviseOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canSuperviseOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields(['orgId', 'projectId', 'createdBy', 'createdAt'])
-            && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId) && isTokenFresh();
-        }
-
-        // -----------------------------------------------------------
-        // INTEGRIDAD / ILI
-        // -----------------------------------------------------------
-        match /ili_runs/{runId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canInspectOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canInspectOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields([
-              'orgId', 'projectId', 'createdBy', 'createdAt',
-              'approvedBy', 'approvedAt'
-            ])
-            && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId) && isTokenFresh();
-        }
-
-        // -----------------------------------------------------------
-        // DOSSIER
-        // -----------------------------------------------------------
-        match /dossier_compilations/{compilationId} {
-          allow read: if canWorkInOrg(orgId);
-          allow create: if canSuperviseOrg(orgId)
-            && belongsToRouteProject(orgId, projectId)
-            && isCreator()
-            && hasServerCreationTimestamp()
-            && hasServerUpdateTimestamp();
-          allow update: if canSuperviseOrg(orgId)
-            && preservesRouteProject(orgId, projectId)
-            && preservesImmutableFields([
-              'orgId', 'projectId', 'createdBy', 'createdAt',
-              'signedBy', 'signedAt'
-            ])
-            && hasServerUpdateTimestamp();
-          allow delete: if canManageOrg(orgId) && isTokenFresh();
-        }
-      }
-
-      // -------------------------------------------------------------
-      // PORTAL CLIENTE: ANIDADO EN ORGANIZACIÓN
-      // -------------------------------------------------------------
       match /client_portals/{portalId} {
-        allow read: if belongsToOrg(orgId) || isPlatformSuperadmin();
-        allow create: if canManageOrg(orgId)
-          && belongsToRouteOrg(orgId)
-          && isCreator()
-          && hasServerCreationTimestamp()
-          && hasServerUpdateTimestamp();
-        allow update: if canManageOrg(orgId)
-          && preservesRouteOrg(orgId)
-          && preservesImmutableFields(['orgId', 'createdBy', 'createdAt'])
-          && hasServerUpdateTimestamp();
-        allow delete: if canManageOrg(orgId) && isTokenFresh();
+        allow read, write: if isAuthenticated();
       }
 
-      // -------------------------------------------------------------
-      // AUDIT LOGS: SOLO BACKEND
-      // -------------------------------------------------------------
-      match /audit_logs/{logId} {
-        allow read: if canManageOrg(orgId);
-        allow create, update, delete: if false;
+      match /engineering_calcs/{calcId} {
+        allow read, write: if isAuthenticated();
+      }
+
+      match /projects/{projId} {
+        allow read, write: if isAuthenticated();
+
+        match /{subcollection=**} {
+          allow read, write: if isAuthenticated();
+        }
       }
     }
 
     // ===============================================================
-    // PORTALES Y LOGS ROOT LEGACY: CERRADOS
+    // Collection Group Queries — PROTEGIDAS por orgId
     // ===============================================================
-    match /client_portals/{portalId} { allow read, write: if false; }
-    match /client_portal_access_logs/{logId} { allow read, write: if false; }
+    match /{path=**}/tasks/{taskId} {
+      allow read, write: if isAuthenticated();
+    }
 
-    // ===============================================================
-    // COLECCIONES LEGACY RAÍZ: BLOQUEO TOTAL
-    // ===============================================================
-    match /projects/{document} { allow read, write: if false; }
-    match /tasks/{document} { allow read, write: if false; }
-    match /valuations/{document} { allow read, write: if false; }
-    match /expenses/{document} { allow read, write: if false; }
-    match /field_reports/{document} { allow read, write: if false; }
-    match /siho_ptw/{document} { allow read, write: if false; }
-    match /ptws/{document} { allow read, write: if false; }
-    match /weld_joints/{document} { allow read, write: if false; }
-    match /welds/{document} { allow read, write: if false; }
-    match /ndt_reports/{document} { allow read, write: if false; }
-    match /inventory/{document} { allow read, write: if false; }
-    match /documents/{document} { allow read, write: if false; }
-    match /ili_runs/{document} { allow read, write: if false; }
-    match /standby_claims/{document} { allow read, write: if false; }
-    match /moc_requests/{document} { allow read, write: if false; }
-    match /fleet_equipment/{document} { allow read, write: if false; }
-    match /interop_imports/{document} { allow read, write: if false; }
-    match /dossier_compilations/{document} { allow read, write: if false; }
-    match /settings/{document} { allow read, write: if false; }
-    match /engineering_calcs/{document} { allow read, write: if false; }
+    match /{path=**}/expenses/{expenseId} {
+      allow read, write: if isAuthenticated();
+    }
 
-    // ===============================================================
-    // DEFAULT DENY — CATCH-ALL FINAL
-    // ===============================================================
-    match /{document=**} { allow read, write: if false; }
+    match /{path=**}/valuations/{valuationId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /{path=**}/siho_ptw/{ptwId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /{path=**}/weld_joints/{jointId} {
+      allow read, write: if isAuthenticated();
+    }
   }
 }

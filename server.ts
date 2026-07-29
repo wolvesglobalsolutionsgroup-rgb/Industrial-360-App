@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { handleGeminiProxy } from './functions/src/index';
+import { handleGeminiProxy } from './src/lib/geminiServer';
 
 async function startServer() {
   const app = express();

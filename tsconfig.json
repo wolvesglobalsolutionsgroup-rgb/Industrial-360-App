@@ -23,5 +23,12 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": ["functions/"]
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "functions",
+    "node_modules",
+    "dist"
+  ]
 }

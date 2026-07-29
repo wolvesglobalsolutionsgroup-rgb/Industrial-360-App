@@ -174,13 +174,18 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
     }
   }
 
+  const orgId = 'default_org';
+
   try {
-    // Check if projects AND tasks already exist unless forced
+    // Check if projects already exist in default_org or root unless forced
     if (!force) {
-      const snapProjects = await getDocs(collection(db, 'projects'));
-      const snapTasks = await getDocs(collection(db, 'tasks'));
-      if (!snapProjects.empty && !snapTasks.empty) {
-        return { success: true, message: 'La base de datos ya contiene proyectos y partidas WBS.' };
+      try {
+        const snapOrgProjects = await getDocs(collection(db, 'organizations', orgId, 'projects'));
+        if (!snapOrgProjects.empty) {
+          return { success: true, message: 'La base de datos ya contiene proyectos y partidas WBS.' };
+        }
+      } catch {
+        // Continue if checking fails
       }
     }
 
@@ -225,6 +230,7 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
     ];
 
     for (const p of projects) {
+      await setDoc(doc(db, 'organizations', orgId, 'projects', p.id), p, { merge: true });
       await setDoc(doc(db, 'projects', p.id), p, { merge: true });
     }
 
@@ -248,6 +254,7 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         ptwRequired: false,
         startDate: '2026-01-15',
         dueDate: '2026-01-25',
+        orgId: 'default_org',
         subtasks: [
           { id: 'st-1', text: 'Permisología ambiental aprobada', completed: true },
           { id: 'st-2', text: 'Inspección de equipos pesados', completed: true }
@@ -271,6 +278,7 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         ptwRequired: true,
         startDate: '2026-01-26',
         dueDate: '2026-03-30',
+        orgId: 'default_org',
         subtasks: [
           { id: 'st-3', text: 'Cama de arena tramo 0-5km', completed: true },
           { id: 'st-4', text: 'Zanjado tramo 5-10km', completed: false }
@@ -294,6 +302,7 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         ptwRequired: true,
         startDate: '2026-02-01',
         dueDate: '2026-04-15',
+        orgId: 'default_org',
         subtasks: [
           { id: 'st-5', text: 'Prueba de homologación de soldadores CIV', completed: true }
         ]
@@ -315,7 +324,8 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         frontName: 'Frente Canal de Riego',
         ptwRequired: true,
         startDate: '2026-02-05',
-        dueDate: '2026-04-20'
+        dueDate: '2026-04-20',
+        orgId: 'default_org'
       },
       {
         id: 'TASK-005',
@@ -334,7 +344,8 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         frontName: 'Frente San Mateo',
         ptwRequired: false,
         startDate: '2026-03-01',
-        dueDate: '2026-05-01'
+        dueDate: '2026-05-01',
+        orgId: 'default_org'
       },
       {
         id: 'TASK-006',
@@ -353,7 +364,8 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         frontName: 'Planta San Joaquín',
         ptwRequired: true,
         startDate: '2026-03-01',
-        dueDate: '2026-03-03'
+        dueDate: '2026-03-03',
+        orgId: 'default_org'
       },
       {
         id: 'TASK-007',
@@ -372,7 +384,8 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         frontName: 'Patio K-101',
         ptwRequired: true,
         startDate: '2026-03-04',
-        dueDate: '2026-03-20'
+        dueDate: '2026-03-20',
+        orgId: 'default_org'
       },
       {
         id: 'TASK-008',
@@ -389,11 +402,13 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         priority: 'urgent',
         crewName: 'Cuadrilla Mecánica',
         frontName: 'Patio K-101',
-        restrictionNotes: 'Retraso en transporte de cisterna N2 por transportista externo. Pendiente aprobación ETT.'
+        restrictionNotes: 'Retraso en transporte de cisterna N2 por transportista externo. Pendiente aprobación ETT.',
+        orgId: 'default_org'
       }
     ];
 
     for (const t of tasks) {
+      await setDoc(doc(db, 'organizations', orgId, 'projects', t.projectId, 'tasks', t.id), t, { merge: true });
       await setDoc(doc(db, 'tasks', t.id), t, { merge: true });
     }
 
@@ -412,7 +427,8 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         ndtStatus: 'APROBADO',
         ndtType: 'Gammagrafía (RT)',
         reportNumber: 'REP-NDT-2026-012',
-        inspectedDate: '2026-02-10'
+        inspectedDate: '2026-02-10',
+        orgId: 'default_org'
       },
       {
         id: 'W-002',
@@ -427,7 +443,8 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         ndtStatus: 'APROBADO',
         ndtType: 'Gammagrafía (RT)',
         reportNumber: 'REP-NDT-2026-012',
-        inspectedDate: '2026-02-10'
+        inspectedDate: '2026-02-10',
+        orgId: 'default_org'
       },
       {
         id: 'W-003',
@@ -442,11 +459,15 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         ndtStatus: 'RECHAZADO',
         defectType: 'Falta de penetración en raíz (API 1104 Sec. 9)',
         reportNumber: 'REP-NDT-2026-015',
-        inspectedDate: '2026-02-12'
+        inspectedDate: '2026-02-12',
+        orgId: 'default_org'
       }
     ];
 
     for (const w of welds) {
+      await setDoc(doc(db, 'organizations', orgId, 'projects', w.projectId, 'weld_joints', w.id), w, { merge: true });
+      await setDoc(doc(db, 'organizations', orgId, 'projects', w.projectId, 'welds', w.id), w, { merge: true });
+      await setDoc(doc(db, 'weld_joints', w.id), w, { merge: true });
       await setDoc(doc(db, 'welds', w.id), w, { merge: true });
     }
 
@@ -462,7 +483,8 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         applicant: 'Ing. Manuel Rivas',
         gasTestResult: '0.0% LEL, 20.9% O2, 0 PPM H2S',
         issueDate: '2026-07-26',
-        expiryDate: '2026-07-26'
+        expiryDate: '2026-07-26',
+        orgId: 'default_org'
       },
       {
         id: 'PTW-102',
@@ -474,11 +496,15 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         applicant: 'Miguel Pérez',
         gasTestResult: 'N/A',
         issueDate: '2026-07-26',
-        expiryDate: '2026-07-26'
+        expiryDate: '2026-07-26',
+        orgId: 'default_org'
       }
     ];
 
     for (const ptw of ptws) {
+      await setDoc(doc(db, 'organizations', orgId, 'projects', ptw.projectId, 'siho_ptw', ptw.id), ptw, { merge: true });
+      await setDoc(doc(db, 'organizations', orgId, 'projects', ptw.projectId, 'ptws', ptw.id), ptw, { merge: true });
+      await setDoc(doc(db, 'siho_ptw', ptw.id), ptw, { merge: true });
       await setDoc(doc(db, 'ptws', ptw.id), ptw, { merge: true });
     }
 
@@ -492,7 +518,8 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         amount: 185000,
         certifiedAmount: 185000,
         status: 'COBRADA',
-        date: '2026-01-31'
+        date: '2026-01-31',
+        orgId: 'default_org'
       },
       {
         id: 'VAL-002',
@@ -502,7 +529,8 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         amount: 210000,
         certifiedAmount: 205000,
         status: 'CERTIFICADA',
-        date: '2026-02-15'
+        date: '2026-02-15',
+        orgId: 'default_org'
       },
       {
         id: 'VAL-003',
@@ -512,11 +540,13 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         amount: 195000,
         certifiedAmount: 0,
         status: 'EN_REVISION',
-        date: '2026-02-28'
+        date: '2026-02-28',
+        orgId: 'default_org'
       }
     ];
 
     for (const v of valuations) {
+      await setDoc(doc(db, 'organizations', orgId, 'projects', v.projectId, 'valuations', v.id), v, { merge: true });
       await setDoc(doc(db, 'valuations', v.id), v, { merge: true });
     }
 
