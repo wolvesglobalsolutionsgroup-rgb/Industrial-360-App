@@ -67,11 +67,13 @@ export default function ClientPortalView() {
         setPortal(portalData);
         setErrorMsg(null);
 
-        // Record Access Log in Firestore (client_portal_access_logs)
+        const portalOrgId = portalData.orgId || 'semax_pino';
+
+        // Record Access Log in Firestore (client_portal_access_logs under organization)
         try {
-          await addDoc(collection(db, 'client_portal_access_logs'), {
+          await addDoc(collection(db, 'organizations', portalOrgId, 'client_portal_access_logs'), {
             portalId,
-            orgId: portalData.orgId || 'default_org',
+            orgId: portalOrgId,
             accessedAt: new Date().toISOString(),
             userAgent: navigator.userAgent,
             referrer: document.referrer || 'direct'
@@ -136,9 +138,10 @@ export default function ClientPortalView() {
     }, err => console.warn('Reports query error:', err));
 
     // Dossiers Query
-    const dossiersQ = query(collection(db, 'dossier_compilations'), where('projectId', 'in', projIds.slice(0, 10)));
+    const dossiersQ = query(collectionGroup(db, 'dossier_compilations'), where('orgId', '==', portalOrgId));
     const unsubDossiers = onSnapshot(dossiersQ, (snap) => {
-      setDossiers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setDossiers(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
     }, err => console.warn('Dossiers query error:', err));
 
     return () => {

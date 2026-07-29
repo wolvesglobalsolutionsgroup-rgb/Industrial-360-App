@@ -29,6 +29,7 @@ export interface SignatureInfo {
 export interface ValuationItem {
   id: string;
   projectId: string;
+  orgId?: string;
   number: number;
   periodStart: string;
   periodEnd: string;
@@ -217,6 +218,7 @@ export default function Valuations() {
 
       const newDocData: Omit<ValuationItem, 'id'> = {
         projectId: currentProject.id,
+        orgId,
         number: valuationNumber,
         periodStart: newValuation.periodStart,
         periodEnd: newValuation.periodEnd,
@@ -243,7 +245,10 @@ export default function Valuations() {
         }
       };
 
-      await addDoc(collection(db, 'valuations'), newDocData);
+      await addDoc(
+        collection(db, 'organizations', orgId, 'projects', currentProject.id, 'valuations'),
+        { ...newDocData, orgId, projectId: currentProject.id }
+      );
       
       setIsModalOpen(false);
       setNewValuation({
@@ -271,7 +276,8 @@ export default function Valuations() {
 
     setIsSubmitting(true);
     try {
-      const valRef = doc(db, 'valuations', valuation.id);
+      const targetOrgId = valuation.orgId || orgId;
+      const valRef = doc(db, 'organizations', targetOrgId, 'projects', valuation.projectId, 'valuations', valuation.id);
       let nextStatus: ValuationItem['status'] = valuation.status;
       const updatedSignatures = { ...(valuation.signatures || {}) };
 
