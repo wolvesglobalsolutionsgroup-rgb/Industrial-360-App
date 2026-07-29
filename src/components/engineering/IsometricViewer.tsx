@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, Layers, ShieldCheck, 
   CheckCircle2, XCircle, AlertTriangle, Download, Upload, Info, X, 
-  FileText, Check, Grid, Eye, HardHat, FileCheck, Sparkles, Award, RefreshCw, FileCode2
+  FileText, Check, Grid, Eye, HardHat, FileCheck, Sparkles, Award, RefreshCw, FileCode2,
+  MousePointer, Plus, Pencil, Trash2, Move, Undo2, Disc, Spline, Wrench
 } from 'lucide-react';
 import { collection, addDoc, updateDoc, doc, onSnapshot, query, where, getDocs } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../firebase';
@@ -60,6 +61,24 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
   // As-Built Liberation Export State
   const [isLiberating, setIsLiberating] = useState<boolean>(false);
   const [liberationSuccess, setLiberationSuccess] = useState<boolean>(false);
+
+  // Vector Canvas Drawing Tools State (Sprint 10: Smart Canvas Engine)
+  const [activeTool, setActiveTool] = useState<'select' | 'pipe' | 'elbow' | 'flange' | 'valve' | 'joint'>('select');
+  const [draggedNode, setDraggedNode] = useState<{ id: string; startMouseX: number; startMouseY: number; initX: number; initY: number } | null>(null);
+  const [draggedDimIndex, setDraggedDimIndex] = useState<{ index: number; startMouseX: number; startMouseY: number; initOffsetX: number; initOffsetY: number } | null>(null);
+  const [editingText, setEditingText] = useState<{ type: 'dim' | 'joint' | 'spool'; idOrIndex: string | number; text: string } | null>(null);
+  const [history, setHistory] = useState<IsometricDrawing[]>([]);
+
+  const pushHistory = () => {
+    setHistory(prev => [...prev, JSON.parse(JSON.stringify(drawing))]);
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    const last = history[history.length - 1];
+    setDrawing(last);
+    setHistory(prev => prev.slice(0, prev.length - 1));
+  };
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -144,6 +163,131 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
     }
   };
 
+  // Canvas Click for Drawing Tool Component Insertion
+  const handleCanvasClick = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (activeTool === 'select' || draggedNode || draggedDimIndex) return;
+
+    const svgElement = e.currentTarget;
+    const rect = svgElement.getBoundingClientRect();
+    const scaleX = 850 / rect.width;
+    const scaleY = 520 / rect.height;
+    const clickX = Math.round((e.clientX - rect.left) * scaleX);
+    const clickY = Math.round((e.clientY - rect.top) * scaleY);
+
+    pushHistory();
+
+    if (activeTool === 'pipe') {
+      const newPath = {
+        d: `M ${clickX - 50} ${clickY} L ${clickX + 50} ${clickY}`,
+        type: 'pipe' as const,
+        strokeWidth: 8,
+        label: `Tramo Tubería ${drawing.lineTag.split('-')[0] || '12"'}`
+      };
+      setDrawing(prev => ({
+        ...prev,
+        svgPaths: {
+          ...prev.svgPaths,
+          geometry: [...prev.svgPaths.geometry, newPath]
+        }
+      }));
+    } else if (activeTool === 'elbow') {
+      const newPath = {
+        d: `M ${clickX - 25} ${clickY - 25} Q ${clickX} ${clickY - 25} ${clickX + 25} ${clickY + 25}`,
+        type: 'elbow' as const,
+        strokeWidth: 8,
+        label: 'Codo 90° LR'
+      };
+      setDrawing(prev => ({
+        ...prev,
+        svgPaths: {
+          ...prev.svgPaths,
+          geometry: [...prev.svgPaths.geometry, newPath]
+        }
+      }));
+    } else if (activeTool === 'flange') {
+      const newPath = {
+        d: `M ${clickX} ${clickY - 20} L ${clickX} ${clickY + 20} M ${clickX - 6} ${clickY - 20} L ${clickX - 6} ${clickY + 20}`,
+        type: 'flange' as const,
+        strokeWidth: 5,
+        label: 'Brida WN 150#'
+      };
+      setDrawing(prev => ({
+        ...prev,
+        svgPaths: {
+          ...prev.svgPaths,
+          geometry: [...prev.svgPaths.geometry, newPath]
+        }
+      }));
+    } else if (activeTool === 'valve') {
+      const newPath = {
+        d: `M ${clickX - 18} ${clickY - 14} L ${clickX + 18} ${clickY + 14} L ${clickX + 18} ${clickY - 14} L ${clickX - 18} ${clickY + 14} Z`,
+        type: 'valve' as const,
+        strokeWidth: 4,
+        label: 'Válvula Comporta'
+      };
+      setDrawing(prev => ({
+        ...prev,
+        svgPaths: {
+          ...prev.svgPaths,
+          geometry: [...prev.svgPaths.geometry, newPath]
+        }
+      }));
+    } else if (activeTool === 'joint') {
+      const newJoint: IsometricJointNode = {
+        id: `joint_new_${Date.now()}`,
+        tag: `J-0${drawing.joints.length + 1}`,
+        x: clickX,
+        y: clickY,
+        spoolTag: drawing.spools[0]?.tag || 'SPL-01',
+        type: 'BUTT',
+        pipeSize: '12"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L X52',
+        heatNumber: 'MTR-FIELD-2026',
+        wpsCode: 'WPS-PDVSA-01',
+        welderStamp: 'W-402',
+        welderName: 'José Pérez',
+        weldDate: new Date().toISOString().split('T')[0],
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'SinSoldar',
+      };
+      setDrawing(prev => ({
+        ...prev,
+        joints: [...prev.joints, newJoint]
+      }));
+    }
+  };
+
+  // Node Drag Handlers
+  const handleJointPointerDown = (e: React.PointerEvent, joint: IsometricJointNode) => {
+    e.stopPropagation();
+    if (activeTool !== 'select') return;
+    pushHistory();
+    setDraggedNode({
+      id: joint.id,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      initX: joint.x,
+      initY: joint.y,
+    });
+  };
+
+  // Dim Drag Handlers
+  const handleDimPointerDown = (e: React.PointerEvent, idx: number, dim: any) => {
+    e.stopPropagation();
+    if (activeTool !== 'select') return;
+    pushHistory();
+    setDraggedDimIndex({
+      index: idx,
+      startMouseX: e.clientX,
+      startMouseY: e.clientY,
+      initOffsetX: dim.offsetX || 0,
+      initOffsetY: dim.offsetY || -6,
+    });
+  };
+
   // Mouse Pan Start
   const handleMouseDown = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('.joint-node-button')) return;
@@ -151,8 +295,37 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
   };
 
-  // Mouse Pan Move
+  // Mouse Pan & Element Drag Move
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (draggedNode) {
+      const scale = zoom / 100;
+      const dx = Math.round((e.clientX - draggedNode.startMouseX) / scale);
+      const dy = Math.round((e.clientY - draggedNode.startMouseY) / scale);
+      setDrawing(prev => ({
+        ...prev,
+        joints: prev.joints.map(j => j.id === draggedNode.id ? { ...j, x: draggedNode.initX + dx, y: draggedNode.initY + dy } : j)
+      }));
+      return;
+    }
+
+    if (draggedDimIndex) {
+      const scale = zoom / 100;
+      const dx = Math.round((e.clientX - draggedDimIndex.startMouseX) / scale);
+      const dy = Math.round((e.clientY - draggedDimIndex.startMouseY) / scale);
+      setDrawing(prev => ({
+        ...prev,
+        svgPaths: {
+          ...prev.svgPaths,
+          dimensions: prev.svgPaths.dimensions.map((d, i) => i === draggedDimIndex.index ? {
+            ...d,
+            offsetX: draggedDimIndex.initOffsetX + dx,
+            offsetY: draggedDimIndex.initOffsetY + dy
+          } : d)
+        }
+      }));
+      return;
+    }
+
     if (!isDragging) return;
     setPan({
       x: e.clientX - dragStart.x,
@@ -160,8 +333,38 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
     });
   };
 
-  // Mouse Pan End
-  const handleMouseUp = () => setIsDragging(false);
+  // Save Text Edit from Inline Popover
+  const handleSaveTextEdit = () => {
+    if (!editingText) return;
+    pushHistory();
+    if (editingText.type === 'dim') {
+      setDrawing(prev => ({
+        ...prev,
+        svgPaths: {
+          ...prev.svgPaths,
+          dimensions: prev.svgPaths.dimensions.map((d, i) => i === editingText.idOrIndex ? { ...d, label: editingText.text } : d)
+        }
+      }));
+    } else if (editingText.type === 'joint') {
+      setDrawing(prev => ({
+        ...prev,
+        joints: prev.joints.map(j => j.id === editingText.idOrIndex ? { ...j, tag: editingText.text } : j)
+      }));
+    } else if (editingText.type === 'spool') {
+      setDrawing(prev => ({
+        ...prev,
+        spools: prev.spools.map(s => s.id === editingText.idOrIndex ? { ...s, description: editingText.text } : s)
+      }));
+    }
+    setEditingText(null);
+  };
+
+  // Mouse Pan & Drag End
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setDraggedNode(null);
+    setDraggedDimIndex(null);
+  };
 
   // Click Joint Node
   const handleJointClick = (joint: IsometricJointNode) => {
@@ -492,34 +695,117 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
           </button>
         </div>
 
-        {/* Zoom & Viewport Controls */}
-        <div className="flex items-center gap-1.5 bg-surface-2 px-2 py-1 rounded-xl border border-line">
-          <button 
-            onClick={handleZoomOut} 
-            className="p-1 hover:bg-surface text-ink-soft hover:text-ink rounded cursor-pointer"
-            title="Alejar"
-          >
-            <ZoomOut size={15} />
-          </button>
-          <span className="font-mono font-bold text-ink w-12 text-center text-xs">
-            {zoom}%
-          </span>
-          <button 
-            onClick={handleZoomIn} 
-            className="p-1 hover:bg-surface text-ink-soft hover:text-ink rounded cursor-pointer"
-            title="Acercar"
-          >
-            <ZoomIn size={15} />
-          </button>
-          <div className="w-px h-4 bg-line mx-1" />
-          <button 
-            onClick={handleFitToScreen} 
-            className="p-1 hover:bg-surface text-ink-soft hover:text-ink rounded cursor-pointer flex items-center gap-1 font-medium"
-            title="Centrar Plano"
-          >
-            <RotateCcw size={14} />
-            <span>Reset</span>
-          </button>
+        {/* Zoom & Viewport Controls & Vector Drawing Palette */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Drawing Tools Palette (Sprint 10: Smart Vector Canvas Engine) */}
+          <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-xl border border-line">
+            <span className="text-[10px] font-bold text-ink-soft px-1.5 uppercase hidden xl:inline">Herramientas:</span>
+            
+            <button
+              onClick={() => setActiveTool('select')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                activeTool === 'select' ? 'bg-brand-600 text-white shadow-xs' : 'text-ink-soft hover:bg-surface'
+              }`}
+              title="Seleccionar y Arrastrar Nodos/Cotas"
+            >
+              <MousePointer size={14} />
+              <span className="hidden sm:inline">Cursor</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTool('pipe')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                activeTool === 'pipe' ? 'bg-brand-600 text-white shadow-xs' : 'text-ink-soft hover:bg-surface'
+              }`}
+              title="Insertar Tramo Tubería"
+            >
+              <Spline size={14} />
+              <span className="hidden sm:inline">+Tubería</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTool('elbow')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                activeTool === 'elbow' ? 'bg-brand-600 text-white shadow-xs' : 'text-ink-soft hover:bg-surface'
+              }`}
+              title="Insertar Codo 90°"
+            >
+              <Disc size={14} />
+              <span className="hidden sm:inline">+Codo</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTool('flange')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                activeTool === 'flange' ? 'bg-brand-600 text-white shadow-xs' : 'text-ink-soft hover:bg-surface'
+              }`}
+              title="Insertar Brida WN"
+            >
+              <Layers size={14} />
+              <span className="hidden sm:inline">+Brida</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTool('valve')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                activeTool === 'valve' ? 'bg-brand-600 text-white shadow-xs' : 'text-ink-soft hover:bg-surface'
+              }`}
+              title="Insertar Válvula"
+            >
+              <Wrench size={14} />
+              <span className="hidden sm:inline">+Válvula</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTool('joint')}
+              className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                activeTool === 'joint' ? 'bg-emerald-600 text-white shadow-xs' : 'text-ink-soft hover:bg-surface'
+              }`}
+              title="Insertar Nueva Junta NDT"
+            >
+              <Plus size={14} />
+              <span className="hidden sm:inline">+Junta</span>
+            </button>
+
+            {history.length > 0 && (
+              <button
+                onClick={handleUndo}
+                className="p-1.5 rounded-lg text-xs font-bold text-amber-500 hover:bg-amber-500/10 transition-all cursor-pointer flex items-center gap-1"
+                title="Deshacer último cambio"
+              >
+                <Undo2 size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-surface-2 px-2 py-1 rounded-xl border border-line">
+            <button 
+              onClick={handleZoomOut} 
+              className="p-1 hover:bg-surface text-ink-soft hover:text-ink rounded cursor-pointer"
+              title="Alejar"
+            >
+              <ZoomOut size={15} />
+            </button>
+            <span className="font-mono font-bold text-ink w-12 text-center text-xs">
+              {zoom}%
+            </span>
+            <button 
+              onClick={handleZoomIn} 
+              className="p-1 hover:bg-surface text-ink-soft hover:text-ink rounded cursor-pointer"
+              title="Acercar"
+            >
+              <ZoomIn size={15} />
+            </button>
+            <div className="w-px h-4 bg-line mx-1" />
+            <button 
+              onClick={handleFitToScreen} 
+              className="p-1 hover:bg-surface text-ink-soft hover:text-ink rounded cursor-pointer flex items-center gap-1 font-medium"
+              title="Centrar Plano"
+            >
+              <RotateCcw size={14} />
+              <span>Reset</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -555,7 +841,8 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
               {/* SVG CAD VECTOR GRAPHICS */}
               <svg 
                 viewBox="0 0 850 520" 
-                className="w-full h-full drop-shadow-lg"
+                onClick={handleCanvasClick}
+                className={`w-full h-full drop-shadow-lg ${activeTool !== 'select' ? 'cursor-crosshair' : ''}`}
               >
                 <defs>
                   {/* Pipe Gradient */}
@@ -594,8 +881,10 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
                         fontSize={11} 
                         fontWeight="bold" 
                         fontFamily="monospace"
+                        className="cursor-pointer hover:underline"
+                        onDoubleClick={() => setEditingText({ type: 'spool', idOrIndex: spool.id, text: spool.description })}
                       >
-                        • {spool.tag} — {spool.description}
+                        • {spool.tag} — {spool.description} (Doble clic para editar)
                       </text>
                     ))}
                   </g>
@@ -648,6 +937,9 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
                       fontSize={10}
                       fontFamily="monospace"
                       textAnchor="middle"
+                      className="cursor-move hover:fill-brand-400 select-none"
+                      onPointerDown={(e) => handleDimPointerDown(e, idx, dim)}
+                      onDoubleClick={() => setEditingText({ type: 'dim', idOrIndex: idx, text: dim.label })}
                     >
                       {dim.label}
                     </text>
@@ -665,10 +957,15 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
                     key={joint.id}
                     style={{ left: `${joint.x}px`, top: `${joint.y}px` }}
                     className="absolute -translate-x-1/2 -translate-y-1/2 z-20 group"
+                    onPointerDown={(e) => handleJointPointerDown(e, joint)}
                   >
                     <button
                       onClick={() => handleJointClick(joint)}
-                      className={`joint-node-button relative flex items-center justify-center p-1.5 rounded-full shadow-lg border-2 transition-all transform hover:scale-125 cursor-pointer ${
+                      onDoubleClick={(e) => {
+                        e.stopPropagation();
+                        setEditingText({ type: 'joint', idOrIndex: joint.id, text: joint.tag });
+                      }}
+                      className={`joint-node-button relative flex items-center justify-center p-1.5 rounded-full shadow-lg border-2 transition-all transform hover:scale-125 cursor-move ${
                         color.bg
                       } ${color.border} ${isSelected ? 'ring-4 ring-white shadow-2xl scale-125' : ''}`}
                     >
@@ -1011,6 +1308,62 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* INLINE TEXT EDIT POPUP MODAL */}
+      {editingText && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-surface border border-line rounded-2xl p-5 w-full max-w-md shadow-2xl space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-line pb-2">
+              <h3 className="text-sm font-bold text-ink flex items-center gap-2">
+                <Pencil size={16} className="text-brand-500" />
+                Edición Directa de Texto en Lienzo
+              </h3>
+              <button 
+                onClick={() => setEditingText(null)}
+                className="p-1 rounded-lg text-ink-soft hover:bg-surface-2 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-ink-soft mb-1">
+                Etiqueta / Texto ({editingText.type === 'dim' ? 'Cota' : editingText.type === 'joint' ? 'Etiqueta Junta' : 'Descripción Spool'}):
+              </label>
+              <input
+                type="text"
+                value={editingText.text}
+                onChange={(e) => setEditingText({ ...editingText, text: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSaveTextEdit();
+                  }
+                }}
+                autoFocus
+                className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl text-sm font-mono text-ink outline-none focus:ring-2 focus:ring-brand-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setEditingText(null)}
+                className="px-3.5 py-1.5 border border-line rounded-xl text-xs font-semibold text-ink-soft hover:bg-surface cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveTextEdit}
+                className="px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-xs cursor-pointer flex items-center gap-1"
+              >
+                <Check size={14} />
+                Guardar
+              </button>
+            </div>
           </div>
         </div>
       )}

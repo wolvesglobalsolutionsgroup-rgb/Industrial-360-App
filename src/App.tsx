@@ -49,6 +49,7 @@ const ClientPortalBuilder = lazy(() => import('./pages/ClientPortalBuilder'));
 const ClientPortalView = lazy(() => import('./pages/ClientPortalView'));
 const HotTapSchemes = lazy(() => import('./pages/HotTapSchemes'));
 const ApuEstimation = lazy(() => import('./pages/ApuEstimation'));
+const WorkerQrRegistry = lazy(() => import('./pages/WorkerQrRegistry'));
 
 function AppContent() {
   const [user, loading] = useAppAuthState();
@@ -148,6 +149,8 @@ function AppContent() {
             <Route path="settings" element={<Settings />} />
             <Route path="progress-details" element={<ProgressDetails />} />
             <Route path="personnel-details" element={<PersonnelDetails />} />
+            <Route path="worker-qr-registry" element={<WorkerQrRegistry />} />
+            <Route path="personnel-qr" element={<WorkerQrRegistry />} />
             <Route path="alerts-details" element={<AlertsDetails />} />
             <Route path="modulos/:id" element={<ModulePlaceholder />} />
             <Route path="*" element={<Navigate to="/" replace />} />

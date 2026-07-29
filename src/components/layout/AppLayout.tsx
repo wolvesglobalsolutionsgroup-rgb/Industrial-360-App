@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import IconRail from './IconRail';
 import Topbar from './Topbar';
 import ModulePanel from './ModulePanel';
+import OfflineBanner from '../ui/OfflineBanner';
 
 export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -34,6 +35,9 @@ export const AppLayout: React.FC = () => {
           onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           onToggleModules={toggleModules}
         />
+
+        {/* PWA Offline Banner */}
+        <OfflineBanner />
 
         {/* Scrollable Page Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">

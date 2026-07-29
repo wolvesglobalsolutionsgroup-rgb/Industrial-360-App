@@ -76,6 +76,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
       { id: 'expenses', path: '/expenses', title: 'Control de Costos', description: 'Registro de gastos, compras y desviación de presupuesto', icon: DollarSign },
       { id: 'progress', path: '/progress-details', title: 'Detalle de Avance', description: 'Curvas de rendimiento por especialidad', icon: TrendingUp },
       { id: 'personnel', path: '/personnel-details', title: 'Personal de Obra', description: 'Control de asistencias, cuadrillas y hh', icon: Users },
+      { id: 'worker-qr', path: '/worker-qr-registry', title: 'Carnet QR & Control HHT', description: 'Validación en portón SIHO-A, QR Casco y Horas Hombre', icon: Users, badge: 'QR/HHT', badgeColor: 'emerald' },
       { id: 'budget', path: '/budget-details', title: 'Detalle Presupuestario', description: 'Análisis de partidas y desviaciones', icon: PieChart },
       { id: 'logistics', path: '/logistics', title: 'Mapa Logístico', description: 'Rutas de suministro y localización de insumos', icon: MapPin },
     ]
