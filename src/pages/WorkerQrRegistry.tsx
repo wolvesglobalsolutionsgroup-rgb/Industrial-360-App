@@ -10,6 +10,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 import { queueOfflineOperation } from '../lib/offlineSync';
 import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
 
 export interface FieldWorker {
   id: string;
@@ -103,7 +104,7 @@ const SAMPLE_WORKERS: FieldWorker[] = [
 ];
 
 export default function WorkerQrRegistry() {
-  const { currentProject, currentOrganization } = useProject();
+  const { currentProject, currentOrganization, brandKit } = useProject();
   const orgId = currentOrganization?.id || 'semax_pino';
   const projId = currentProject?.id || 'all';
 
@@ -313,32 +314,58 @@ export default function WorkerQrRegistry() {
     setNewPhotoUrl('');
   };
 
-  // Generate PVC ID Card PDF
-  const printWorkerCardPdf = (worker: FieldWorker) => {
+  // Helper for hex to RGB
+  const hexToRgb = (hex: string) => {
+    if (!hex) return { r: 11, g: 34, b: 57 };
+    const clean = hex.replace('#', '');
+    const num = parseInt(clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean, 16);
+    if (isNaN(num)) return { r: 11, g: 34, b: 57 };
+    return {
+      r: (num >> 16) & 255,
+      g: (num >> 8) & 255,
+      b: num & 255
+    };
+  };
+
+  // Generate PVC ID Card PDF with BrandKit Dynamic Styling & QR
+  const printWorkerCardPdf = async (worker: FieldWorker) => {
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
       format: [85.6, 54] // Standard PVC ID card format (CR80)
     });
 
+    const primaryRgb = hexToRgb(brandKit?.primaryColor || '#0B2239');
+    const compName = (brandKit?.companyName || currentOrganization?.name || 'CONTRATISTA OPERATIVA C.A.').toUpperCase();
+
     // FRONT SIDE
-    doc.setFillColor(15, 23, 42); // slate-900
+    doc.setFillColor(15, 23, 42); // slate-900 canvas
     doc.rect(0, 0, 85.6, 54, 'F');
 
-    // Header Band
-    doc.setFillColor(13, 148, 136); // brand teal
-    doc.rect(0, 0, 85.6, 9, 'F');
+    // Header Band using BrandKit primary color
+    doc.setFillColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
+    doc.rect(0, 0, 85.6, 9.5, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'bold');
-    doc.text('INDUSTRIAL CONTROL 360', 4, 6);
-    doc.setFontSize(5);
-    doc.text('PDVSA SI-S-04 COMPLIANT', 52, 6);
+    doc.text(compName.substring(0, 32), 4, 6);
+    doc.setFontSize(4.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PDVSA SI-S-04 COMPLIANT', 54, 6);
+
+    if (brandKit?.logoUrl) {
+      try {
+        doc.addImage(brandKit.logoUrl, 'PNG', 76, 1.5, 6.5, 6.5);
+      } catch {
+        // Fallback if logo fails
+      }
+    }
 
     // Photo Box
     doc.setFillColor(30, 41, 59);
     doc.rect(4, 12, 22, 26, 'F');
-    doc.setDrawColor(13, 148, 136);
+    doc.setDrawColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
+    doc.setLineWidth(0.3);
     doc.rect(4, 12, 22, 26, 'S');
 
     if (worker.photoUrl) {
@@ -368,66 +395,75 @@ export default function WorkerQrRegistry() {
     doc.setTextColor(203, 213, 225);
     doc.setFontSize(6);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Cargo: ${worker.role.substring(0, 26)}`, 29, 25);
-    doc.text(`Empresa: ${worker.contractor.substring(0, 26)}`, 29, 29);
+    doc.text(`Cargo: ${worker.role.substring(0, 26)}`, 29, 24.5);
+    doc.text(`Empresa: ${worker.contractor.substring(0, 26)}`, 29, 28.5);
     if (worker.welderStamp) {
-      doc.text(`Estampa: ${worker.welderStamp}`, 29, 33);
+      doc.text(`Estampa: ${worker.welderStamp}`, 29, 32.5);
     }
 
-    // SIHO Traffic Light Badge
+    // SIHO Traffic Light Badge - Clean text "🟢 ESTADO SIHO-A: APTO EN PORTÓN"
     const isApto = worker.fitStatus === 'Apto';
     doc.setFillColor(isApto ? 16 : 220, isApto ? 185 : 38, isApto ? 129 : 38);
-    doc.rect(29, 35, 28, 5, 'F');
+    doc.rect(29, 34.5, 52, 5, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(6);
+    doc.setFontSize(5.5);
     doc.setFont('helvetica', 'bold');
-    doc.text(isApto ? '🟢 SIHO: APTO OBRA' : '🔴 SIHO: NO APTO', 31, 38.5);
+    doc.text(isApto ? 'ESTADO SIHO-A: APTO EN PORTON' : 'ESTADO SIHO-A: NO APTO EN PORTON', 31, 38);
 
     // Footer Info
     doc.setFillColor(30, 41, 59);
-    doc.rect(0, 43, 85.6, 11, 'F');
+    doc.rect(0, 42.5, 85.6, 11.5, 'F');
     doc.setFontSize(5.5);
     doc.setTextColor(148, 163, 184);
-    doc.text(`Med: ${worker.medicalCheckValidUntil}`, 4, 47);
-    doc.text(`SIHO: ${worker.sihoInductionValidUntil}`, 28, 47);
-    doc.text(`Sangre: ${worker.bloodType}`, 52, 47);
-    doc.text(`Alergias: ${worker.allergies || 'Ninguna'}`, 4, 51);
+    doc.text(`Med: ${worker.medicalCheckValidUntil}`, 4, 46.5);
+    doc.text(`SIHO: ${worker.sihoInductionValidUntil}`, 28, 46.5);
+    doc.text(`Sangre: ${worker.bloodType}`, 52, 46.5);
+    doc.text(`Alergias: ${worker.allergies || 'Ninguna'}`, 4, 50.5);
 
     // BACK SIDE (Page 2)
     doc.addPage([85.6, 54], 'landscape');
     doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, 85.6, 54, 'F');
 
-    doc.setFillColor(30, 41, 59);
+    doc.setFillColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
     doc.rect(0, 0, 85.6, 8, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(7);
+    doc.setFontSize(6.5);
     doc.setFont('helvetica', 'bold');
-    doc.text('REVERSO - CONTROL DE ACCESO EN PORTÓN', 4, 5.5);
+    doc.text('REVERSO - CONTROL DE ACCESO EN PORTON Y QR BIOMETRICO', 4, 5.5);
 
     doc.setFontSize(5.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(203, 213, 225);
-    doc.text('1. Portar en lugar visible en casco o chaleco.', 4, 14);
-    doc.text('2. Sujeto a validación QR biimétrica en portón.', 4, 18);
-    doc.text('3. Cumple norma PDVSA SI-S-04 y COVENIN 2260.', 4, 22);
-    doc.text(`4. Certificación WPQ: ${worker.wpqCertValidUntil || 'N/A'}`, 4, 26);
-    doc.text(`5. HHT Acumuladas: ${worker.totalHhtAccumulated} Horas Hombre`, 4, 30);
-    doc.text(`6. Emergencias: 0800-PDVSA-911`, 4, 34);
+    doc.text('1. Portar en lugar visible en casco o chaleco.', 4, 13);
+    doc.text('2. Sujeto a validacion QR biometrica en porton.', 4, 17);
+    doc.text('3. Cumple norma PDVSA SI-S-04 y COVENIN 2260.', 4, 21);
+    doc.text(`4. Certificacion WPQ: ${worker.wpqCertValidUntil || 'N/A'}`, 4, 25);
+    doc.text(`5. HHT Acumuladas: ${worker.totalHhtAccumulated} Horas Hombre`, 4, 29);
+    doc.text(`6. Emergencias O&G: 0800-PDVSA-911`, 4, 33);
 
-    // QR Box
-    doc.setFillColor(255, 255, 255);
-    doc.rect(58, 12, 22, 22, 'F');
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(5);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SCAN QR', 63, 23);
+    // Render Real QR Code on Back Side (PVC 85.6mm x 54mm)
+    try {
+      const qrPayload = JSON.stringify({
+        id: worker.id,
+        nationalId: worker.nationalId,
+        fullName: worker.fullName,
+        fitStatus: worker.fitStatus,
+        sihoValidUntil: worker.sihoInductionValidUntil
+      });
+      const qrDataUrl = await QRCode.toDataURL(qrPayload, { margin: 1, width: 250 });
+      doc.setFillColor(255, 255, 255);
+      doc.rect(56, 11, 24, 24, 'F');
+      doc.addImage(qrDataUrl, 'PNG', 56.5, 11.5, 23, 23);
+    } catch (qrErr) {
+      console.error('Error generating QR Data URL:', qrErr);
+    }
 
-    doc.setFillColor(13, 148, 136);
+    doc.setFillColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
     doc.rect(0, 48, 85.6, 6, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(5);
-    doc.text('Propiedad de Consorcio O&G - Devolución obligatoria al culminar obra', 4, 52);
+    doc.setFontSize(4.8);
+    doc.text(`Propiedad de ${compName} - Devolucion obligatoria al culminar obra`, 4, 52);
 
     doc.save(`Carnet_PVC_${worker.nationalId.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
   };

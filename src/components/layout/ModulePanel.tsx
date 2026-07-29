@@ -35,7 +35,9 @@ import {
   ChevronRight,
   Grid3x3,
   Layers,
-  Trees
+  Trees,
+  Lock,
+  Crown
 } from 'lucide-react';
 
 export interface ModulePanelProps {
@@ -89,6 +91,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
     colorAccent: 'border-emerald-500 text-emerald-500 bg-emerald-500/10',
     modules: [
       { id: 'siho-ptw', path: '/siho-ptw', title: 'SIHO-A & Permisos PTW', description: 'Permisos de trabajo, ART y auditorías HSE', icon: ShieldCheck, badge: 'Crítico', badgeColor: 'emerald' },
+      { id: 'loto-isolation', path: '/loto-isolation', title: 'Control LOTO & Energías', description: 'Aislamiento de fuentes de energía peligrosa y bloqueo', icon: Lock, badge: 'PDVSA SI-S-28', badgeColor: 'amber' },
       { id: 'environmental-management', path: '/environmental-management', title: 'Gestión Ambiental & RASDA', description: 'Plan PGA, Manifiestos RASDA y Trampas de Grasa', icon: Trees, badge: 'PDVSA MA-01', badgeColor: 'emerald' },
       { id: 'qa-qc', path: '/qa-qc-welding', title: 'QA/QC & Soldadura', description: 'Control de juntas, gammagrafía y ensayos NDT', icon: CheckCircle2 },
       { id: 'ili-pigging', path: '/modulos/ili-pigging', title: 'Integridad ILI & Pigging', description: 'Pase de diablos, corrosión y registros ILI', icon: Activity },
@@ -122,6 +125,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
       { id: 'chat', path: '/chat', title: 'Chatbot IA de Obra', description: 'Copiloto conversacional para el equipo de campo', icon: MessageSquare },
       { id: 'voice', path: '/voice', title: 'Asistente de Voz', description: 'Dictado de notas y comandos de voz en sitio', icon: Mic },
       { id: 'client-portal', path: '/client-portal-builder', title: 'Portal de Cliente', description: 'Constructor de portales para fiscalización externa', icon: Globe },
+      { id: 'platform-owner-console', path: '/platform-owner-console', title: 'Consola Maestra Admin', description: 'Comando SaaS multi-tenant, cuotas, MRR y feature flags', icon: Crown, badge: 'PROINTECA', badgeColor: 'rose' },
       { id: 'settings', path: '/settings', title: 'Configuración', description: 'Ajustes de organización, marca, tema y roles', icon: Settings },
     ]
   }

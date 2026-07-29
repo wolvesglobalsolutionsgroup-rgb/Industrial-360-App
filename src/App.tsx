@@ -51,6 +51,8 @@ const HotTapSchemes = lazy(() => import('./pages/HotTapSchemes'));
 const ApuEstimation = lazy(() => import('./pages/ApuEstimation'));
 const WorkerQrRegistry = lazy(() => import('./pages/WorkerQrRegistry'));
 const EnvironmentalManagement = lazy(() => import('./pages/EnvironmentalManagement'));
+const LotoIsolation = lazy(() => import('./pages/LotoIsolation'));
+const PlatformOwnerConsole = lazy(() => import('./pages/PlatformOwnerConsole'));
 
 function AppContent() {
   const [user, loading] = useAppAuthState();
@@ -154,6 +156,18 @@ function AppContent() {
             <Route path="personnel-qr" element={<WorkerQrRegistry />} />
             <Route path="environmental-management" element={<EnvironmentalManagement />} />
             <Route path="environmental" element={<EnvironmentalManagement />} />
+            <Route path="loto-isolation" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']} moduleName="Control de Fuentes de Energía y LOTO">
+                <LotoIsolation />
+              </ProtectedRoute>
+            } />
+            <Route path="loto" element={<LotoIsolation />} />
+            <Route path="platform-owner-console" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Consola Maestra Admin">
+                <PlatformOwnerConsole />
+              </ProtectedRoute>
+            } />
+            <Route path="master-console" element={<PlatformOwnerConsole />} />
             <Route path="alerts-details" element={<AlertsDetails />} />
             <Route path="modulos/:id" element={<ModulePlaceholder />} />
             <Route path="*" element={<Navigate to="/" replace />} />
