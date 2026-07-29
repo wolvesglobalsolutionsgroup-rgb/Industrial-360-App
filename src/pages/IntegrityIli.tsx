@@ -14,12 +14,20 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { ASMEB31GCalculator } from '../lib/norms/asme/asmeB31g';
+import { 
+  API1163Evaluator, 
+  GOLDEN_CARDON_AMUAY_PRESET, 
+  generateApi1163IliReportPDF, 
+  IliPipelineDataset, 
+  IliAnomalyExtended 
+} from '../lib/norms/api1163';
 
 export interface Anomaly {
   id: string;
   kp: number; // Kilometraje / KP in km
   clockPosition: string; // e.g., "04:30"
   depthPercent: number; // % Wall Thickness loss
+  adjustedDepthPercent?: number;
   lengthMm: number; // Anomaly length in mm
   widthMm: number; // Anomaly width in mm
   type: 'Metal Loss' | 'Dent' | 'Gouge' | 'Crack' | 'Manufacturing Defect';
@@ -28,12 +36,17 @@ export interface Anomaly {
   pipeDiameter: number; // Outer diameter in inches
   smys: number; // SMYS in psi (e.g., 52000 for X52)
   maop: number; // MAOP in psi
-  status: 'Inconclusa' | 'Atención Prioritaria' | 'Dig Sheet Generado' | 'Reparado';
+  status?: string;
+  erf?: number;
+  pSafePsi?: number;
+  actionRequired?: 'Acción Inmediata' | 'Atención Programada' | 'Monitoreo Continuo';
+  recommendedRepair?: string;
   upstreamWeldNo?: string; // JJ_NO
   upstreamWeldDistMm?: number; // JJ_DIST in mm
   easting?: number;
   northing?: number;
   cpPotentialMv?: number; // Cathodic Protection potential in -mV at this KP
+  dentDepthPercentOd?: number;
 }
 
 export interface IliRun {
@@ -63,6 +76,7 @@ export default function IntegrityIli() {
   const orgName = currentOrganization?.name || 'CONTRATISTA OPERATIVA C.A.';
 
   const [activeTab, setActiveTab] = useState<'ili' | 'b31g' | 'cp' | 'api653' | 'runs' | 'digsheets'>('ili');
+  const [currentPipelineDataset, setCurrentPipelineDataset] = useState<IliPipelineDataset>(GOLDEN_CARDON_AMUAY_PRESET);
   const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
   const [selectedAnomaly, setSelectedAnomaly] = useState<Anomaly | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -72,16 +86,16 @@ export default function IntegrityIli() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // B31G Calculator Form Inputs
-  const [calcDiameter, setCalcDiameter] = useState<number>(16);
-  const [calcWTInches, setCalcWTInches] = useState<number>(0.500); // inches
-  const [calcDepthInches, setCalcDepthInches] = useState<number>(0.210); // inches
-  const [calcLengthInches, setCalcLengthInches] = useState<number>(5.5); // inches
-  const [calcSMYS, setCalcSMYS] = useState<string>('52000'); // psi
+  const [calcDiameter, setCalcDiameter] = useState<number>(6.625);
+  const [calcWTInches, setCalcWTInches] = useState<number>(0.280); // inches
+  const [calcDepthInches, setCalcDepthInches] = useState<number>(0.182); // inches (65% of 0.280)
+  const [calcLengthInches, setCalcLengthInches] = useState<number>(7.08); // inches (180mm)
+  const [calcSMYS, setCalcSMYS] = useState<string>('35000'); // psi API 5L Gr. B
   const [calcClassF, setCalcClassF] = useState<string>('0.72');
-  const [calcPOper, setCalcPOper] = useState<number>(650); // psi
+  const [calcPOper, setCalcPOper] = useState<number>(600); // psi MAOP
 
   // API 653 Tank Remaining Life State
-  const [tankTag, setTankTag] = useState('TK-102 (Patios Anaco)');
+  const [tankTag, setTankTag] = useState('TK-102 (Patios Cardón)');
   const [tankOriginalWT, setTankOriginalWT] = useState(6.35); // mm
   const [tankCurrentWT, setTankCurrentWT] = useState(3.40); // mm
   const [tankMinWT, setTankMinWT] = useState(2.54); // mm
@@ -89,6 +103,17 @@ export default function IntegrityIli() {
 
   // Default ILI Runs
   const [iliRuns, setIliRuns] = useState<IliRun[]>([
+    {
+      id: 'RUN-ROSEN-2024-CARDON',
+      runDate: '2024-03-10',
+      lineTag: 'Propanoducto 6" Cardón - Amuay (17.2 km)',
+      vendor: 'ROSEN Group',
+      toolType: 'RoCorr MFL-A High Resolution (API 1163)',
+      totalLengthKm: 17.2,
+      totalAnomalies: 5,
+      criticalAnomalies: 1,
+      status: 'Completado'
+    },
     {
       id: 'RUN-ROSEN-2024-01',
       runDate: '2024-02-15',
@@ -99,88 +124,29 @@ export default function IntegrityIli() {
       totalAnomalies: 128,
       criticalAnomalies: 4,
       status: 'Completado'
-    },
-    {
-      id: 'RUN-TDW-2022-01',
-      runDate: '2022-06-10',
-      lineTag: 'Oleoducto 20" San Tomé - Jose',
-      vendor: 'T.D. Williamson',
-      toolType: 'MFL Ultra + CALIPER',
-      totalLengthKm: 85.0,
-      totalAnomalies: 240,
-      criticalAnomalies: 9,
-      status: 'Completado'
     }
   ]);
 
-  // Initial Anomalies List
+  // Initial Anomalies List - Golden Preset default
   useEffect(() => {
-    const defaultAnomalies: Anomaly[] = [
-      {
-        id: 'ANO-ROS-001',
-        kp: 4.235,
-        clockPosition: '04:30',
-        depthPercent: 48,
-        lengthMm: 145,
-        widthMm: 65,
-        type: 'Metal Loss',
-        internalExternal: 'External',
-        nominalWT: 12.7,
-        pipeDiameter: 16,
-        smys: 52000,
-        maop: 1100,
-        status: 'Atención Prioritaria',
-        upstreamWeldNo: 'JJ-0342',
-        upstreamWeldDistMm: 1850,
-        easting: 382104.88,
-        northing: 984231.42,
-        cpPotentialMv: -780
-      },
-      {
-        id: 'ANO-ROS-002',
-        kp: 12.890,
-        clockPosition: '01:15',
-        depthPercent: 22,
-        lengthMm: 80,
-        widthMm: 40,
-        type: 'Metal Loss',
-        internalExternal: 'Internal',
-        nominalWT: 12.7,
-        pipeDiameter: 16,
-        smys: 52000,
-        maop: 1100,
-        status: 'Inconclusa',
-        upstreamWeldNo: 'JJ-1045',
-        upstreamWeldDistMm: 3200,
-        easting: 388920.12,
-        northing: 981150.30,
-        cpPotentialMv: -920
-      },
-      {
-        id: 'ANO-ROS-003',
-        kp: 28.650,
-        clockPosition: '06:00',
-        depthPercent: 62,
-        lengthMm: 210,
-        widthMm: 90,
-        type: 'Metal Loss',
-        internalExternal: 'External',
-        nominalWT: 12.7,
-        pipeDiameter: 16,
-        smys: 52000,
-        maop: 1100,
-        status: 'Dig Sheet Generado',
-        upstreamWeldNo: 'JJ-2210',
-        upstreamWeldDistMm: 410,
-        easting: 395400.00,
-        northing: 978100.50,
-        cpPotentialMv: -710
-      }
-    ];
-
-    setAnomalies(defaultAnomalies);
-    setSelectedAnomaly(defaultAnomalies[0]);
+    const goldenAnomalies = GOLDEN_CARDON_AMUAY_PRESET.anomalies as unknown as Anomaly[];
+    setAnomalies(goldenAnomalies);
+    setSelectedAnomaly(goldenAnomalies[0]);
   }, [currentProject]);
+
+  const handleLoadGoldenPreset = () => {
+    setCurrentPipelineDataset(GOLDEN_CARDON_AMUAY_PRESET);
+    const goldenAnomalies = GOLDEN_CARDON_AMUAY_PRESET.anomalies as unknown as Anomaly[];
+    setAnomalies(goldenAnomalies);
+    setSelectedAnomaly(goldenAnomalies[0]);
+    setUploadMessage('✨ Golden Preset "Propanoducto 6 Cardón - Amuay (17.2 km)" cargado exitosamente.');
+  };
+
+  const handleExportPdf = () => {
+    const datasetToExport = currentPipelineDataset || GOLDEN_CARDON_AMUAY_PRESET;
+    const anomaliesExtended = anomalies as unknown as IliAnomalyExtended[];
+    generateApi1163IliReportPDF(datasetToExport, anomaliesExtended, orgName);
+  };
 
   // Compute CP survey data for chart alignment
   const cpSurveyData: CpSurveyPoint[] = Array.from({ length: 40 }, (_, i) => {
@@ -395,7 +361,25 @@ export default function IntegrityIli() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button 
+            onClick={handleLoadGoldenPreset}
+            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white font-extrabold px-4 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
+            title="Cargar preset de prueba Propanoducto Cardón-Amuay 6 (17.2 km)"
+          >
+            <Sparkles size={16} />
+            <span>Preset Cardón-Amuay 6"</span>
+          </button>
+
+          <button 
+            onClick={handleExportPdf}
+            className="flex items-center gap-2 bg-indigo-700 hover:bg-indigo-600 text-white font-extrabold px-4 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
+            title="Exportar Informe Técnico de Integridad API 1163 / ASME B31G"
+          >
+            <FileText size={16} />
+            <span>Generar Informe API 1163 (PDF)</span>
+          </button>
+
           <input 
             type="file" 
             id="ili-file-input"
@@ -406,10 +390,10 @@ export default function IntegrityIli() {
           />
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 font-extrabold px-5 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 font-extrabold px-4 py-3 rounded-2xl text-xs sm:text-sm transition-all shadow-sm cursor-pointer"
           >
             <Upload size={16} />
-            <span>Importar Corrida ILI (.xlsx)</span>
+            <span>Importar ILI (.xlsx)</span>
           </button>
         </div>
       </div>
@@ -417,7 +401,7 @@ export default function IntegrityIli() {
       {uploadMessage && (
         <div className="p-4 bg-amber-50 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border border-amber-200 rounded-2xl text-xs font-bold flex items-center justify-between">
           <span>{uploadMessage}</span>
-          <button onClick={() => setUploadMessage(null)} className="text-slate-400 hover:text-slate-900">×</button>
+          <button onClick={() => setUploadMessage(null)} className="text-slate-400 hover:text-slate-900 font-bold">×</button>
         </div>
       )}
 
@@ -487,7 +471,134 @@ export default function IntegrityIli() {
 
       {/* TAB 1: VISOR DE TUBERÍA & ILI */}
       {activeTab === 'ili' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6">
+          {/* Executive Summary & Defect Distribution Chart across KPs */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-600 dark:text-amber-400 uppercase">
+                  <ShieldCheck size={16} /> API 1163 Systems Qualification & Acceptance Criteria
+                </div>
+                <h2 className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                  {currentPipelineDataset.name} — Resumen Ejecutivo y Perfil de Anomalías
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono">
+                  Longitud: {currentPipelineDataset.lengthKm} km • OD: {currentPipelineDataset.outerDiameterInches}" • WT: {currentPipelineDataset.wallThicknessInches}" ({currentPipelineDataset.wallThicknessMm} mm) • MAOP: {currentPipelineDataset.maopPsi} PSI • Material: API 5L Gr. B (35,000 PSI)
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] font-bold uppercase text-red-600 dark:text-red-400 block">Acción Inmediata</span>
+                  <span className="text-xl font-black text-red-700 dark:text-red-300 font-mono">
+                    {anomalies.filter(a => a.actionRequired === 'Acción Inmediata' || (a.erf && a.erf > 1.0) || a.depthPercent >= 65).length}
+                  </span>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] font-bold uppercase text-amber-600 dark:text-amber-400 block">Atención Programada</span>
+                  <span className="text-xl font-black text-amber-700 dark:text-amber-300 font-mono">
+                    {anomalies.filter(a => a.actionRequired === 'Atención Programada' || (a.erf && a.erf >= 0.80 && a.erf <= 1.0) || a.type === 'Dent').length}
+                  </span>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] font-bold uppercase text-emerald-600 dark:text-emerald-400 block">Monitoreo Continuo</span>
+                  <span className="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono">
+                    {anomalies.filter(a => a.actionRequired === 'Monitoreo Continuo' || (a.depthPercent < 40 && a.type !== 'Dent')).length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Chart: Distribution across Kilometrage (KPs) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                  <BarChart2 size={15} className="text-indigo-600" />
+                  Perfil de Distribución de Anomalías a lo largo del Kilometraje (KPs 0 a {currentPipelineDataset.lengthKm} km)
+                </span>
+                <span className="text-[11px] font-mono font-bold text-slate-400">
+                  Eje Y Izq: Profundidad % WT | Eje Y Der: Factor de Reparación ERF
+                </span>
+              </div>
+
+              <div className="h-64 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={[...anomalies].sort((a, b) => a.kp - b.kp)}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <XAxis dataKey="kp" unit=" km" label={{ value: 'Kilometraje KP (km)', position: 'insideBottom', offset: -4 }} />
+                    <YAxis yAxisId="left" domain={[0, 100]} label={{ value: 'Profundidad (% WT)', angle: -90, position: 'insideLeft' }} />
+                    <YAxis yAxisId="right" orientation="right" domain={[0, 1.6]} label={{ value: 'Factor ERF', angle: 90, position: 'insideRight' }} />
+                    <Tooltip 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload as Anomaly;
+                          return (
+                            <div className="bg-slate-900 text-white p-3 rounded-xl text-xs space-y-1 font-mono shadow-xl border border-slate-700">
+                              <p className="text-emerald-400 font-bold">{data.id} — KP {data.kp} km</p>
+                              <p>Tipo: {data.type} ({data.internalExternal})</p>
+                              <p>Profundidad: {data.depthPercent}% WT</p>
+                              <p>ERF B31G: <span className={data.erf && data.erf > 1.0 ? 'text-red-400 font-bold' : 'text-amber-300'}>{data.erf || '0.85'}</span></p>
+                              <p className="text-amber-400 font-bold">Acción: {data.actionRequired || 'Evaluación'}</p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    <Legend />
+                    <ReferenceLine yAxisId="left" y={80} stroke="#ef4444" strokeDasharray="4 4" label={{ value: 'Límite Crítico Depth (80% WT)', fill: '#ef4444', fontSize: 10 }} />
+                    <ReferenceLine yAxisId="right" y={1.0} stroke="#f59e0b" strokeDasharray="3 3" label={{ value: 'Límite ERF = 1.0', fill: '#f59e0b', fontSize: 10 }} />
+                    <Scatter yAxisId="left" name="Profundidad (% WT)" dataKey="depthPercent" fill="#0B2239" />
+                    <Line yAxisId="right" type="monotone" name="Factor ERF B31G" dataKey="erf" stroke="#d97706" strokeWidth={2} dot={{ r: 5 }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Golden Case Key Findings Highlight Row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              <div className="p-4 rounded-2xl bg-red-50/80 dark:bg-red-950/40 border border-red-200 dark:border-red-900 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono font-black text-red-700 dark:text-red-300 bg-red-200 dark:bg-red-900/60 px-2 py-0.5 rounded-full">
+                    KM 4+200 (KP 4.200)
+                  </span>
+                  <span className="text-xs font-black text-red-600 font-mono">ERF 1.15</span>
+                </div>
+                <h4 className="text-xs font-black text-slate-900 dark:text-white">Defecto 1: Corrosión Externa 65% WT</h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-tight">
+                  Requiere <strong className="text-red-700 dark:text-red-300">Camisa de Refuerzo Tipo B (API 1104 / ASME B31.4)</strong> por ERF &gt; 1.0.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono font-black text-emerald-700 dark:text-emerald-300 bg-emerald-200 dark:bg-emerald-900/60 px-2 py-0.5 rounded-full">
+                    KM 11+850 (KP 11.850)
+                  </span>
+                  <span className="text-xs font-black text-emerald-600 font-mono">ERF 0.62</span>
+                </div>
+                <h4 className="text-xs font-black text-slate-900 dark:text-white">Defecto 2: Corrosión Interna 25% WT</h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-tight">
+                  <strong className="text-emerald-700 dark:text-emerald-300">Monitoreo de tasa de corrosión interna</strong> e inyección continua de inhibidor.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono font-black text-amber-700 dark:text-amber-300 bg-amber-200 dark:bg-amber-900/60 px-2 py-0.5 rounded-full">
+                    KM 15+100 (KP 15.100)
+                  </span>
+                  <span className="text-xs font-black text-amber-600 font-mono">Abolladura 4% OD</span>
+                </div>
+                <h4 className="text-xs font-black text-slate-900 dark:text-white">Defecto 3: Dent 12 o&apos;clock (Generatriz Sup)</h4>
+                <p className="text-[11px] text-slate-600 dark:text-slate-300 font-medium leading-tight">
+                  <strong className="text-amber-700 dark:text-amber-300">Reparación preventiva</strong> / inspección Phased Array para descartar grietas (ASME B31.4).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 bg-white dark:bg-slate-900 p-6 rounded-3xl border border-gray-200 dark:border-slate-800 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">Anomalías Detectadas</h2>
@@ -613,7 +724,7 @@ export default function IntegrityIli() {
                         </div>
                       </div>
                       <span className="text-xs font-mono text-emerald-400 bg-slate-900 border border-slate-800 px-3.5 py-1 rounded-full">
-                        Posición: {selectedAnomaly.clockPosition} o'clock ({selectedAnomaly.internalExternal})
+                        Posición: {selectedAnomaly.clockPosition} o&apos;clock ({selectedAnomaly.internalExternal})
                       </span>
                     </div>
 
@@ -642,6 +753,26 @@ export default function IntegrityIli() {
                           {selectedAnomaly.upstreamWeldNo || 'JJ-101'} @ {selectedAnomaly.upstreamWeldDistMm || 1200} mm
                         </p>
                       </div>
+
+                      {selectedAnomaly.actionRequired && (
+                        <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-800 space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-400 text-[10px] uppercase font-bold">Criterio API 1163 / B31G</span>
+                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full font-mono ${
+                              selectedAnomaly.actionRequired === 'Acción Inmediata' 
+                                ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                                : selectedAnomaly.actionRequired === 'Atención Programada'
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            }`}>
+                              {selectedAnomaly.actionRequired}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-200 font-medium">
+                            <strong className="text-amber-300">Reparación Recomendada:</strong> {selectedAnomaly.recommendedRepair || 'Verificación de campo'}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -649,6 +780,7 @@ export default function IntegrityIli() {
             ) : null}
           </div>
         </div>
+      </div>
       )}
 
       {/* TAB 2: MOTOR DE CÁLCULO ASME B31G (USANDO CLASE B31GCALCULATOR) */}
@@ -981,7 +1113,7 @@ export default function IntegrityIli() {
                   <p><strong>Dist. a Junta:</strong> {selectedAnomaly.upstreamWeldDistMm || 1850} mm</p>
                 </div>
                 <div className="bg-gray-50 p-3 rounded border border-gray-300 space-y-1">
-                  <p><strong>Orientación:</strong> {selectedAnomaly.clockPosition} o'clock</p>
+                  <p><strong>Orientación:</strong> {selectedAnomaly.clockPosition} o&apos;clock</p>
                   <p><strong>Profundidad Pérdida:</strong> {selectedAnomaly.depthPercent}% WT</p>
                   <p><strong>Dimensiones L x W:</strong> {selectedAnomaly.lengthMm} x {selectedAnomaly.widthMm} mm</p>
                   <p><strong>Ubicación:</strong> {selectedAnomaly.internalExternal}</p>
