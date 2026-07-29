@@ -6,6 +6,7 @@ import {
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../../firebase';
 import { useProject } from '../../ProjectContext';
+import { exportQuantityTakeoffsToXlsx } from '../../lib/excelExporter';
 
 export interface TakeoffItem {
   id?: string;
@@ -264,31 +265,13 @@ export default function QuantityTakeoff() {
     }
   };
 
-  // Export CSV for SIDCON Valuations
-  const handleExportCsv = () => {
-    const headers = ['Partida WBS', 'Descripción', 'Ubicación / Tramo', 'Unidad', 'Piezas (N)', 'Largo (m)', 'Ancho (m)', 'Alto (m)', 'Cantidad Total', 'Notas', 'Estado SIDCON'];
-    const rows = takeoffs.map(t => [
-      `"${t.wbsCode}"`,
-      `"${t.description.replace(/"/g, '""')}"`,
-      `"${t.location}"`,
-      `"${t.unit}"`,
-      t.count,
-      t.lengthM,
-      t.widthM,
-      t.heightOrThicknessM,
-      t.totalQuantity,
-      `"${(t.notes || '').replace(/"/g, '""')}"`,
-      `"${t.status}"`
-    ]);
-
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Libro_Computos_Metricos_SIDCON_${currentProject?.id || 'PRJ'}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Export XLSX for SIDCON Valuations
+  const handleExportXlsx = () => {
+    exportQuantityTakeoffsToXlsx(
+      takeoffs as any,
+      currentProject?.name || currentProject?.id || 'PROINTECA_PRJ',
+      'PROINTECA C.A. / PDVSA'
+    );
   };
 
   const filteredTakeoffs = filterWbs === 'ALL' 
@@ -317,11 +300,11 @@ export default function QuantityTakeoff() {
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={handleExportCsv}
-            className="flex items-center gap-2 bg-surface hover:bg-surface-2 text-ink text-xs font-bold px-3.5 py-2 rounded-xl border border-line transition-all cursor-pointer"
+            onClick={handleExportXlsx}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-emerald-500 shadow-sm transition-all cursor-pointer"
           >
-            <Download size={15} />
-            Exportar Libro SIDCON (CSV)
+            <FileSpreadsheet size={15} />
+            Exportar Libro Excel (.xlsx)
           </button>
 
           <button

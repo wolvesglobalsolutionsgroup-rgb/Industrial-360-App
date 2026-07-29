@@ -9,6 +9,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 import QuantityTakeoff from '../components/engineering/QuantityTakeoff';
 import { parseBc3File } from '../lib/parsers/bc3Parser';
+import { exportApuPresupuestoToXlsx } from '../lib/excelExporter';
 
 export interface ApuLabor {
   id: string;
@@ -112,6 +113,55 @@ export const INITIAL_APUS: ApuItem[] = [
   }
 ];
 
+export function calculateApuUnitCost(item: ApuItem) {
+  if (!item) return { laborDaily: 0, laborPerUnit: 0, equipDaily: 0, equipPerUnit: 0, matPerUnit: 0, laborTotal: 0, equipTotal: 0, matTotal: 0, directCost: 0, indirectTotal: 0, totalUnitCost: 0 };
+
+  const fcasFactor = 1 + (item.fcasPercent / 100);
+
+  // 1. Labor Cost per day
+  const totalLaborDaily = item.labor.reduce((acc, l) => {
+    const dailyBaseWithFcas = (l.baseSalaryDailyUsd * fcasFactor) + l.cpttBonusesUsd;
+    return acc + (dailyBaseWithFcas * l.count);
+  }, 0);
+  const laborPerUnit = item.performancePerDay > 0 ? totalLaborDaily / item.performancePerDay : 0;
+
+  // 2. Equipment Cost per day (8 hours)
+  const totalEquipmentDaily = item.equipment.reduce((acc, e) => {
+    const activeCost = e.hourlyRateActiveUsd * e.hoursActive;
+    const idleCost = e.hourlyRateIdleUsd * e.hoursIdle;
+    return acc + activeCost + idleCost;
+  }, 0);
+  const equipPerUnit = item.performancePerDay > 0 ? totalEquipmentDaily / item.performancePerDay : 0;
+
+  // 3. Materials Cost per Unit
+  const matPerUnit = item.materials.reduce((acc, m) => {
+    const wasteFactor = 1 + (m.wastePercent / 100);
+    return acc + (m.unitPriceUsd * m.quantityPerUnit * wasteFactor);
+  }, 0);
+
+  const directCost = laborPerUnit + equipPerUnit + matPerUnit;
+
+  const indirectsCost = directCost * (item.indirectsPercent / 100);
+  const contingencyCost = directCost * (item.contingencyPercent / 100);
+  const profitCost = (directCost + indirectsCost + contingencyCost) * (item.profitPercent / 100);
+
+  const totalUnitCost = directCost + indirectsCost + contingencyCost + profitCost;
+
+  return {
+    laborDaily: Math.round(totalLaborDaily * 100) / 100,
+    laborPerUnit: Math.round(laborPerUnit * 100) / 100,
+    equipDaily: Math.round(totalEquipmentDaily * 100) / 100,
+    equipPerUnit: Math.round(equipPerUnit * 100) / 100,
+    matPerUnit: Math.round(matPerUnit * 100) / 100,
+    laborTotal: Math.round(laborPerUnit * 100) / 100,
+    equipTotal: Math.round(equipPerUnit * 100) / 100,
+    matTotal: Math.round(matPerUnit * 100) / 100,
+    directCost: Math.round(directCost * 100) / 100,
+    indirectTotal: Math.round((indirectsCost + contingencyCost + profitCost) * 100) / 100,
+    totalUnitCost: Math.round(totalUnitCost * 100) / 100
+  };
+}
+
 export default function ApuEstimation() {
   const { currentProject } = useProject();
   const [activeTab, setActiveTab] = useState<'apu_list' | 'fcas_calculator' | 'escalation_formulas' | 'takeoffs'>('apu_list');
@@ -178,51 +228,6 @@ export default function ApuEstimation() {
 
   // Selected APU Detailed Calculation
   const selectedApu = apusList.find(a => a.id === selectedApuId) || apusList[0];
-
-  const calculateApuUnitCost = (item: ApuItem) => {
-    if (!item) return { laborDaily: 0, laborPerUnit: 0, equipDaily: 0, equipPerUnit: 0, matPerUnit: 0, directCost: 0, totalUnitCost: 0 };
-
-    const fcasFactor = 1 + (item.fcasPercent / 100);
-
-    // 1. Labor Cost per day
-    const totalLaborDaily = item.labor.reduce((acc, l) => {
-      const dailyBaseWithFcas = (l.baseSalaryDailyUsd * fcasFactor) + l.cpttBonusesUsd;
-      return acc + (dailyBaseWithFcas * l.count);
-    }, 0);
-    const laborPerUnit = item.performancePerDay > 0 ? totalLaborDaily / item.performancePerDay : 0;
-
-    // 2. Equipment Cost per day (8 hours)
-    const totalEquipmentDaily = item.equipment.reduce((acc, e) => {
-      const activeCost = e.hourlyRateActiveUsd * e.hoursActive;
-      const idleCost = e.hourlyRateIdleUsd * e.hoursIdle;
-      return acc + activeCost + idleCost;
-    }, 0);
-    const equipPerUnit = item.performancePerDay > 0 ? totalEquipmentDaily / item.performancePerDay : 0;
-
-    // 3. Materials Cost per Unit
-    const matPerUnit = item.materials.reduce((acc, m) => {
-      const wasteFactor = 1 + (m.wastePercent / 100);
-      return acc + (m.unitPriceUsd * m.quantityPerUnit * wasteFactor);
-    }, 0);
-
-    const directCost = laborPerUnit + equipPerUnit + matPerUnit;
-
-    const indirectsCost = directCost * (item.indirectsPercent / 100);
-    const contingencyCost = directCost * (item.contingencyPercent / 100);
-    const profitCost = (directCost + indirectsCost + contingencyCost) * (item.profitPercent / 100);
-
-    const totalUnitCost = directCost + indirectsCost + contingencyCost + profitCost;
-
-    return {
-      laborDaily: Math.round(totalLaborDaily * 100) / 100,
-      laborPerUnit: Math.round(laborPerUnit * 100) / 100,
-      equipDaily: Math.round(totalEquipmentDaily * 100) / 100,
-      equipPerUnit: Math.round(equipPerUnit * 100) / 100,
-      matPerUnit: Math.round(matPerUnit * 100) / 100,
-      directCost: Math.round(directCost * 100) / 100,
-      totalUnitCost: Math.round(totalUnitCost * 100) / 100
-    };
-  };
 
   const currentCalc = calculateApuUnitCost(selectedApu);
 
@@ -295,6 +300,15 @@ export default function ApuEstimation() {
       }
     };
     reader.readAsText(file);
+  };
+
+  // Export APUs to Excel XLSX
+  const handleExportXlsx = () => {
+    exportApuPresupuestoToXlsx(
+      apusList,
+      currentProject?.name || currentProject?.id || 'PROINTECA_PRJ',
+      'PROINTECA C.A. / PDVSA'
+    );
   };
 
   // Export APUs to BC3 File Format
@@ -408,6 +422,15 @@ export default function ApuEstimation() {
                   <input type="file" accept=".bc3,.txt" onChange={handleFileUploadBc3} className="hidden" />
                 </label>
                 
+                <button
+                  onClick={handleExportXlsx}
+                  className="p-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-all cursor-pointer flex items-center gap-1 font-bold text-xs"
+                  title="Exportar a Excel (.xlsx)"
+                >
+                  <FileSpreadsheet size={14} />
+                  <span>XLSX</span>
+                </button>
+
                 <button
                   onClick={handleExportBc3}
                   className="p-1.5 rounded-lg bg-surface hover:bg-surface-2 text-ink-soft hover:text-ink border border-line transition-all cursor-pointer"
