@@ -57,12 +57,11 @@ export default function Dashboard() {
       const tasksPath = isSingle ? `organizations/${orgId}/projects/${projId}/tasks` : null;
       const tasksQ = tasksPath 
         ? query(collection(db, tasksPath))
-        : query(collectionGroup(db, 'tasks'));
+        : query(collectionGroup(db, 'tasks'), where('orgId', '==', orgId));
 
       const unsubTasks = onSnapshot(tasksQ, (snap) => {
         const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const filtered = isSingle ? raw : raw.filter((item: any) => !item.orgId || item.orgId === orgId);
-        setTasks(filtered);
+        setTasks(raw);
         setIsLoadingData(false);
         clearTimeout(timer);
       }, (err) => {
@@ -74,45 +73,41 @@ export default function Dashboard() {
       const expensesPath = isSingle ? `organizations/${orgId}/projects/${projId}/expenses` : null;
       const expensesQ = expensesPath
         ? query(collection(db, expensesPath))
-        : query(collectionGroup(db, 'expenses'));
+        : query(collectionGroup(db, 'expenses'), where('orgId', '==', orgId));
 
       const unsubExpenses = onSnapshot(expensesQ, (snap) => {
         const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const filtered = isSingle ? raw : raw.filter((item: any) => !item.orgId || item.orgId === orgId);
-        setExpenses(filtered);
+        setExpenses(raw);
       }, (err) => handleFirestoreError(err, OperationType.GET, expensesPath || 'expenses'));
 
       const valsPath = isSingle ? `organizations/${orgId}/projects/${projId}/valuations` : null;
       const valsQ = valsPath
         ? query(collection(db, valsPath))
-        : query(collectionGroup(db, 'valuations'));
+        : query(collectionGroup(db, 'valuations'), where('orgId', '==', orgId));
 
       const unsubValuations = onSnapshot(valsQ, (snap) => {
         const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const filtered = isSingle ? raw : raw.filter((item: any) => !item.orgId || item.orgId === orgId);
-        setValuations(filtered);
+        setValuations(raw);
       }, (err) => handleFirestoreError(err, OperationType.GET, valsPath || 'valuations'));
 
       const ptwPath = isSingle ? `organizations/${orgId}/projects/${projId}/siho_ptw` : null;
       const ptwQ = ptwPath
         ? query(collection(db, ptwPath))
-        : query(collectionGroup(db, 'siho_ptw'));
+        : query(collectionGroup(db, 'siho_ptw'), where('orgId', '==', orgId));
 
       const unsubPtw = onSnapshot(ptwQ, (snap) => {
         const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const filtered = isSingle ? raw : raw.filter((item: any) => !item.orgId || item.orgId === orgId);
-        setPtwList(filtered);
+        setPtwList(raw);
       }, (err) => handleFirestoreError(err, OperationType.GET, ptwPath || 'siho_ptw'));
 
       const weldsPath = isSingle ? `organizations/${orgId}/projects/${projId}/weld_joints` : null;
       const weldsQ = weldsPath
         ? query(collection(db, weldsPath))
-        : query(collectionGroup(db, 'weld_joints'));
+        : query(collectionGroup(db, 'weld_joints'), where('orgId', '==', orgId));
 
       const unsubWelds = onSnapshot(weldsQ, (snap) => {
         const raw = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const filtered = isSingle ? raw : raw.filter((item: any) => !item.orgId || item.orgId === orgId);
-        setWeldJoints(filtered);
+        setWeldJoints(raw);
       }, (err) => handleFirestoreError(err, OperationType.GET, weldsPath || 'weld_joints'));
 
       return () => {
