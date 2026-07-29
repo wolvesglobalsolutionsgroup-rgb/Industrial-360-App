@@ -1,5 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
-import * as functions from 'firebase-functions';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { onCall } from 'firebase-functions/v2/https';
+import * as logger from 'firebase-functions/logger';
 import * as admin from 'firebase-admin';
 
 admin.initializeApp();
@@ -13,9 +15,6 @@ export interface GeminiProxyRequest {
   config?: any;
 }
 
-// ===============================================================
-// EXTRACTOR ROBUSTO DE IP
-// ===============================================================
 const getClientIp = (rawRequest: any): string => {
   if (!rawRequest) return 'unknown';
   const xForwarded = rawRequest.headers['x-forwarded-for'];
@@ -28,87 +27,94 @@ const getClientIp = (rawRequest: any): string => {
 };
 
 // ===============================================================
-// BOOTSTRAP: TRANSACCIÓN ATÓMICA
+// BOOTSTRAP V2: onDocumentCreated
 // ===============================================================
+export const onFirstUserCreated = onDocumentCreated('users/{userId}', async (event) => {
+  const userId = event.params.userId;
+  if (!event.data) return;
 
-export const onFirstUserCreated = functions.firestore
-  .document('users/{userId}')
-  .onCreate(async (snap, context) => {
-    const userId = context.params.userId;
-    const email = snap.data().email || '';
-    const orgId = `org-${userId}`;
-    const bootstrapRef = db.collection('settings').doc('bootstrap');
+  const email = event.data.data().email || '';
+  const orgId = `org-${userId}`;
+  const bootstrapRef = db.collection('settings').doc('bootstrap');
 
-    try {
-      await db.runTransaction(async (transaction) => {
-        const bootstrapDoc = await transaction.get(bootstrapRef);
-        if (bootstrapDoc.exists) return;
+  try {
+    await db.runTransaction(async (transaction) => {
+      const bootstrapDoc = await transaction.get(bootstrapRef);
+      if (bootstrapDoc.exists) return;
 
-        transaction.set(bootstrapRef, { initiatedBy: userId, createdAt: admin.firestore.FieldValue.serverTimestamp() });
-        transaction.set(snap.ref, { role: 'superadmin', orgId, status: 'active' }, { merge: true });
-        transaction.set(db.collection('organizations').doc(orgId), {
-          name: 'Mi Empresa', ownerId: userId, status: 'active',
-          createdAt: admin.firestore.FieldValue.serverTimestamp(), members: [userId],
-        });
+      transaction.set(bootstrapRef, {
+        initiatedBy: userId,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+      transaction.set(event.data.ref, {
+        role: 'superadmin', orgId, status: 'active',
+      }, { merge: true });
+      transaction.set(db.collection('organizations').doc(orgId), {
+        name: 'Mi Empresa', ownerId: userId, status: 'active',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(), members: [userId],
+      });
+    });
 
-      await admin.auth().setCustomUserClaims(userId, { role: 'superadmin', orgId, status: 'active' });
-      functions.logger.info(`✅ Primer usuario ${userId} es superadmin de ${orgId}`);
-    } catch (error: any) {
-      functions.logger.error(`Error en bootstrap:`, error.message);
-    }
-  });
+    await admin.auth().setCustomUserClaims(userId, { role: 'superadmin', orgId, status: 'active' });
+    logger.info(`Primer usuario ${userId} es superadmin de ${orgId}`);
+  } catch (error: any) {
+    logger.error(`Error en bootstrap:`, error.message);
+  }
+});
 
 // ===============================================================
-// ASIGNACIÓN DE ROLES — CON CUSTOM CLAIMS + REVOCACIÓN + AUDIT
+// ASIGNACIÓN DE ROLES V2
 // ===============================================================
+export const assignUserRole = onCall({ minInstances: 1 }, async (req) => {
+  if (!req.auth) throw new Error('Unauthenticated');
 
-export const assignUserRole = functions.runWith({ minInstances: 1 }).https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Debes iniciar sesión.');
-
-  const callerUid = context.auth.uid;
+  const callerUid = req.auth.uid;
+  const data = req.data as any;
   const { targetUserId, newRole } = data;
 
-  if (!targetUserId || !newRole)
-    throw new functions.https.HttpsError('invalid-argument', 'Se requieren targetUserId y newRole.');
+  if (!targetUserId || !newRole) throw new Error('Se requieren targetUserId y newRole.');
 
   const validRoles = ['campo', 'inspector', 'supervisor', 'gerente', 'superadmin'];
-  if (!validRoles.includes(newRole))
-    throw new functions.https.HttpsError('invalid-argument', `Rol inválido.`);
+  if (!validRoles.includes(newRole)) throw new Error('Rol inválido.');
 
-  // 🔥 PARALELIZAR LECTURAS (Promise.all)
   const [callerSnap, targetSnap] = await Promise.all([
     db.collection('users').doc(callerUid).get(),
     db.collection('users').doc(targetUserId).get(),
   ]);
 
-  if (!callerSnap.exists) throw new functions.https.HttpsError('permission-denied', 'No tienes perfil.');
-  if (!targetSnap.exists) throw new functions.https.HttpsError('not-found', 'Usuario destino no existe.');
+  if (!callerSnap.exists) throw new Error('No tienes perfil.');
+  if (!targetSnap.exists) throw new Error('Usuario destino no existe.');
 
   const callerData = callerSnap.data()!;
   const targetData = targetSnap.data()!;
 
   if (callerData.role !== 'superadmin' && callerData.role !== 'gerente')
-    throw new functions.https.HttpsError('permission-denied', 'Solo gerentes y superadmins pueden asignar roles.');
+    throw new Error('Solo gerentes y superadmins pueden asignar roles.');
+
   if (targetData.orgId !== callerData.orgId && callerData.role !== 'superadmin')
-    throw new functions.https.HttpsError('permission-denied', 'El usuario destino no pertenece a tu organización.');
+    throw new Error('El usuario destino no pertenece a tu organización.');
+
   if (newRole === 'superadmin' && callerData.role !== 'superadmin')
-    throw new functions.https.HttpsError('permission-denied', 'Solo un superadmin puede asignar superadmin.');
+    throw new Error('Solo un superadmin puede asignar superadmin.');
 
   await db.collection('users').doc(targetUserId).update({
     role: newRole,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   });
 
-  // Custom Claims + Revocación inmediata
-  await admin.auth().setCustomUserClaims(targetUserId, { role: newRole, orgId: targetData.orgId, status: targetData.status || 'active' });
+  await admin.auth().setCustomUserClaims(targetUserId, {
+    role: newRole, orgId: targetData.orgId, status: targetData.status || 'active',
+  });
   await admin.auth().revokeRefreshTokens(targetUserId);
 
-  // Audit log en org del USUARIO DESTINO
   const auditOrgId = targetData.orgId || callerData.orgId || 'system-platform';
   await db.collection('organizations').doc(auditOrgId).collection('audit_logs').add({
     action: 'user.role_assigned',
-    actor: { uid: callerUid, email: callerData.email, role: callerData.role, ipAddress: getClientIp(context.rawRequest), userAgent: context.rawRequest?.headers['user-agent'] || 'unknown' },
+    actor: {
+      uid: callerUid, email: callerData.email, role: callerData.role,
+      ipAddress: getClientIp(req.rawRequest),
+      userAgent: req.rawRequest?.headers['user-agent'] || 'unknown',
+    },
     changes: { before: { role: targetData.role || null }, after: { role: newRole } },
     targetUser: targetUserId,
     severity: 'info',
@@ -119,74 +125,74 @@ export const assignUserRole = functions.runWith({ minInstances: 1 }).https.onCal
 });
 
 // ===============================================================
-// CREAR USUARIO CON ROL — CON ROLLBACK DE SEGURIDAD
+// CREAR USUARIO CON ROL V2
 // ===============================================================
+export const createUserWithRole = onCall({ minInstances: 1 }, async (req) => {
+  if (!req.auth) throw new Error('Unauthenticated');
 
-export const createUserWithRole = functions.runWith({ minInstances: 1 }).https.onCall(async (data, context) => {
-  if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Debes iniciar sesión.');
-
-  const callerUid = context.auth.uid;
+  const callerUid = req.auth.uid;
+  const data = req.data as any;
   const { email, displayName, role, orgId } = data;
 
-  if (!email || !role)
-    throw new functions.https.HttpsError('invalid-argument', 'Se requieren email y role.');
+  if (!email || !role) throw new Error('Se requieren email y role.');
 
   const callerDoc = await db.collection('users').doc(callerUid).get();
   const callerData = callerDoc.data();
   if (!callerData || (callerData.role !== 'superadmin' && callerData.role !== 'gerente'))
-    throw new functions.https.HttpsError('permission-denied', 'No tienes permiso.');
+    throw new Error('No tienes permiso.');
 
   const targetOrgId = orgId || callerData.orgId;
   if (targetOrgId !== callerData.orgId && callerData.role !== 'superadmin')
-    throw new functions.https.HttpsError('permission-denied', 'No puedes crear usuarios fuera de tu organización.');
+    throw new Error('No puedes crear usuarios fuera de tu organización.');
 
   const validRoles = ['campo', 'inspector', 'supervisor', 'gerente'];
   if (callerData.role !== 'superadmin' && role === 'superadmin')
-    throw new functions.https.HttpsError('permission-denied', 'Solo superadmin puede crear superadmin.');
+    throw new Error('Solo superadmin puede crear superadmin.');
   if (!validRoles.includes(role) && role !== 'superadmin')
-    throw new functions.https.HttpsError('invalid-argument', 'Rol inválido.');
+    throw new Error('Rol inválido.');
 
   let userRecord;
   try {
     userRecord = await admin.auth().createUser({ email, displayName: displayName || email });
   } catch {
-    throw new functions.https.HttpsError('already-exists', `El email ${email} ya está registrado.`);
+    throw new Error(`El email ${email} ya está registrado.`);
   }
 
   const newUid = userRecord.uid;
 
   try {
-    // 🔥 BATCH ATÓMICO: usuario + audit_log en una sola operación
     const batch = db.batch();
     batch.set(db.collection('users').doc(newUid), {
       email, displayName: displayName || email, role, orgId: targetOrgId, status: 'active',
-      createdBy: callerUid, createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdBy: callerUid,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
     const auditOrgId = targetOrgId || 'system-platform';
     batch.set(db.collection('organizations').doc(auditOrgId).collection('audit_logs').doc(), {
-      action: 'user.created', actor: { uid: callerUid, email: callerData.email, role: callerData.role, ipAddress: getClientIp(context.rawRequest), userAgent: context.rawRequest?.headers['user-agent'] || 'unknown' },
+      action: 'user.created',
+      actor: {
+        uid: callerUid, email: callerData.email, role: callerData.role,
+        ipAddress: getClientIp(req.rawRequest),
+        userAgent: req.rawRequest?.headers['user-agent'] || 'unknown',
+      },
       targetUser: newUid, email, role, severity: 'info',
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
     await batch.commit();
-
-    // Custom Claims después del batch exitoso
     await admin.auth().setCustomUserClaims(newUid, { role, orgId: targetOrgId, status: 'active' });
   } catch (dbError: any) {
-    // 🔥 ROLLBACK: eliminar usuario de Auth si falla Firestore
     await admin.auth().deleteUser(newUid);
-    functions.logger.error(`❌ Rollback: usuario ${newUid} eliminado por fallo en BD`);
-    throw new functions.https.HttpsError('internal', 'Error de consistencia. Creación revertida.');
+    logger.error(`Rollback: usuario ${newUid} eliminado por fallo en BD`);
+    throw new Error('Error de consistencia. Creación revertida.');
   }
 
   return { success: true, uid: newUid, email, role };
 });
 
 // ===============================================================
-// GEMINI PROXY
+// GEMINI PROXY (sin cambios)
 // ===============================================================
-
 export async function handleGeminiProxy(reqBody: GeminiProxyRequest) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY no configurada.');
