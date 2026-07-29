@@ -227,32 +227,42 @@ export default function DossierCompiler() {
         </div>
       )}
 
-      {/* Dossier Sections & Document List */}
+      {/* Dossier Chapters & Document List (6 Capítulos PDVSA PIC-01-03-05) */}
       <div className="space-y-6">
         {loading ? (
           <div className="p-12 text-center text-slate-500 font-medium">
-            Escaneando módulos en tiempo real para compilar el dossier...
+            Escaneando módulos en tiempo real para compilar los 6 Capítulos del Dossier...
           </div>
         ) : (
-          dossierState?.secciones.map(sec => (
-            <div key={sec.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+          (dossierState?.capitulos || []).map(cap => (
+            <div key={cap.id} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm space-y-4">
+              <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-3 gap-4">
                 <div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base">{sec.tituloSeccion}</h3>
-                  <span className="text-xs font-mono font-bold text-slate-400">{sec.codigoSeccion}</span>
+                  <h3 className="font-extrabold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                    <span className="w-7 h-7 rounded-xl bg-slate-900 dark:bg-emerald-600 text-white flex items-center justify-center text-xs font-mono font-black">
+                      0{cap.numero}
+                    </span>
+                    <span>{cap.tituloCapitulo}</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{cap.descripcion}</p>
                 </div>
-                <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold px-3 py-1 rounded-full">
-                  {sec.documentos.length} Documentos
-                </span>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] font-mono font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-3 py-1 rounded-full block mb-1">
+                    {cap.normaReferencia}
+                  </span>
+                  <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono font-bold px-3 py-1 rounded-full inline-block">
+                    {cap.documentos.length} Documentos
+                  </span>
+                </div>
               </div>
 
-              {sec.documentos.length === 0 ? (
+              {cap.documentos.length === 0 ? (
                 <div className="p-4 text-center text-slate-400 text-xs italic">
-                  No hay documentos registrados para esta sección en la fase actual.
+                  No hay documentos registrados para este capítulo en la fase actual.
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {sec.documentos.map(doc => (
+                  {cap.documentos.map(doc => (
                     <div 
                       key={doc.id}
                       className="p-4 border border-slate-100 dark:border-slate-800 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs"
@@ -263,6 +273,7 @@ export default function DossierCompiler() {
                             {doc.codigoPDVSA}
                           </span>
                           <span className="font-bold text-slate-500 text-[10px]">REV. {doc.revisionActual}</span>
+                          <span className="font-bold text-slate-400 text-[10px]">• {doc.categoria}</span>
                         </div>
                         <div className="font-extrabold text-slate-900 dark:text-white text-sm">{doc.titulo}</div>
                         <div className="text-slate-500 dark:text-slate-400 text-[11px] flex items-center gap-3">
@@ -321,7 +332,7 @@ export default function DossierCompiler() {
                   documento: selectedDocForCover,
                   nombreProyecto: projName,
                   contratoNo: dossierState?.contratoNo || 'N° CTR-2026-PDVSA-001',
-                  contratistaNombre: 'WOLVES GLOBAL SOLUTIONS / CONTRATISTA OPERATIVA C.A.',
+                  contratistaNombre: 'PROINTECA C.A.',
                   clienteNombre: 'PDVSA GAS C.A.'
                 }) 
               }} 

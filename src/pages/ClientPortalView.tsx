@@ -109,25 +109,30 @@ export default function ClientPortalView() {
       setTasks(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
     }, err => console.warn('Tasks query error:', err));
 
-    // Valuations Query
+    // Valuations Query - Filtered for Aprobado status only
     const valsQ = query(collectionGroup(db, 'valuations'), where('orgId', '==', portalOrgId));
     const unsubVals = onSnapshot(valsQ, (snap) => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setValuations(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
+      const projectVals = all.filter((item: any) => !item.projectId || projIds.includes(item.projectId));
+      // Only show released & approved valuations to the client
+      setValuations(projectVals.filter((v: any) => !v.status || v.status === 'Aprobado' || v.status === 'Aprobado ROE' || v.status === 'Firmado Final'));
     }, err => console.warn('Valuations query error:', err));
 
-    // PTW SIHO Query
+    // PTW SIHO Query - Filtered for active, approved, or closed permits
     const ptwQ = query(collectionGroup(db, 'siho_ptw'), where('orgId', '==', portalOrgId));
     const unsubPtw = onSnapshot(ptwQ, (snap) => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setPtwList(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
+      const projectPtw = all.filter((item: any) => !item.projectId || projIds.includes(item.projectId));
+      setPtwList(projectPtw.filter((p: any) => !p.status || p.status === 'activo' || p.status === 'aprobado' || p.status === 'cerrado' || p.status === 'Cerrado'));
     }, err => console.warn('PTW query error:', err));
 
-    // Weld Joints NDT Query
+    // Weld Joints NDT Query - Filtered for accepted/inspected joints
     const weldsQ = query(collectionGroup(db, 'weld_joints'), where('orgId', '==', portalOrgId));
     const unsubWelds = onSnapshot(weldsQ, (snap) => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setWeldJoints(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
+      const projectWelds = all.filter((item: any) => !item.projectId || projIds.includes(item.projectId));
+      // Exclude rejected or incomplete drafts from client portal unless accepted
+      setWeldJoints(projectWelds.filter((w: any) => !w.status || w.status === 'Aprobado' || w.ndtStatus === 'Aprobado' || w.ndtStatus === 'Aprobada' || w.vtStatus === 'Aprobado'));
     }, err => console.warn('Welds query error:', err));
 
     // Field Reports Query
