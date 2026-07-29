@@ -9,6 +9,10 @@
       "DOM",
       "DOM.Iterable"
     ],
+    "types": [
+      "vite/client",
+      "node"
+    ],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "isolatedModules": true,
@@ -24,11 +28,16 @@
     "noEmit": true
   },
   "include": [
-    "src"
+    "src",
+    "server.ts"
   ],
   "exclude": [
     "functions",
+    "scripts",
     "node_modules",
-    "dist"
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**"
   ]
 }

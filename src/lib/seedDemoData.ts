@@ -166,6 +166,10 @@ export const FALLBACK_DEMO_TASKS = [
 ];
 
 export async function seedDemoData(force = false): Promise<{ success: boolean; message: string }> {
+  if (import.meta.env.VITE_ENABLE_DEMO_SEED !== 'true') {
+    return { success: false, message: 'Seed de demo desactivado en este entorno.' };
+  }
+
   if (!auth.currentUser) {
     try {
       await loginAnonymously();
