@@ -59,6 +59,18 @@ export class ASMEB31GCalculator implements NormCalculator {
         normaReference: 'ASME B31G §2.2'
       },
       {
+        id: 'S_spacing',
+        label: 'Distancia a Anomalía Adyacente (S)',
+        type: 'number',
+        unit: 'pulgadas',
+        defaultValue: 2.0,
+        min: 0,
+        max: 50,
+        step: 0.1,
+        description: 'Distancia libre axial a la anomalía de corrosión más cercana.',
+        normaReference: 'ASME B31G §1.6 / RSTRENG'
+      },
+      {
         id: 'smys',
         label: 'Límite Elástico Especificado (SMYS)',
         type: 'select',
@@ -131,6 +143,7 @@ export class ASMEB31GCalculator implements NormCalculator {
     const t = Number(inputs.t);
     const d = Number(inputs.d);
     const L = Number(inputs.L);
+    const S_spacing = inputs.S_spacing !== undefined ? Number(inputs.S_spacing) : undefined;
     const smys = Number(inputs.smys || 52000);
     const F = Number(inputs.F || 0.72);
     const P_oper = Number(inputs.P_oper || 650);
@@ -139,7 +152,16 @@ export class ASMEB31GCalculator implements NormCalculator {
     const depthRatio = d / t;
     const isDepthOk = depthRatio <= 0.80; // ASME B31G states if d > 80% t, replace/repair
 
-    // 2. Compute Parameter A
+    const recommendations: string[] = [];
+
+    // 2. Interactivity evaluation (S <= 3t)
+    const interactiveLimit = 3 * t;
+    const isInteractive = S_spacing !== undefined && S_spacing <= interactiveLimit;
+    if (isInteractive) {
+      recommendations.push(`INTERACTIVIDAD DETECTADA: La distancia entre defectos (S = ${S_spacing} in) es menor a 3t (${interactiveLimit.toFixed(3)} in). Se requiere evaluar como una sola anomalía continua según ASME B31G §1.6.`);
+    }
+
+    // 3. Compute Parameter A
     const A = 0.893 * (L / Math.sqrt(D * t));
 
     // 3. Compute Folias Factor M
@@ -169,7 +191,6 @@ export class ASMEB31GCalculator implements NormCalculator {
     const isPressureOk = P_safe >= P_oper;
     const passed = isDepthOk && isPressureOk;
 
-    const recommendations: string[] = [];
     if (!isDepthOk) {
       recommendations.push(`CRÍTICO: La profundidad de corrosión (${(depthRatio * 100).toFixed(1)}%) supera el límite máximo del 80% permitido por ASME B31G. Se requiere reemplazo de junta o camisa no metálica / envolvente metálica (B-Sleeve).`);
     } else {
@@ -204,6 +225,7 @@ export class ASMEB31GCalculator implements NormCalculator {
           'Profundidad d/t': `${(depthRatio * 100).toFixed(1)}%`,
           'Factor Folias (M)': Number(M.toFixed(3)),
           'Parámetro A': Number(A.toFixed(3)),
+          'Interactividad (S <= 3t)': isInteractive ? `SI (S=${S_spacing} in <= ${interactiveLimit.toFixed(3)} in)` : 'NO (S > 3t)',
           'Presión de Diseño Original': `${P_design.toFixed(1)} psi`,
           'Presión Estimada de Falla (Pf)': `${Pf.toFixed(1)} psi`,
           'Presión Operación': `${P_oper} psi`

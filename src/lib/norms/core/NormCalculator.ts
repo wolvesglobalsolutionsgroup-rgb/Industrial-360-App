@@ -31,7 +31,7 @@ export interface NormCalculator {
   standard: string;
   version: string;
   description: string;
-  category: 'tuberias' | 'soldadura' | 'bridas' | 'inspeccion';
+  category: 'tuberias' | 'soldadura' | 'bridas' | 'inspeccion' | 'proceso';
   getFields(): NormField[];
   calculate(inputs: Record<string, any>): NormResult[];
   validate(inputs: Record<string, any>): string[];

@@ -40,12 +40,12 @@ export class ASMEB313Calculator implements NormCalculator {
         type: 'select',
         defaultValue: '20000',
         options: [
-          { value: '20000', label: 'ASTM A106 Gr. B (20,000 psi @ 100°F)' },
-          { value: '17100', label: 'ASTM A106 Gr. B (17,100 psi @ 400°F)' },
-          { value: '20000', label: 'ASTM A53 Gr. B (20,000 psi @ 100°F)' },
-          { value: '16700', label: 'ASTM A312 TP304 (16,700 psi @ 100°F)' },
-          { value: '16700', label: 'ASTM A312 TP316 (16,700 psi @ 100°F)' },
-          { value: '21400', label: 'API 5L X52 (21,400 psi @ 100°F)' }
+          { value: '20000_A106', label: 'ASTM A106 Gr. B (20,000 psi @ 100°F)' },
+          { value: '17100_A106', label: 'ASTM A106 Gr. B (17,100 psi @ 400°F)' },
+          { value: '20000_A53', label: 'ASTM A53 Gr. B (20,000 psi @ 100°F)' },
+          { value: '16700_TP304', label: 'ASTM A312 TP304 (16,700 psi @ 100°F)' },
+          { value: '16700_TP316', label: 'ASTM A312 TP316 (16,700 psi @ 100°F)' },
+          { value: '21400_X52', label: 'API 5L X52 (21,400 psi @ 100°F)' }
         ],
         description: 'Esfuerzo máximo permisible del acero a la temperatura de operación.',
         normaReference: 'ASME B31.3 Tabla A-1'
@@ -128,7 +128,7 @@ export class ASMEB313Calculator implements NormCalculator {
 
     const P = Number(inputs.P);
     const D = Number(inputs.D);
-    const S = Number(inputs.S || 20000);
+    const S = Number(String(inputs.S || 20000).split('_')[0]);
     const E = Number(inputs.E || 1.0);
     const Y = Number(inputs.Y || 0.4);
     const c = Number(inputs.c || 0.063);

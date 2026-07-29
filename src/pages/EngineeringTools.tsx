@@ -391,8 +391,8 @@ export default function EngineeringTools() {
                         onChange={(e) => handleInputChange(field.id, e.target.value)}
                         className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-brand-500 text-ink"
                       >
-                        {field.options?.map(opt => (
-                          <option key={opt.value} value={opt.value}>
+                        {field.options?.map((opt, optIdx) => (
+                          <option key={`${opt.value}-${optIdx}`} value={opt.value}>
                             {opt.label}
                           </option>
                         ))}
