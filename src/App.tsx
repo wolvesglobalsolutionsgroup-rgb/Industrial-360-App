@@ -20,6 +20,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Projects = lazy(() => import('./pages/Projects'));
 const Tasks = lazy(() => import('./pages/Tasks'));
 const Inventory = lazy(() => import('./pages/Inventory'));
+const ProcurementInventory = lazy(() => import('./pages/ProcurementInventory'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Chatbot = lazy(() => import('./pages/Chatbot'));
 const VoiceChat = lazy(() => import('./pages/VoiceChat'));
@@ -121,7 +122,8 @@ function AppContent() {
             <Route path="field-reports" element={<FieldReports />} />
             <Route path="documents" element={<Documents />} />
             <Route path="logistics" element={<LogisticsMap />} />
-            <Route path="inventory" element={<Inventory />} />
+            <Route path="inventory" element={<ProcurementInventory />} />
+            <Route path="procurement" element={<ProcurementInventory />} />
             <Route path="modulos/ili-pigging" element={<IntegrityIli />} />
             <Route path="modulos/standby-moc" element={<StandbyMoc />} />
             <Route path="modulos/flota" element={<FleetEquipment />} />

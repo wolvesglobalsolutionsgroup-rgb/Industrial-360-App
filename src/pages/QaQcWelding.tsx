@@ -305,10 +305,10 @@ export default function QaQcWelding() {
   };
 
   const filteredJoints = jointsList.filter(j => {
-    const matchesSearch = j.tag.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          j.isometric.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          j.welderStamp.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          j.heatNumber.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (j.tag || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (j.isometric || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (j.welderStamp || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (j.heatNumber || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || j.ndtStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });

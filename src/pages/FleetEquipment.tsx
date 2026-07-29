@@ -140,8 +140,8 @@ export default function FleetEquipment() {
   };
 
   const filteredEquip = equipmentList.filter(eq => {
-    const matchesSearch = eq.tag.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          eq.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (eq.tag || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (eq.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     if (filterType === 'all') return matchesSearch;
     return matchesSearch && eq.type === filterType;
   });

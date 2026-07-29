@@ -30,7 +30,7 @@ interface PTW {
   validFrom: string;
   validTo: string;
   status: 'borrador' | 'en_revision' | 'aprobado' | 'bloqueado' | 'cerrado';
-  gasReadings: GasReadings;
+  gasReadings?: Partial<GasReadings>;
   eppList: string[];
   precautions: string[];
   description: string;
@@ -245,9 +245,9 @@ async function generateSha256Hash(dataString: string): Promise<string> {
   };
 
   const filteredPtw = ptwList.filter(p => {
-    const matchesSearch = p.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          p.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.supervisor.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (p.code || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (p.location || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (p.supervisor || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedTypeFilter === 'all' || p.type === selectedTypeFilter;
     return matchesSearch && matchesType;
   });
@@ -514,13 +514,13 @@ async function generateSha256Hash(dataString: string): Promise<string> {
                       <td className="p-4 font-medium text-ink">{ptw.location}</td>
                       <td className="p-4">
                         <div className="text-xs font-mono">
-                          <span className={ptw.gasReadings.h2s > 10 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-600 dark:text-emerald-400'}>
-                            H₂S: {ptw.gasReadings.h2s} ppm
+                          <span className={(ptw.gasReadings?.h2s ?? 0) > 10 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-emerald-600 dark:text-emerald-400'}>
+                            H₂S: {ptw.gasReadings?.h2s ?? 0} ppm
                           </span> | 
-                          <span className={ptw.gasReadings.lel > 10 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-ink'}>
-                            LEL: {ptw.gasReadings.lel}%
+                          <span className={(ptw.gasReadings?.lel ?? 0) > 10 ? 'text-red-600 dark:text-red-400 font-bold' : 'text-ink'}>
+                            LEL: {ptw.gasReadings?.lel ?? 0}%
                           </span> | 
-                          <span className="text-blue-600 dark:text-blue-400">O₂: {ptw.gasReadings.o2}%</span>
+                          <span className="text-blue-600 dark:text-blue-400">O₂: {ptw.gasReadings?.o2 ?? 20.9}%</span>
                         </div>
                       </td>
                       <td className="p-4 text-ink-soft">{ptw.supervisor}</td>

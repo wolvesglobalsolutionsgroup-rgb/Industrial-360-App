@@ -89,7 +89,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
       { id: 'ili-pigging', path: '/modulos/ili-pigging', title: 'Integridad ILI & Pigging', description: 'Pase de diablos, corrosión y registros ILI', icon: Activity },
       { id: 'flota', path: '/modulos/flota', title: 'Flota & Equipos', description: 'Maquinaria pesada, mantenimientos y horizontes', icon: Truck },
       { id: 'standby-moc', path: '/modulos/standby-moc', title: 'Standby & MOC', description: 'Control de tiempos muertos y cambios de obra', icon: AlertTriangle },
-      { id: 'inventory', path: '/inventory', title: 'Inventario & Materiales', description: 'Stock en almacén, recepción y despachos', icon: Package },
+      { id: 'inventory', path: '/inventory', title: 'Procura & Inventario MTR', description: 'Ciclo Procure-to-Pay, Kardex y trazabilidad Heat Numbers', icon: Package, badge: 'ASTM/API', badgeColor: 'brand' },
     ]
   },
   {

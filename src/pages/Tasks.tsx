@@ -469,8 +469,8 @@ export default function Tasks() {
   // Filter tasks
   const filteredTasks = tasks.filter(t => {
     const matchesSearch = 
-      t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.wbsCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (t.wbsCode || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (t.crewName && t.crewName.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesPriority = filterPriority === 'all' || t.priority === filterPriority;
     const matchesSpecialty = filterSpecialty === 'all' || t.specialty === filterSpecialty;

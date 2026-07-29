@@ -113,7 +113,7 @@ export default function Documents() {
   };
 
   const filteredDocs = documents.filter(doc => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (doc.name || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = filterCategory === 'Todas' || doc.category === filterCategory;
     return matchesSearch && matchesCategory;
   });
