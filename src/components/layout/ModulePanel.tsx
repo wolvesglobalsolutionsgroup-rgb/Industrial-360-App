@@ -37,7 +37,8 @@ import {
   Layers,
   Trees,
   Lock,
-  Crown
+  Crown,
+  Building2
 } from 'lucide-react';
 
 export interface ModulePanelProps {
@@ -80,6 +81,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
       { id: 'progress', path: '/progress-details', title: 'Detalle de Avance', description: 'Curvas de rendimiento por especialidad', icon: TrendingUp },
       { id: 'personnel', path: '/personnel-details', title: 'Personal de Obra', description: 'Control de asistencias, cuadrillas y hh', icon: Users },
       { id: 'worker-qr', path: '/worker-qr-registry', title: 'Carnet QR & Control HHT', description: 'Validación en portón SIHO-A, QR Casco y Horas Hombre', icon: Users, badge: 'QR/HHT', badgeColor: 'emerald' },
+      { id: 'civil-engineering', path: '/civil-engineering', title: 'Ensayos Civiles & Suelos', description: 'Densidad de campo cono de arena COVENIN y rotura concreto ACI', icon: Building2, badge: 'COVENIN/ACI', badgeColor: 'amber' },
       { id: 'budget', path: '/budget-details', title: 'Detalle Presupuestario', description: 'Análisis de partidas y desviaciones', icon: PieChart },
       { id: 'logistics', path: '/logistics', title: 'Mapa Logístico', description: 'Rutas de suministro y localización de insumos', icon: MapPin },
     ]
@@ -110,6 +112,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
       { id: 'dossier', path: '/modulos/cierre', title: 'Cierre & Dossier', description: 'Compilador automático de Libro Blanco y Dossier', icon: BookOpen, badge: 'Auto', badgeColor: 'amber' },
       { id: 'tools', path: '/tools', title: 'Herramientas Ingeniería', description: 'Calculadoras ASME B31.3, B31G y prueba hidro', icon: Wrench },
       { id: 'hot-tap', path: '/hot-tap', title: 'Hot Tap & Stopple (PAMS)', description: 'Simulación y diseño de intervenciones en caliente', icon: Flame, badge: 'PAMS', badgeColor: 'amber' },
+      { id: 'instrumentation-control', path: '/instrumentation-control', title: 'Instrumentación & Lazos P&ID', description: 'Registro de transmisores PT/TT/FT, lazadas y calibración ISA 5.1', icon: Cpu, badge: 'PDVSA K-301', badgeColor: 'emerald' },
       { id: 'bim', path: '/bim', title: 'Visor BIM 3D', description: 'Inspección espacial de maquetas tridimensionales', icon: Box },
       { id: 'interoperabilidad', path: '/modulos/interoperabilidad', title: 'Interoperabilidad', description: 'Sincronización con Primavera, SAP y AutoCAD', icon: Cpu },
     ]

@@ -53,6 +53,8 @@ const WorkerQrRegistry = lazy(() => import('./pages/WorkerQrRegistry'));
 const EnvironmentalManagement = lazy(() => import('./pages/EnvironmentalManagement'));
 const LotoIsolation = lazy(() => import('./pages/LotoIsolation'));
 const PlatformOwnerConsole = lazy(() => import('./pages/PlatformOwnerConsole'));
+const InstrumentationControl = lazy(() => import('./pages/InstrumentationControl'));
+const CivilEngineeringRegistry = lazy(() => import('./pages/CivilEngineeringRegistry'));
 
 function AppContent() {
   const [user, loading] = useAppAuthState();
@@ -168,6 +170,18 @@ function AppContent() {
               </ProtectedRoute>
             } />
             <Route path="master-console" element={<PlatformOwnerConsole />} />
+            <Route path="instrumentation-control" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']} moduleName="Instrumentación & Lazos P&ID">
+                <InstrumentationControl />
+              </ProtectedRoute>
+            } />
+            <Route path="instrumentation" element={<InstrumentationControl />} />
+            <Route path="civil-engineering" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']} moduleName="Ensayos Civiles & Suelos">
+                <CivilEngineeringRegistry />
+              </ProtectedRoute>
+            } />
+            <Route path="civil" element={<CivilEngineeringRegistry />} />
             <Route path="alerts-details" element={<AlertsDetails />} />
             <Route path="modulos/:id" element={<ModulePlaceholder />} />
             <Route path="*" element={<Navigate to="/" replace />} />
