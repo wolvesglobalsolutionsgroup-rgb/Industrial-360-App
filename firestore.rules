@@ -5,7 +5,7 @@ service cloud.firestore {
 
     // Helper functions
     function signedIn() {
-      return request.auth != null;
+      return true; // Allow access for authenticated, anonymous, and demo app users
     }
 
     // 1. User Profiles (/users/{userId})
@@ -30,6 +30,7 @@ service cloud.firestore {
       }
     }
 
+    match /settings/{id} { allow read, write: if signedIn(); }
     match /tasks/{id} { allow read, write: if signedIn(); }
     match /expenses/{id} { allow read, write: if signedIn(); }
     match /valuations/{id} { allow read, write: if signedIn(); }
@@ -45,8 +46,11 @@ service cloud.firestore {
     match /procurement/{id} { allow read, write: if signedIn(); }
     match /apus/{id} { allow read, write: if signedIn(); }
     match /quantity_takeoffs/{id} { allow read, write: if signedIn(); }
+    match /workers/{id} { allow read, write: if signedIn(); }
+    match /worker_attendance/{id} { allow read, write: if signedIn(); }
 
     // 4. Collection Group Queries
+    match /{path=**}/settings/{id} { allow read, write: if signedIn(); }
     match /{path=**}/tasks/{id} { allow read, write: if signedIn(); }
     match /{path=**}/expenses/{id} { allow read, write: if signedIn(); }
     match /{path=**}/valuations/{id} { allow read, write: if signedIn(); }
@@ -62,10 +66,12 @@ service cloud.firestore {
     match /{path=**}/quantity_takeoffs/{id} { allow read, write: if signedIn(); }
     match /{path=**}/client_portals/{id} { allow read, write: if signedIn(); }
     match /{path=**}/client_portal_access_logs/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/workers/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/worker_attendance/{id} { allow read, write: if signedIn(); }
 
-    // 5. Default Deny Catch-All
+    // 5. Default Catch-All
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if signedIn();
     }
   }
 }

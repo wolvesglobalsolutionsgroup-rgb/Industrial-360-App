@@ -34,6 +34,22 @@ function openOfflineDB(): Promise<IDBDatabase> {
   });
 }
 
+// Clean undefined values recursively from payload before writing to Firestore
+export function cleanUndefinedValues<T extends Record<string, any>>(obj: T): T {
+  if (!obj || typeof obj !== 'object') return obj;
+  const cleaned: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)) {
+        cleaned[key] = cleanUndefinedValues(value);
+      } else {
+        cleaned[key] = value;
+      }
+    }
+  }
+  return cleaned as T;
+}
+
 // Queue an offline operation (e.g. Field Report, PTW Permit, Inspection, Weld Log)
 export async function queueOfflineOperation(
   collectionName: string,
@@ -42,16 +58,18 @@ export async function queueOfflineOperation(
   docId?: string
 ): Promise<PendingOfflineOperation> {
   const id = `off_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const sanitizedPayload = cleanUndefinedValues({
+    ...payload,
+    _offlineCapturedAt: new Date().toISOString(),
+    _isOfflineRecord: true,
+  });
+
   const item: PendingOfflineOperation = {
     id,
     collectionName,
     operationType,
     docId,
-    payload: {
-      ...payload,
-      _offlineCapturedAt: new Date().toISOString(),
-      _isOfflineRecord: true,
-    },
+    payload: sanitizedPayload,
     timestamp: Date.now(),
     retries: 0,
     status: 'pending',
@@ -127,15 +145,16 @@ export async function flushOfflineQueue(): Promise<{ synced: number; failed: num
 
   for (const item of pending) {
     try {
+      const cleanPayload = cleanUndefinedValues(item.payload);
       if (item.operationType === 'create') {
         await addDoc(collection(db, item.collectionName), {
-          ...item.payload,
+          ...cleanPayload,
           _syncedAt: serverTimestamp(),
           _isOfflineRecord: false,
         });
       } else if (item.operationType === 'update' && item.docId) {
         await updateDoc(doc(db, item.collectionName, item.docId), {
-          ...item.payload,
+          ...cleanPayload,
           _syncedAt: serverTimestamp(),
           _isOfflineRecord: false,
         });

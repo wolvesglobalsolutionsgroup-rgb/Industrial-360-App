@@ -206,7 +206,7 @@ export default function WorkerQrRegistry() {
   // Record Check-in to Firestore / Offline Store
   const recordCheckIn = async (worker: FieldWorker, status: 'Verde' | 'Rojo', denialReason?: string) => {
     const today = new Date().toISOString().split('T')[0];
-    const newRecord: Partial<AttendanceRecord> = {
+    const newRecord: Record<string, any> = {
       workerId: worker.id,
       workerName: worker.fullName,
       nationalId: worker.nationalId,
@@ -216,9 +216,11 @@ export default function WorkerQrRegistry() {
       hoursWorked: status === 'Verde' ? 8 : 0,
       gateLocation: 'Portón Principal Refinería PLC - Control HHT',
       accessStatus: status === 'Verde' ? 'Verde - Autorizado' : 'Rojo - Denegado',
-      denialReason: denialReason || undefined,
       date: today
     };
+    if (denialReason) {
+      newRecord.denialReason = denialReason;
+    }
 
     if (currentProject && currentProject.id !== 'all') {
       const attendancePath = `organizations/${orgId}/projects/${currentProject.id}/worker_attendance`;
@@ -245,12 +247,11 @@ export default function WorkerQrRegistry() {
     const today = new Date();
     const nextYear = new Date(today.setFullYear(today.getFullYear() + 1)).toISOString().split('T')[0];
 
-    const workerObj: Omit<FieldWorker, 'id'> = {
+    const workerObj: Record<string, any> = {
       nationalId: newNationalId,
       fullName: newFullName,
       role: newRole,
       contractor: newContractor,
-      welderStamp: newWelderStamp || undefined,
       bloodType: newBloodType,
       medicalCheckValidUntil: nextYear,
       sihoInductionValidUntil: nextYear,
@@ -258,6 +259,11 @@ export default function WorkerQrRegistry() {
       fitStatus: 'Apto',
       totalHhtAccumulated: 0
     };
+    if (newWelderStamp) {
+      workerObj.welderStamp = newWelderStamp;
+    }
+
+    const newWorkerItem = { id: '', ...workerObj } as FieldWorker;
 
     if (currentProject && currentProject.id !== 'all') {
       const workersPath = `organizations/${orgId}/projects/${currentProject.id}/workers`;
@@ -266,13 +272,13 @@ export default function WorkerQrRegistry() {
           ...workerObj,
           createdAt: serverTimestamp()
         });
-        setWorkers(prev => [...prev, { id: docRef.id, ...workerObj }]);
+        setWorkers(prev => [...prev, { ...newWorkerItem, id: docRef.id }]);
       } catch (err) {
         await queueOfflineOperation(workersPath, 'create', workerObj);
-        setWorkers(prev => [...prev, { id: `w_off_${Date.now()}`, ...workerObj }]);
+        setWorkers(prev => [...prev, { ...newWorkerItem, id: `w_off_${Date.now()}` }]);
       }
     } else {
-      setWorkers(prev => [...prev, { id: `w_local_${Date.now()}`, ...workerObj }]);
+      setWorkers(prev => [...prev, { ...newWorkerItem, id: `w_local_${Date.now()}` }]);
     }
 
     setShowAddModal(false);
