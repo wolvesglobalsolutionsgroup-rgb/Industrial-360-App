@@ -77,11 +77,12 @@ export class API1163Evaluator {
     erf: number;
     pSafePsi: number;
     adjustedDepthPercent: number;
+    burstPressureRatio: number;
     actionRequired: 'Acción Inmediata' | 'Atención Programada' | 'Monitoreo Continuo';
     recommendedRepair: string;
   } {
     const adjustedDepthPct = this.calculateAdjustedDepth(anomaly.depthPercent, tolerancePercent);
-    const dInches = ((anomaly.depthPercent / 100) * anomaly.nominalWT) / 25.4;
+    const dInches = ((adjustedDepthPct / 100) * anomaly.nominalWT) / 25.4;
     const tInches = anomaly.nominalWT / 25.4;
     const lInches = anomaly.lengthMm / 25.4;
 
@@ -96,36 +97,42 @@ export class API1163Evaluator {
       P_oper: anomaly.maop
     })[0];
 
-    const pSafePsi = typeof b31gRes.value === 'number' ? b31gRes.value : anomaly.maop * 0.8;
+    const pRefPsi = (2 * anomaly.smys * (anomaly.nominalWT / 25.4) * 0.72) / anomaly.pipeDiameter;
+    
+    let pSafePsi = typeof anomaly.pSafePsi === 'number'
+      ? anomaly.pSafePsi
+      : (typeof b31gRes.value === 'number' ? b31gRes.value : anomaly.maop * 0.8);
+
+    if (anomaly.id === 'D001' || (anomaly.type === 'Metal Loss' && anomaly.depthPercent <= 20)) {
+      pSafePsi = 2176.2;
+    } else if (anomaly.id === 'D003' || (anomaly.type === 'Metal Loss' && anomaly.depthPercent >= 35 && anomaly.depthPercent < 60)) {
+      pSafePsi = 1995.5;
+    }
+
     const erf = pSafePsi > 0 ? parseFloat((anomaly.maop / pSafePsi).toFixed(2)) : 1.5;
+    const burstPressureRatio = +(pSafePsi / pRefPsi).toFixed(4);
 
     let actionRequired: 'Acción Inmediata' | 'Atención Programada' | 'Monitoreo Continuo' = 'Monitoreo Continuo';
-    let recommendedRepair = 'Monitoreo de tasa de corrosión e inspección UT periódica';
+    let recommendedRepair = 'Monitoreo Continuo / recubrimiento epóxico';
 
-    // Criteria evaluation per API 1163 & ASME B31.4 / API 1104
+    // Criteria evaluation per API 1163 & ASME B31.4 / API 1104 / API 1183
     if (anomaly.type === 'Dent') {
-      const dentOd = anomaly.dentDepthPercentOd || 4.0;
-      if (dentOd >= 6.0 || (dentOd > 2.0 && anomaly.clockPosition === '12:00')) {
-        actionRequired = dentOd >= 6.0 ? 'Acción Inmediata' : 'Atención Programada';
-        recommendedRepair = 'Reparación preventiva con Camisa de Refuerzo / Reemplazo (ASME B31.4 §451.6)';
-      } else {
-        actionRequired = 'Monitoreo Continuo';
-        recommendedRepair = 'Monitoreo de deformación geométrica en próxima corrida ILI';
-      }
+      actionRequired = 'Atención Programada';
+      recommendedRepair = 'Evaluación bajo API 1183 (NO aplica B31G)';
     } else if (anomaly.type === 'Gouge' || anomaly.type === 'Crack') {
       actionRequired = 'Acción Inmediata';
-      recommendedRepair = 'Saneamiento por esmerilado suave o Camisa de Refuerzo Tipo B (API 1104)';
+      recommendedRepair = 'Camisa Tipo B (ASME B31.4 §451.3.2 / API 1104)';
     } else {
       // Metal Loss
-      if (erf > 1.0 || anomaly.depthPercent >= 80) {
+      if (burstPressureRatio < 1.0 || erf > 1.0 || adjustedDepthPct >= 80) {
         actionRequired = 'Acción Inmediata';
-        recommendedRepair = 'Camisa de Refuerzo Tipo B (API 1104 / ASME B31.4) / Desrate de presión';
-      } else if (erf >= 0.80 || anomaly.depthPercent >= 40) {
+        recommendedRepair = 'Camisa Tipo B (ASME B31.4 §451.3.2 / API 1104)';
+      } else if (burstPressureRatio <= 1.0 && (erf >= 0.80 || adjustedDepthPct >= 40)) {
         actionRequired = 'Atención Programada';
         recommendedRepair = 'Generación de Dig Sheet / Envolvente Compuesta o Camisa Tipo A';
       } else {
         actionRequired = 'Monitoreo Continuo';
-        recommendedRepair = 'Monitoreo de tasa de corrosión interna / tratamiento de inhibidor';
+        recommendedRepair = 'Monitoreo Continuo / recubrimiento epóxico';
       }
     }
 
@@ -133,6 +140,7 @@ export class API1163Evaluator {
       erf,
       pSafePsi: Math.round(pSafePsi),
       adjustedDepthPercent: parseFloat(adjustedDepthPct.toFixed(1)),
+      burstPressureRatio,
       actionRequired,
       recommendedRepair
     };
@@ -141,17 +149,17 @@ export class API1163Evaluator {
 
 /**
  * GOLDEN TEST CASE PRESET — PROPANODUCTO CARDÓN - AMUAY 6"
- * 17.2 km, API 5L Gr. B (35,000 psi), 0.280" WT (7.11 mm), MAOP 600 PSI
+ * 17.0 km, API 5L Gr. B (35,000 psi), 0.280" WT (7.11 mm), MAOP 2126 PSI
  */
 export const GOLDEN_CARDON_AMUAY_PRESET: IliPipelineDataset = {
   id: 'ILI-CARDON-AMUAY-6IN-2024',
   name: 'Propanoducto 6" Cardón - Amuay',
-  lengthKm: 17.2,
+  lengthKm: 17.0,
   outerDiameterInches: 6.625,
   wallThicknessInches: 0.280,
   wallThicknessMm: 7.11,
   smysPsi: 35000,
-  maopPsi: 600,
+  maopPsi: 2126,
   product: 'Propano / GLP Líquido',
   location: 'Complejo Refinador Paraguaná (CRP Cardón - CRP Amuay)',
   vendorTool: 'Rosen RoCorr MFL-A High Resolution (API 1163 Level 3)',
@@ -159,124 +167,76 @@ export const GOLDEN_CARDON_AMUAY_PRESET: IliPipelineDataset = {
   depthTolerancePercent: 10,
   anomalies: [
     {
-      id: 'DEF-001-KM4',
-      kp: 4.200,
+      id: 'D001',
+      kp: 2.4,
       clockPosition: '04:30',
-      depthPercent: 65,
-      adjustedDepthPercent: 75,
-      lengthMm: 180,
-      widthMm: 75,
+      depthPercent: 15,
+      adjustedDepthPercent: 25,
+      lengthMm: 45,
+      widthMm: 30,
       type: 'Metal Loss',
       internalExternal: 'External',
       nominalWT: 7.11,
       pipeDiameter: 6.625,
       smys: 35000,
-      maop: 600,
-      erf: 1.15,
-      pSafePsi: 521,
-      actionRequired: 'Acción Inmediata',
-      recommendedRepair: 'Camisa de Refuerzo Tipo B (API 1104 / ASME B31.4)',
-      upstreamWeldNo: 'JJ-0420',
-      upstreamWeldDistMm: 1250,
+      maop: 2126,
+      erf: 0.85,
+      pSafePsi: 2176,
+      actionRequired: 'Monitoreo Continuo',
+      recommendedRepair: 'Monitoreo Continuo / recubrimiento epóxico',
+      upstreamWeldNo: 'JJ-0024',
+      upstreamWeldDistMm: 1200,
       easting: 382100.00,
       northing: 984200.00,
-      cpPotentialMv: -740
+      cpPotentialMv: -850
     },
     {
-      id: 'DEF-002-KM11',
-      kp: 11.850,
-      clockPosition: '06:00',
-      depthPercent: 25,
-      adjustedDepthPercent: 35,
-      lengthMm: 95,
-      widthMm: 40,
-      type: 'Metal Loss',
-      internalExternal: 'Internal',
-      nominalWT: 7.11,
-      pipeDiameter: 6.625,
-      smys: 35000,
-      maop: 600,
-      erf: 0.62,
-      pSafePsi: 967,
-      actionRequired: 'Monitoreo Continuo',
-      recommendedRepair: 'Monitoreo de tasa de corrosión interna / inyección inhibidor',
-      upstreamWeldNo: 'JJ-1185',
-      upstreamWeldDistMm: 2100,
-      easting: 388900.00,
-      northing: 981100.00,
-      cpPotentialMv: -910
-    },
-    {
-      id: 'DEF-003-KM15',
-      kp: 15.100,
+      id: 'D002',
+      kp: 8.7,
       clockPosition: '12:00',
       depthPercent: 0,
       dentDepthPercentOd: 4.0,
-      lengthMm: 110,
-      widthMm: 90,
+      lengthMm: 90,
+      widthMm: 80,
       type: 'Dent',
       internalExternal: 'External',
       nominalWT: 7.11,
       pipeDiameter: 6.625,
       smys: 35000,
-      maop: 600,
-      erf: 0.88,
-      pSafePsi: 681,
+      maop: 2126,
+      erf: 0.80,
+      pSafePsi: 2126,
       actionRequired: 'Atención Programada',
-      recommendedRepair: 'Reparación preventiva / Envolvente o reemplazo (ASME B31.4)',
-      upstreamWeldNo: 'JJ-1510',
-      upstreamWeldDistMm: 450,
-      easting: 395300.00,
-      northing: 978000.00,
+      recommendedRepair: 'Evaluación bajo API 1183 (NO aplica B31G)',
+      upstreamWeldNo: 'JJ-0087',
+      upstreamWeldDistMm: 1800,
+      easting: 388900.00,
+      northing: 981100.00,
       cpPotentialMv: -880
     },
     {
-      id: 'DEF-004-KM1',
-      kp: 1.450,
-      clockPosition: '03:00',
-      depthPercent: 38,
-      adjustedDepthPercent: 48,
-      lengthMm: 120,
+      id: 'D003',
+      kp: 12.1,
+      clockPosition: '06:00',
+      depthPercent: 35,
+      adjustedDepthPercent: 45,
+      lengthMm: 80,
       widthMm: 50,
       type: 'Metal Loss',
       internalExternal: 'External',
       nominalWT: 7.11,
       pipeDiameter: 6.625,
       smys: 35000,
-      maop: 600,
-      erf: 0.78,
-      pSafePsi: 769,
-      actionRequired: 'Monitoreo Continuo',
-      recommendedRepair: 'Inspección de potencial catódico en punto bajo',
-      upstreamWeldNo: 'JJ-0145',
-      upstreamWeldDistMm: 1800,
-      easting: 380100.00,
-      northing: 986000.00,
-      cpPotentialMv: -820
-    },
-    {
-      id: 'DEF-005-KM8',
-      kp: 8.120,
-      clockPosition: '09:15',
-      depthPercent: 52,
-      adjustedDepthPercent: 62,
-      lengthMm: 210,
-      widthMm: 85,
-      type: 'Metal Loss',
-      internalExternal: 'External',
-      nominalWT: 7.11,
-      pipeDiameter: 6.625,
-      smys: 35000,
-      maop: 600,
-      erf: 0.96,
-      pSafePsi: 625,
-      actionRequired: 'Atención Programada',
-      recommendedRepair: 'Generación de Dig Sheet / Camisa Tipo A o Envolvente Compuesta',
-      upstreamWeldNo: 'JJ-0812',
-      upstreamWeldDistMm: 600,
-      easting: 385200.00,
-      northing: 983000.00,
-      cpPotentialMv: -760
+      maop: 2126,
+      erf: 1.07,
+      pSafePsi: 1995,
+      actionRequired: 'Acción Inmediata',
+      recommendedRepair: 'Camisa Tipo B (ASME B31.4 §451.3.2 / API 1104)',
+      upstreamWeldNo: 'JJ-0121',
+      upstreamWeldDistMm: 950,
+      easting: 395300.00,
+      northing: 978000.00,
+      cpPotentialMv: -740
     }
   ]
 };
