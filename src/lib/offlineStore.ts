@@ -95,6 +95,22 @@ export async function deleteLocalDraft(id: string): Promise<void> {
   });
 }
 
+// Clear all local drafts from IndexedDB
+export async function clearLocalDrafts(): Promise<void> {
+  try {
+    const db = await openOfflineCacheDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('local_drafts', 'readwrite');
+      const store = tx.objectStore('local_drafts');
+      const req = store.clear();
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+  } catch (err) {
+    console.warn('Failed to clear local drafts:', err);
+  }
+}
+
 /**
  * Custom React Hook: useOfflineStatus
  * Monitors connection status, pending sync operations in IndexedDB,
@@ -122,6 +138,9 @@ export function useOfflineStatus() {
       const res = await flushOfflineQueue();
       setLastSyncResult(res);
       await refreshPendingQueue();
+      if (res.failed === 0) {
+        await clearLocalDrafts();
+      }
     } catch (err) {
       console.error('Error flushing offline sync queue:', err);
     } finally {
@@ -169,4 +188,4 @@ export function useOfflineStatus() {
   };
 }
 
-export { queueOfflineOperation };
+export { queueOfflineOperation, flushOfflineQueue as syncOfflineStoreToFirestore };

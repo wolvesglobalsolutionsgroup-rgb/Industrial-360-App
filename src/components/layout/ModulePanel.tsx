@@ -34,7 +34,8 @@ import {
   Settings,
   ChevronRight,
   Grid3x3,
-  Layers
+  Layers,
+  Trees
 } from 'lucide-react';
 
 export interface ModulePanelProps {
@@ -88,6 +89,7 @@ export const MODULE_CATEGORIES: ModuleCategory[] = [
     colorAccent: 'border-emerald-500 text-emerald-500 bg-emerald-500/10',
     modules: [
       { id: 'siho-ptw', path: '/siho-ptw', title: 'SIHO-A & Permisos PTW', description: 'Permisos de trabajo, ART y auditorías HSE', icon: ShieldCheck, badge: 'Crítico', badgeColor: 'emerald' },
+      { id: 'environmental-management', path: '/environmental-management', title: 'Gestión Ambiental & RASDA', description: 'Plan PGA, Manifiestos RASDA y Trampas de Grasa', icon: Trees, badge: 'PDVSA MA-01', badgeColor: 'emerald' },
       { id: 'qa-qc', path: '/qa-qc-welding', title: 'QA/QC & Soldadura', description: 'Control de juntas, gammagrafía y ensayos NDT', icon: CheckCircle2 },
       { id: 'ili-pigging', path: '/modulos/ili-pigging', title: 'Integridad ILI & Pigging', description: 'Pase de diablos, corrosión y registros ILI', icon: Activity },
       { id: 'flota', path: '/modulos/flota', title: 'Flota & Equipos', description: 'Maquinaria pesada, mantenimientos y horizontes', icon: Truck },

@@ -136,7 +136,10 @@ export async function removePendingOperation(id: string): Promise<void> {
 }
 
 // Flush/Sync all pending offline operations to Firestore
-export async function flushOfflineQueue(): Promise<{ synced: number; failed: number }> {
+export async function flushOfflineQueue(
+  activeOrgId: string = 'default_org',
+  activeProjectId: string = 'PROJ-001'
+): Promise<{ synced: number; failed: number }> {
   const pending = await getPendingOfflineOperations();
   if (pending.length === 0) return { synced: 0, failed: 0 };
 
@@ -146,14 +149,26 @@ export async function flushOfflineQueue(): Promise<{ synced: number; failed: num
   for (const item of pending) {
     try {
       const cleanPayload = cleanUndefinedValues(item.payload);
+      const targetOrgId = cleanPayload.orgId || activeOrgId || 'default_org';
+      const targetProjectId = cleanPayload.projectId || activeProjectId || 'PROJ-001';
+
+      // Ensure orgId and projectId are present in payload
+      cleanPayload.orgId = targetOrgId;
+      cleanPayload.projectId = targetProjectId;
+
+      // Ensure exact multi-tenant collection path
+      const targetCollectionPath = item.collectionName.startsWith('organizations/')
+        ? item.collectionName
+        : `organizations/${targetOrgId}/projects/${targetProjectId}/${item.collectionName}`;
+
       if (item.operationType === 'create') {
-        await addDoc(collection(db, item.collectionName), {
+        await addDoc(collection(db, targetCollectionPath), {
           ...cleanPayload,
           _syncedAt: serverTimestamp(),
           _isOfflineRecord: false,
         });
       } else if (item.operationType === 'update' && item.docId) {
-        await updateDoc(doc(db, item.collectionName, item.docId), {
+        await updateDoc(doc(db, targetCollectionPath, item.docId), {
           ...cleanPayload,
           _syncedAt: serverTimestamp(),
           _isOfflineRecord: false,
@@ -170,6 +185,8 @@ export async function flushOfflineQueue(): Promise<{ synced: number; failed: num
   window.dispatchEvent(new CustomEvent('ic360-offline-queue-changed'));
   return { synced: syncedCount, failed: failedCount };
 }
+
+export const syncOfflineStoreToFirestore = flushOfflineQueue;
 
 // Setup global auto-sync listeners
 export function initOfflineAutoSync() {

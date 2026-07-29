@@ -1,11 +1,18 @@
-import React from 'react';
-import { Wifi, WifiOff, RefreshCw, CheckCircle2, AlertTriangle, Database } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { WifiOff, RefreshCw, CheckCircle2, Database, X } from 'lucide-react';
 import { useOfflineStatus } from '../../lib/offlineStore';
 
 export const OfflineBanner: React.FC = () => {
   const { isOnline, pendingCount, isSyncing, lastSyncResult, triggerSync } = useOfflineStatus();
+  const [dismissed, setDismissed] = useState(false);
 
-  if (isOnline && pendingCount === 0 && !lastSyncResult) {
+  useEffect(() => {
+    if (pendingCount > 0 || !isOnline) {
+      setDismissed(false);
+    }
+  }, [pendingCount, isOnline]);
+
+  if (dismissed || (isOnline && pendingCount === 0 && !lastSyncResult)) {
     return null; // Clean state, render nothing
   }
 
@@ -37,22 +44,34 @@ export const OfflineBanner: React.FC = () => {
           <>
             <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
             <span>
-              Sincronización completada ({lastSyncResult?.synced} registros actualizados en la nube).
+              Sincronización completada con éxito ({lastSyncResult?.synced} registros en Firestore, almacenamiento local limpiado).
             </span>
           </>
         )}
       </div>
 
-      {isOnline && pendingCount > 0 && (
-        <button
-          onClick={triggerSync}
-          disabled={isSyncing}
-          className="flex items-center gap-1.5 px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all disabled:opacity-50 shrink-0"
-        >
-          <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
-          {isSyncing ? 'Sincronizando...' : 'Sincronizar Ahora'}
-        </button>
-      )}
+      <div className="flex items-center gap-2 shrink-0">
+        {isOnline && pendingCount > 0 && (
+          <button
+            onClick={triggerSync}
+            disabled={isSyncing}
+            className="flex items-center gap-1.5 px-3 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer transition-all disabled:opacity-50 shrink-0"
+          >
+            <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
+            {isSyncing ? 'Sincronizando...' : 'Sincronizar Ahora'}
+          </button>
+        )}
+
+        {isOnline && pendingCount === 0 && (
+          <button
+            onClick={() => setDismissed(true)}
+            className="p-1 hover:bg-surface-2 rounded-md transition-colors cursor-pointer text-muted"
+            title="Ocultar aviso"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
 
     </div>
   );

@@ -50,6 +50,7 @@ const ClientPortalView = lazy(() => import('./pages/ClientPortalView'));
 const HotTapSchemes = lazy(() => import('./pages/HotTapSchemes'));
 const ApuEstimation = lazy(() => import('./pages/ApuEstimation'));
 const WorkerQrRegistry = lazy(() => import('./pages/WorkerQrRegistry'));
+const EnvironmentalManagement = lazy(() => import('./pages/EnvironmentalManagement'));
 
 function AppContent() {
   const [user, loading] = useAppAuthState();
@@ -151,6 +152,8 @@ function AppContent() {
             <Route path="personnel-details" element={<PersonnelDetails />} />
             <Route path="worker-qr-registry" element={<WorkerQrRegistry />} />
             <Route path="personnel-qr" element={<WorkerQrRegistry />} />
+            <Route path="environmental-management" element={<EnvironmentalManagement />} />
+            <Route path="environmental" element={<EnvironmentalManagement />} />
             <Route path="alerts-details" element={<AlertsDetails />} />
             <Route path="modulos/:id" element={<ModulePlaceholder />} />
             <Route path="*" element={<Navigate to="/" replace />} />
