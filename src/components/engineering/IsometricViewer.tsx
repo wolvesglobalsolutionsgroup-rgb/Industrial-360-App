@@ -447,8 +447,8 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
 
           <button
             onClick={() => setShowGeometry(!showGeometry)}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-              showGeometry ? 'bg-brand-500/15 text-brand-600 dark:text-brand-400 font-bold border border-brand-500/30' : 'bg-surface-2 text-ink-faint border border-line'
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs ${
+              showGeometry ? 'bg-sky-500/20 text-sky-400 border border-sky-500/40 shadow-sm' : 'bg-surface-2 text-ink-faint border border-line hover:text-ink'
             }`}
           >
             📐 Geometría
@@ -456,8 +456,8 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
 
           <button
             onClick={() => setShowDimensions(!showDimensions)}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-              showDimensions ? 'bg-brand-500/15 text-brand-600 dark:text-brand-400 font-bold border border-brand-500/30' : 'bg-surface-2 text-ink-faint border border-line'
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs ${
+              showDimensions ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40 shadow-sm' : 'bg-surface-2 text-ink-faint border border-line hover:text-ink'
             }`}
           >
             📏 Cotas
@@ -465,8 +465,8 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
 
           <button
             onClick={() => setShowJointNodes(!showJointNodes)}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-              showJointNodes ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-bold border border-emerald-500/30' : 'bg-surface-2 text-ink-faint border border-line'
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs ${
+              showJointNodes ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm' : 'bg-surface-2 text-ink-faint border border-line hover:text-ink'
             }`}
           >
             🏷️ Juntas NDT ({drawing.joints.length})
@@ -474,8 +474,8 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
 
           <button
             onClick={() => setShowSpoolsLegend(!showSpoolsLegend)}
-            className={`px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-              showSpoolsLegend ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/30' : 'bg-surface-2 text-ink-faint border border-line'
+            className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer text-xs ${
+              showSpoolsLegend ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 shadow-sm' : 'bg-surface-2 text-ink-faint border border-line hover:text-ink'
             }`}
           >
             🧩 Spools & BOM
@@ -571,25 +571,35 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
                   </marker>
                 </defs>
 
-                {/* LAYER 1: SPOOL BOUNDARY BOXES */}
-                {showSpoolsLegend && drawing.spools.map((spool) => (
-                  <g key={spool.id} className="opacity-40 hover:opacity-80 transition-opacity">
+                {/* LAYER 1: SPOOL BOUNDARY BOXES & LABELS */}
+                {showSpoolsLegend && (
+                  <g className="transition-opacity">
                     <rect 
                       x={110} 
-                      y={110} 
+                      y={105} 
                       width={650} 
-                      height={370} 
+                      height={375} 
                       fill="none" 
                       stroke="#38bdf8" 
                       strokeWidth={1} 
                       strokeDasharray="6 4" 
                       rx={12}
                     />
-                    <text x={125} y={130} fill="#38bdf8" fontSize={11} fontWeight="bold" fontFamily="monospace">
-                      {spool.tag} — {spool.description}
-                    </text>
+                    {drawing.spools.map((spool, idx) => (
+                      <text 
+                        key={spool.id} 
+                        x={125} 
+                        y={82 + idx * 16} 
+                        fill="#38bdf8" 
+                        fontSize={11} 
+                        fontWeight="bold" 
+                        fontFamily="monospace"
+                      >
+                        • {spool.tag} — {spool.description}
+                      </text>
+                    ))}
                   </g>
-                ))}
+                )}
 
                 {/* LAYER 2: PIPELINE GEOMETRY */}
                 {showGeometry && drawing.svgPaths.geometry.map((path, idx) => (

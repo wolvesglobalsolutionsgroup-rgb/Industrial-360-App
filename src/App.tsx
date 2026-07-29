@@ -48,6 +48,7 @@ const DossierCompiler = lazy(() => import('./pages/DossierCompiler'));
 const ClientPortalBuilder = lazy(() => import('./pages/ClientPortalBuilder'));
 const ClientPortalView = lazy(() => import('./pages/ClientPortalView'));
 const HotTapSchemes = lazy(() => import('./pages/HotTapSchemes'));
+const ApuEstimation = lazy(() => import('./pages/ApuEstimation'));
 
 function AppContent() {
   const [user, loading] = useAppAuthState();
@@ -132,6 +133,12 @@ function AppContent() {
             <Route path="client-portal-builder" element={<ClientPortalBuilder />} />
             <Route path="portal-builder" element={<ClientPortalBuilder />} />
             <Route path="hot-tap" element={<HotTapSchemes />} />
+            <Route path="apu-estimation" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor']} moduleName="Estimación APU y Cómputos Métricos">
+                <ApuEstimation />
+              </ProtectedRoute>
+            } />
+            <Route path="apu" element={<ApuEstimation />} />
             <Route path="tools" element={<EngineeringTools />} />
             <Route path="project-brain" element={<ProjectBrain />} />
             <Route path="intelligence" element={<Intelligence />} />
