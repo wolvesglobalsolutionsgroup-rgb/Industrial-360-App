@@ -9,6 +9,7 @@ import {
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, collectionGroup } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import IsometricViewer from '../components/engineering/IsometricViewer';
 
 export interface WeldJoint {
   id?: string;
@@ -187,7 +188,7 @@ const initialWelderCerts: WelderCert[] = [
 
 export default function QaQcWelding() {
   const { currentProject } = useProject();
-  const [activeTab, setActiveTab] = useState<'joints' | 'wps' | 'welders' | 'ndt_reports' | 'diconde'>('joints');
+  const [activeTab, setActiveTab] = useState<'isometric' | 'joints' | 'wps' | 'welders' | 'ndt_reports' | 'diconde'>('isometric');
   const [jointsList, setJointsList] = useState<WeldJoint[]>([]);
   const [wpsList, setWpsList] = useState<WpsRecord[]>(initialWpsRecords);
   const [weldersList, setWeldersList] = useState<WelderCert[]>(initialWelderCerts);
@@ -417,6 +418,18 @@ export default function QaQcWelding() {
       {/* Tabs Header */}
       <div className="flex border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-t-xl px-4 pt-2 overflow-x-auto gap-2">
         <button
+          onClick={() => setActiveTab('isometric')}
+          className={`px-4 py-3 font-semibold text-xs sm:text-sm border-b-2 flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'isometric'
+              ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
+              : 'border-transparent text-gray-500 hover:text-gray-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <FileCode2 size={16} />
+          📐 Visor Vectorial Isométricos CAD/SVG (IC360-016)
+        </button>
+
+        <button
           onClick={() => setActiveTab('joints')}
           className={`px-4 py-3 font-semibold text-xs sm:text-sm border-b-2 flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
             activeTab === 'joints'
@@ -476,6 +489,13 @@ export default function QaQcWelding() {
           👁️ Visor ASTM DICONDE (.dcm)
         </button>
       </div>
+
+      {/* TAB 0: VISOR VECTORIAL ISOMÉTRICOS CAD/SVG (IC360-016) */}
+      {activeTab === 'isometric' && (
+        <div className="bg-white dark:bg-slate-900 rounded-b-xl border border-gray-200 dark:border-slate-800 border-t-0 p-4 sm:p-6 space-y-6">
+          <IsometricViewer />
+        </div>
+      )}
 
       {/* TAB 1: MATRIZ DE TRAZABILIDAD DE JUNTAS */}
       {activeTab === 'joints' && (
