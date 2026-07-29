@@ -18,7 +18,6 @@ service cloud.firestore {
     function belongsToOrg(orgId) {
       return signedIn() && (
         request.auth.token.get('orgId', '') == orgId ||
-        request.auth.token.get('orgId', '') == '' ||
         isPlatformSuperadmin()
       );
     }
@@ -26,7 +25,6 @@ service cloud.firestore {
     function hasRoleInOrg(orgId, roles) {
       return belongsToOrg(orgId) && (
         request.auth.token.get('role', '') in roles ||
-        request.auth.token.get('role', '') == '' ||
         isPlatformSuperadmin()
       );
     }
