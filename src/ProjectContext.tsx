@@ -71,6 +71,16 @@ export const CORPORATE_PORTFOLIO_PROJECT: Project = {
 
 export const FALLBACK_DEMO_PROJECTS: Project[] = [
   {
+    id: 'PROJ-CARDON-AMUAY',
+    name: 'IPC Reemplazo y Reparación Propanoducto 6" Cardón - Amuay',
+    description: 'Obra integrada de reemplazo de tramos y reparación de anomalías ILI (D001, D002, D003) con camisas Tipo B y prueba hidrostática a 2126 PSI MAOP (17.0 km).',
+    budget: 1850000,
+    advancePercent: 65,
+    status: 'en_campo',
+    ownerId: 'demo_admin',
+    orgId: 'prointeca'
+  },
+  {
     id: 'PROJ-001',
     name: 'IPC Reemplazo Oleoducto 16" Jusepín - San Mateo',
     description: 'Reemplazo de 12.5 km de tubería API 5L Gr. X52 Sch 40, incluyendo cruces especiales y pruebas hidrostáticas.',

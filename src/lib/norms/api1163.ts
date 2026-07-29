@@ -247,8 +247,9 @@ export const GOLDEN_CARDON_AMUAY_PRESET: IliPipelineDataset = {
 export function generateApi1163IliReportPDF(
   dataset: IliPipelineDataset,
   anomalies: IliAnomalyExtended[],
-  organizationName: string = 'CONTRATISTA OPERATIVA C.A.',
-  engineerName: string = 'Ing. Inspector de Integridad'
+  organizationName: string = 'PROINTECA C.A.',
+  engineerName: string = 'Ing. Inspector de Integridad',
+  clientName: string = 'PDVSA / Petrocedeño'
 ) {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -259,23 +260,32 @@ export function generateApi1163IliReportPDF(
   const primaryColor = [11, 34, 57]; // #0B2239
   const accentColor = [217, 119, 6]; // Amber
 
-  // Header Banner
+  // Header Banner with Double Logo Header (Contratista e.g. PROINTECA C.A. / Cliente e.g. PDVSA)
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.rect(0, 0, 210, 28, 'F');
 
+  // Left Side: Contratista
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(15);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('INDUSTRIAL CONTROL 360', 14, 12);
+  doc.text(organizationName.toUpperCase(), 14, 10);
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('INFORME TÉCNICO DE EVALUACIÓN DE INTEGRIDAD ILI (API 1163 / ASME B31G)', 14, 19);
-
-  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
   doc.setFontSize(8);
-  doc.text(`FECHA: ${new Date().toLocaleDateString('es-ES')}`, 150, 12);
-  doc.text(`ORG: ${organizationName.substring(0, 22)}`, 150, 19);
+  doc.setFont('helvetica', 'normal');
+  doc.text('EVALUACIÓN DE INTEGRIDAD ILI (API 1163 / ASME B31G)', 14, 16);
+  doc.text(`INSPECTOR: ${engineerName}`, 14, 22);
+
+  // Right Side: Cliente Final PDVSA
+  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`CLIENTE: ${clientName.toUpperCase()}`, 196, 10, { align: 'right' });
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(255, 255, 255);
+  doc.text(`FECHA: ${new Date().toLocaleDateString('es-VE')}`, 196, 16, { align: 'right' });
+  doc.text(`NORMA: PIC-01-03-05 ANEXOS A/B`, 196, 22, { align: 'right' });
 
   doc.setDrawColor(accentColor[0], accentColor[1], accentColor[2]);
   doc.setLineWidth(1);

@@ -39,6 +39,7 @@ export interface FieldReportItem {
   correlatedTaskId?: string;
   correlatedTaskName?: string;
   inspectorName?: string;
+  shift?: string;
   createdAt?: string;
 }
 
@@ -338,21 +339,38 @@ Responde de forma ejecutiva, concisa y profesional.`;
     const pdfDoc = new jsPDF('p', 'mm', 'a4');
     const pageWidth = pdfDoc.internal.pageSize.getWidth();
 
-    // Top Header
+    // Top Header with Double Header (Contratista / PROINTECA C.A. - Cliente / PDVSA)
     pdfDoc.setFillColor(11, 34, 57);
-    pdfDoc.rect(0, 0, pageWidth, 22, 'F');
+    pdfDoc.rect(0, 0, pageWidth, 26, 'F');
 
+    // Left Header: Contratista
     pdfDoc.setFont('helvetica', 'bold');
-    pdfDoc.setFontSize(13);
+    pdfDoc.setFontSize(11);
     pdfDoc.setTextColor(255, 255, 255);
-    pdfDoc.text('INDUSTRIAL CONTROL 360', 14, 11);
+    pdfDoc.text((currentOrganization?.name || 'PROINTECA C.A.').toUpperCase(), 14, 10);
 
     pdfDoc.setFontSize(8);
     pdfDoc.setFont('helvetica', 'normal');
-    pdfDoc.text('INFORME DIARIO DE INSPECCIÓN Y CONTROL DE CAMPO', 14, 17);
+    pdfDoc.setTextColor(200, 210, 225);
+    pdfDoc.text('INFORME DIARIO DE INSPECCIÓN Y CONTROL DE CAMPO', 14, 16);
+    pdfDoc.text('NORMA PDVSA PIC-01-03-05 ANEXO B', 14, 21);
 
+    // Right Header: Cliente
+    pdfDoc.setFont('helvetica', 'bold');
     pdfDoc.setFontSize(9);
-    pdfDoc.text(`FECHA: ${rep.date}`, pageWidth - 14, 14, { align: 'right' });
+    pdfDoc.setTextColor(245, 158, 11);
+    pdfDoc.text('CLIENTE: PDVSA / PETROCEDEÑO', pageWidth - 14, 10, { align: 'right' });
+
+    pdfDoc.setFontSize(8);
+    pdfDoc.setFont('helvetica', 'normal');
+    pdfDoc.setTextColor(255, 255, 255);
+    pdfDoc.text(`FECHA: ${rep.date}`, pageWidth - 14, 16, { align: 'right' });
+    pdfDoc.text(`TURNO: ${rep.shift || 'Diurno'}`, pageWidth - 14, 21, { align: 'right' });
+
+    // Divider Line
+    pdfDoc.setDrawColor(245, 158, 11);
+    pdfDoc.setLineWidth(1);
+    pdfDoc.line(0, 26, pageWidth, 26);
 
     // Metadata
     pdfDoc.setTextColor(20, 20, 20);

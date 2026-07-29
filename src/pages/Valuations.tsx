@@ -46,6 +46,7 @@ export interface ValuationItem {
   status: 'Borrador' | 'En Revisión' | 'Aprobada' | 'Pagada';
   photos: string[];
   ownerId: string;
+  date?: string;
   createdAt: string;
   signatures?: {
     inspector?: SignatureInfo;
@@ -328,21 +329,41 @@ export default function Valuations() {
     const docPdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = docPdf.internal.pageSize.getWidth();
     
-    // Primary header bar
+    // Primary header bar with Double Header (Contratista / PROINTECA C.A. - Cliente / PDVSA)
     docPdf.setFillColor(11, 34, 57); // #0B2239
-    docPdf.rect(0, 0, pageWidth, 24, 'F');
+    docPdf.rect(0, 0, pageWidth, 28, 'F');
 
+    // Left Header: Contratista
     docPdf.setFont('helvetica', 'bold');
-    docPdf.setFontSize(14);
+    docPdf.setFontSize(11);
     docPdf.setTextColor(255, 255, 255);
-    docPdf.text('INDUSTRIAL CONTROL 360', 14, 12);
+    docPdf.text((currentOrganization?.name || 'PROINTECA C.A.').toUpperCase(), 14, 10);
 
-    docPdf.setFontSize(9);
+    docPdf.setFontSize(8);
     docPdf.setFont('helvetica', 'normal');
-    docPdf.text('CERTIFICADO DE VALUACIÓN DE OBRA (FORMATO ROE PDVSA)', 14, 18);
+    docPdf.setTextColor(200, 210, 225);
+    docPdf.text('CERTIFICADO DE VALUACIÓN DE OBRA (FORMATO ROE PDVSA PIC-01-03-05)', 14, 16);
+    docPdf.text(`CÓDIGO INTEGRADO: ROE-${val.projectId || 'PROJ'}-${val.number || 1}`, 14, 22);
+
+    // Right Header: Cliente Final
+    docPdf.setFont('helvetica', 'bold');
+    docPdf.setFontSize(9);
+    docPdf.setTextColor(245, 158, 11); // Amber
+    docPdf.text('CLIENTE: PDVSA / PETROCEDEÑO', pageWidth - 14, 10, { align: 'right' });
 
     docPdf.setFontSize(10);
-    docPdf.text(`VALUACIÓN N° ${val.number}`, pageWidth - 14, 15, { align: 'right' });
+    docPdf.setTextColor(255, 255, 255);
+    docPdf.text(`VALUACIÓN N° ${val.number}`, pageWidth - 14, 16, { align: 'right' });
+
+    docPdf.setFontSize(8);
+    docPdf.setFont('helvetica', 'normal');
+    docPdf.setTextColor(200, 210, 225);
+    docPdf.text(`FECHA: ${val.date || new Date().toISOString().split('T')[0]}`, pageWidth - 14, 22, { align: 'right' });
+
+    // Divider Line
+    docPdf.setDrawColor(245, 158, 11);
+    docPdf.setLineWidth(1);
+    docPdf.line(0, 28, pageWidth, 28);
 
     // Document Metadata
     docPdf.setTextColor(20, 20, 20);

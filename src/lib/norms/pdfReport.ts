@@ -6,7 +6,9 @@ export function generateNormCalculationPDF(
   inputs: Record<string, any>,
   results: NormResult[],
   projectName: string = 'PROYECTO INDUSTRIAL O&G',
-  engineerName: string = 'Ing. de Campo'
+  engineerName: string = 'Ing. de Campo',
+  contractorName: string = 'PROINTECA C.A.',
+  clientName: string = 'PDVSA / Petrocedeño'
 ) {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -14,26 +16,32 @@ export function generateNormCalculationPDF(
     format: 'a4'
   });
 
-  const primaryColor = '#0B2239'; // Industrial dark blue
-  const accentColor = '#D97706'; // Amber/Gold accent
-
-  // Header Banner
+  // Header Banner with Double Logo Header (Contratista a la izquierda, Cliente a la derecha)
   doc.setFillColor(11, 34, 57);
   doc.rect(0, 0, 210, 28, 'F');
 
+  // Left side: Contratista
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(16);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('INDUSTRIAL CONTROL 360', 14, 12);
+  doc.text(contractorName.toUpperCase(), 14, 10);
 
-  doc.setFontSize(10);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('MEMORIA DE CÁLCULO TÉCNICA DE INGENIERÍA', 14, 19);
+  doc.text('INDUSTRIAL CONTROL 360 — MEMORIA DE CÁLCULO', 14, 16);
+  doc.text(`RESPONSABLE: ${engineerName}`, 14, 22);
 
+  // Right side: Cliente Final (PDVSA)
   doc.setTextColor(217, 119, 6);
   doc.setFontSize(9);
-  doc.text(`FECHA: ${new Date().toLocaleDateString('es-ES')}`, 150, 12);
-  doc.text(`PROYECTO: ${projectName.substring(0, 25)}`, 150, 19);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`CLIENTE: ${clientName.toUpperCase()}`, 196, 10, { align: 'right' });
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(255, 255, 255);
+  doc.text(`FECHA: ${new Date().toLocaleDateString('es-VE')}`, 196, 16, { align: 'right' });
+  doc.text(`PROYECTO: ${projectName.substring(0, 28)}`, 196, 22, { align: 'right' });
 
   // Divider line
   doc.setDrawColor(217, 119, 6);
