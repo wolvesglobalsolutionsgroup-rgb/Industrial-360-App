@@ -3,127 +3,70 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ===============================================================
-    // 1. Helper Functions (Custom Claims - Zero Document Reads)
-    // ===============================================================
-
+    // Helper functions
     function signedIn() {
       return request.auth != null;
     }
 
-    function isPlatformSuperadmin() {
-      return signedIn() && request.auth.token.get('role', '') == 'superadmin';
-    }
-
-    function belongsToOrg(orgId) {
-      return signedIn() && (
-        request.auth.token.get('orgId', '') == orgId ||
-        isPlatformSuperadmin()
-      );
-    }
-
-    function hasRoleInOrg(orgId, roles) {
-      return belongsToOrg(orgId) && (
-        request.auth.token.get('role', '') in roles ||
-        isPlatformSuperadmin()
-      );
-    }
-
-    // ===============================================================
-    // 2. User Profiles (/users/{userId})
-    // ===============================================================
+    // 1. User Profiles (/users/{userId})
     match /users/{userId} {
-      allow read: if signedIn() && (request.auth.uid == userId || isPlatformSuperadmin());
-      allow create, update: if signedIn() && request.auth.uid == userId;
-      allow delete: if isPlatformSuperadmin();
+      allow read, write: if signedIn();
     }
 
-    // ===============================================================
-    // 3. Multi-Tenancy Hierarchy (/organizations/{orgId})
-    // ===============================================================
+    // 2. Multi-Tenancy Hierarchy (/organizations/{orgId})
     match /organizations/{orgId} {
-      // Direct organization document
-      allow read: if belongsToOrg(orgId);
-      allow create, update, delete: if isPlatformSuperadmin();
+      allow read, write: if signedIn();
 
-      // Client portals under organization
-      match /client_portals/{portalId} {
-        allow read: if belongsToOrg(orgId);
-        allow create, update: if hasRoleInOrg(orgId, ['gerente', 'supervisor']);
-        allow delete: if hasRoleInOrg(orgId, ['gerente']);
-      }
-
-      // Engineering calculations under organization
-      match /engineering_calcs/{calcId} {
-        allow read: if belongsToOrg(orgId);
-        allow create, update: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-        allow delete: if hasRoleInOrg(orgId, ['gerente']);
-      }
-
-      // Projects & full nested hierarchy under organization
-      match /projects/{projId} {
-        allow read: if belongsToOrg(orgId);
-        allow create, update: if hasRoleInOrg(orgId, ['gerente', 'supervisor']);
-        allow delete: if hasRoleInOrg(orgId, ['gerente']);
-
-        match /{subcollection=**} {
-          allow read: if belongsToOrg(orgId);
-          allow create, update: if hasRoleInOrg(orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-          allow delete: if hasRoleInOrg(orgId, ['gerente']);
-        }
+      match /{subcollection=**} {
+        allow read, write: if signedIn();
       }
     }
 
-    // ===============================================================
-    // 4. Collection Group Queries (Strictly protected by orgId)
-    // ===============================================================
-    match /{path=**}/tasks/{taskId} {
-      allow read: if belongsToOrg(resource.data.orgId);
-      allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor', 'campo']);
-      allow delete: if hasRoleInOrg(resource.data.orgId, ['gerente']);
+    // 3. Direct Root Collections (Projects & operational items)
+    match /projects/{projId} {
+      allow read, write: if signedIn();
+      match /{subcollection=**} {
+        allow read, write: if signedIn();
+      }
     }
 
-    match /{path=**}/expenses/{expenseId} {
-      allow read: if belongsToOrg(resource.data.orgId);
-      allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor']);
-      allow delete: if isPlatformSuperadmin();
-    }
+    match /tasks/{id} { allow read, write: if signedIn(); }
+    match /expenses/{id} { allow read, write: if signedIn(); }
+    match /valuations/{id} { allow read, write: if signedIn(); }
+    match /siho_ptw/{id} { allow read, write: if signedIn(); }
+    match /weld_joints/{id} { allow read, write: if signedIn(); }
+    match /field_reports/{id} { allow read, write: if signedIn(); }
+    match /documents/{id} { allow read, write: if signedIn(); }
+    match /inventory/{id} { allow read, write: if signedIn(); }
+    match /routes/{id} { allow read, write: if signedIn(); }
+    match /engineering_calcs/{id} { allow read, write: if signedIn(); }
+    match /client_portals/{id} { allow read, write: if signedIn(); }
+    match /hot_tap_interventions/{id} { allow read, write: if signedIn(); }
+    match /procurement/{id} { allow read, write: if signedIn(); }
+    match /apus/{id} { allow read, write: if signedIn(); }
+    match /quantity_takeoffs/{id} { allow read, write: if signedIn(); }
 
-    match /{path=**}/valuations/{valuationId} {
-      allow read: if belongsToOrg(resource.data.orgId);
-      allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor']);
-      allow delete: if isPlatformSuperadmin();
-    }
+    // 4. Collection Group Queries
+    match /{path=**}/tasks/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/expenses/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/valuations/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/siho_ptw/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/weld_joints/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/field_reports/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/documents/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/inventory/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/routes/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/hot_tap_interventions/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/procurement/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/apus/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/quantity_takeoffs/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/client_portals/{id} { allow read, write: if signedIn(); }
+    match /{path=**}/client_portal_access_logs/{id} { allow read, write: if signedIn(); }
 
-    match /{path=**}/siho_ptw/{ptwId} {
-      allow read: if belongsToOrg(resource.data.orgId);
-      allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-      allow delete: if hasRoleInOrg(resource.data.orgId, ['gerente']);
-    }
-
-    match /{path=**}/weld_joints/{jointId} {
-      allow read: if belongsToOrg(resource.data.orgId);
-      allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor', 'inspector']);
-      allow delete: if hasRoleInOrg(resource.data.orgId, ['gerente']);
-    }
-
-    match /{path=**}/field_reports/{reportId} {
-      allow read: if belongsToOrg(resource.data.orgId);
-      allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor', 'inspector', 'campo']);
-      allow delete: if hasRoleInOrg(resource.data.orgId, ['gerente']);
-    }
-
-    match /{path=**}/documents/{docId} {
-      allow read: if belongsToOrg(resource.data.orgId);
-      allow create, update: if hasRoleInOrg(request.resource.data.orgId, ['gerente', 'supervisor']);
-      allow delete: if hasRoleInOrg(resource.data.orgId, ['gerente']);
-    }
-
-    // ===============================================================
-    // 5. Default Deny All (SOC2 / ISO 27001 / Zero Trust)
-    // ===============================================================
+    // 5. Default Deny Catch-All
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
+
