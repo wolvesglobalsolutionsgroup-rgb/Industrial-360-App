@@ -1,8 +1,58 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+
+    // Funciones auxiliares reutilizables
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSuperadmin() {
+      return isSignedIn() && request.auth.token.role == 'superadmin';
+    }
+
+    function isOrgMember(orgId) {
+      return isSignedIn() && request.auth.token.orgId == orgId;
+    }
+
+    function isAllowedSize(maxSizeInBytes) {
+      return request.resource != null && request.resource.size <= maxSizeInBytes;
+    }
+
+    function isImageOrPdf() {
+      return request.resource != null && 
+        (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+
+    function isPublicBrandkitAsset() {
+      return request.resource != null &&
+        request.resource.size <= 2 * 1024 * 1024 &&
+        (request.resource.contentType == 'image/png' ||
+         request.resource.contentType == 'image/jpeg' ||
+         request.resource.contentType == 'image/svg+xml');
+    }
+
+    // 1. Recursos públicos de BrandKit por organización
+    // Read: público sin autenticación
+    // Write: requiere autenticación de miembro de org o superadmin, máx 2MB, tipos png/jpeg/svg
+    match /organizations/{orgId}/brandkit_public/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isOrgMember(orgId) || isSuperadmin()) && isPublicBrandkitAsset();
+    }
+
+    // 2. Aislamiento Multi-Tenant por Organización
+    // Read/Write: requiere autenticación y pertenencia a orgId o rol superadmin
+    // Restricciones de escritura: máximo 20MB y tipo imagen o PDF
     match /organizations/{orgId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.token.orgId == orgId;
+      allow read: if isOrgMember(orgId) || isSuperadmin();
+      allow write: if (isOrgMember(orgId) || isSuperadmin()) &&
+                      isAllowedSize(20 * 1024 * 1024) &&
+                      isImageOrPdf();
+    }
+
+    // 3. Denegación por defecto (Zero-Trust)
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }

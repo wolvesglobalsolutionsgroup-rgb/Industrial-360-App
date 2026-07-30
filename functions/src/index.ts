@@ -3,10 +3,15 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { handleGeminiProxy } from '../../src/lib/geminiServer';
+import { requireAuth } from './middleware/requireAuth';
+import { rateLimit } from './middleware/rateLimit';
 
 if (!getApps().length) {
   initializeApp();
 }
+
+export { requireAuth } from './middleware/requireAuth';
+export { rateLimit, checkRateLimit } from './middleware/rateLimit';
 
 // HTTPS Cloud Function endpoint export style (Firebase Functions compatible)
 export const callGeminiProxy = async (req: any, res: any) => {
@@ -24,6 +29,27 @@ export const callGeminiProxy = async (req: any, res: any) => {
     return;
   }
 
+  // 1. Middleware de Autenticación requireAuth
+  await new Promise<void>((resolve, reject) => {
+    requireAuth(req, res, (err?: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  if (res.headersSent) return;
+
+  // 2. Rate limiting (20/min por uid para callGeminiProxy)
+  const geminiRateLimiter = rateLimit({ operation: 'callGeminiProxy', maxRequests: 20 });
+  await new Promise<void>((resolve, reject) => {
+    geminiRateLimiter(req, res, (err?: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  if (res.headersSent) return;
+
   try {
     const result = await handleGeminiProxy(req.body || {});
     res.status(200).json(result);
@@ -36,6 +62,77 @@ export const callGeminiProxy = async (req: any, res: any) => {
       console.error('Gemini Proxy Error:', error);
       res.status(500).json({ error: error?.message || 'Error executing Gemini request on server.' });
     }
+  }
+};
+
+/**
+ * HTTPS Cloud Function para envío de emails con rate limit de 5/min por uid.
+ */
+export const sendEmail = async (req: any, res: any) => {
+  // CORS Handling
+  const allowed = ['https://industrial-360.vercel.app'];
+  const origin = req.headers?.origin;
+  if (origin && allowed.includes(origin)) {
+    res.set('Access-Control-Allow-Origin', origin);
+  }
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  // 1. Middleware requireAuth
+  await new Promise<void>((resolve, reject) => {
+    requireAuth(req, res, (err?: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  if (res.headersSent) return;
+
+  // 2. Rate Limit (5/min por uid para sendEmail)
+  const emailRateLimiter = rateLimit({ operation: 'sendEmail', maxRequests: 5 });
+  await new Promise<void>((resolve, reject) => {
+    emailRateLimiter(req, res, (err?: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+  });
+
+  if (res.headersSent) return;
+
+  try {
+    const { to, subject, html, event, portalLink } = req.body || {};
+
+    if (!to || (!html && !subject)) {
+      res.status(400).json({ error: 'Faltan parámetros requeridos: to, subject, html' });
+      return;
+    }
+
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      const { Resend } = await import('resend');
+      const resend = new Resend(resendApiKey);
+      const emailResult = await resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL || 'Industrial Control 360 <notificaciones@industrialcontrol360.com>',
+        to: Array.isArray(to) ? to : [to],
+        subject: subject || 'Notificación Operativa Industrial Control 360',
+        html: html || `<p>Tiene una nueva actualización de su proyecto.</p><p><a href="${portalLink || '#'}">Acceder al Portal Cliente</a></p>`
+      });
+      res.status(200).json({ success: true, data: emailResult });
+    } else {
+      res.status(200).json({
+        success: true,
+        simulated: true,
+        message: 'Notificación registrada exitosamente (simulado sin RESEND_API_KEY).',
+        details: { to, subject, event }
+      });
+    }
+  } catch (err: any) {
+    res.status(500).json({ error: err?.message || 'Error al procesar envío de correo.' });
   }
 };
 

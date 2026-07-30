@@ -1,14 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ensureOwnClaims = exports.setUserCustomClaims = exports.callGeminiProxy = void 0;
+exports.ensureOwnClaims = exports.setUserCustomClaims = exports.sendEmail = exports.callGeminiProxy = exports.checkRateLimit = exports.rateLimit = exports.requireAuth = void 0;
 const functions = require("firebase-functions/v1");
 const app_1 = require("firebase-admin/app");
 const auth_1 = require("firebase-admin/auth");
 const firestore_1 = require("firebase-admin/firestore");
 const geminiServer_1 = require("../../src/lib/geminiServer");
+const requireAuth_1 = require("./middleware/requireAuth");
+const rateLimit_1 = require("./middleware/rateLimit");
 if (!(0, app_1.getApps)().length) {
     (0, app_1.initializeApp)();
 }
+var requireAuth_2 = require("./middleware/requireAuth");
+Object.defineProperty(exports, "requireAuth", { enumerable: true, get: function () { return requireAuth_2.requireAuth; } });
+var rateLimit_2 = require("./middleware/rateLimit");
+Object.defineProperty(exports, "rateLimit", { enumerable: true, get: function () { return rateLimit_2.rateLimit; } });
+Object.defineProperty(exports, "checkRateLimit", { enumerable: true, get: function () { return rateLimit_2.checkRateLimit; } });
 // HTTPS Cloud Function endpoint export style (Firebase Functions compatible)
 const callGeminiProxy = async (req, res) => {
     // CORS Handling - Restricted Origins
@@ -23,6 +30,29 @@ const callGeminiProxy = async (req, res) => {
         res.status(204).send('');
         return;
     }
+    // 1. Middleware de Autenticación requireAuth
+    await new Promise((resolve, reject) => {
+        (0, requireAuth_1.requireAuth)(req, res, (err) => {
+            if (err)
+                reject(err);
+            else
+                resolve();
+        });
+    });
+    if (res.headersSent)
+        return;
+    // 2. Rate limiting (20/min por uid para callGeminiProxy)
+    const geminiRateLimiter = (0, rateLimit_1.rateLimit)({ operation: 'callGeminiProxy', maxRequests: 20 });
+    await new Promise((resolve, reject) => {
+        geminiRateLimiter(req, res, (err) => {
+            if (err)
+                reject(err);
+            else
+                resolve();
+        });
+    });
+    if (res.headersSent)
+        return;
     try {
         const result = await (0, geminiServer_1.handleGeminiProxy)(req.body || {});
         res.status(200).json(result);
@@ -40,6 +70,77 @@ const callGeminiProxy = async (req, res) => {
     }
 };
 exports.callGeminiProxy = callGeminiProxy;
+/**
+ * HTTPS Cloud Function para envío de emails con rate limit de 5/min por uid.
+ */
+const sendEmail = async (req, res) => {
+    // CORS Handling
+    const allowed = ['https://industrial-360.vercel.app'];
+    const origin = req.headers?.origin;
+    if (origin && allowed.includes(origin)) {
+        res.set('Access-Control-Allow-Origin', origin);
+    }
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    // 1. Middleware requireAuth
+    await new Promise((resolve, reject) => {
+        (0, requireAuth_1.requireAuth)(req, res, (err) => {
+            if (err)
+                reject(err);
+            else
+                resolve();
+        });
+    });
+    if (res.headersSent)
+        return;
+    // 2. Rate Limit (5/min por uid para sendEmail)
+    const emailRateLimiter = (0, rateLimit_1.rateLimit)({ operation: 'sendEmail', maxRequests: 5 });
+    await new Promise((resolve, reject) => {
+        emailRateLimiter(req, res, (err) => {
+            if (err)
+                reject(err);
+            else
+                resolve();
+        });
+    });
+    if (res.headersSent)
+        return;
+    try {
+        const { to, subject, html, event, portalLink } = req.body || {};
+        if (!to || (!html && !subject)) {
+            res.status(400).json({ error: 'Faltan parámetros requeridos: to, subject, html' });
+            return;
+        }
+        const resendApiKey = process.env.RESEND_API_KEY;
+        if (resendApiKey) {
+            const { Resend } = await Promise.resolve().then(() => require('resend'));
+            const resend = new Resend(resendApiKey);
+            const emailResult = await resend.emails.send({
+                from: process.env.RESEND_FROM_EMAIL || 'Industrial Control 360 <notificaciones@industrialcontrol360.com>',
+                to: Array.isArray(to) ? to : [to],
+                subject: subject || 'Notificación Operativa Industrial Control 360',
+                html: html || `<p>Tiene una nueva actualización de su proyecto.</p><p><a href="${portalLink || '#'}">Acceder al Portal Cliente</a></p>`
+            });
+            res.status(200).json({ success: true, data: emailResult });
+        }
+        else {
+            res.status(200).json({
+                success: true,
+                simulated: true,
+                message: 'Notificación registrada exitosamente (simulado sin RESEND_API_KEY).',
+                details: { to, subject, event }
+            });
+        }
+    }
+    catch (err) {
+        res.status(500).json({ error: err?.message || 'Error al procesar envío de correo.' });
+    }
+};
+exports.sendEmail = sendEmail;
 /**
  * Callable Cloud Function para establecer Custom Claims a un usuario.
  * Exige autenticación y que el solicitante sea 'superadmin' o 'gerente' de la orgId objetivo.
