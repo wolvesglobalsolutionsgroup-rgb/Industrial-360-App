@@ -1,7 +1,7 @@
-# 🗺️ PLAN MAESTRO UNIFICADO DE SPRINTS — RUTA A 100/100 (S1 → S13)
-## Industrial Control 360 — Hoja de Ruta de Cierre de Brechas P0 → P3
+# 🗺️ PLAN MAESTRO CORREGIDO DE SPRINTS — RUTA A PRODUCCIÓN VERIFICABLE (S0 → S14)
+## Industrial Control 360 — Ejecución con Google AI Studio (GAIS)
 
-**Código del Documento:** `DOC-GOV-2026-010` (v3 Completa)  
+**Código del Documento:** `DOC-GOV-2026-011` (v4 — Corregida y Consolidada)  
 **Ubicación:** `docs/governance/PLAN_MAESTRO_SPRINTS_100.md`  
 **Fecha:** 29 de Julio de 2026  
 **Panel de Auditoría:** ChatGPT 5.6 Terra Thinking + Claude 5 Sonnet Thinking + Qwen 3.8 Max (MCP GitHub)  
@@ -13,86 +13,142 @@
 ## 📐 0. REGLAS TRANSVERSALES DE EJECUCIÓN (APLICA A TODOS LOS SPRINTS)
 
 ```text
-⚠️ REGLAS INQUEBRANTABLES (Aplica a cada prompt de GAIS):
-1. Eres GAIS, el ÚNICO desarrollador autorizado a escribir código en el repo.
-2. Trabajas SOLO en ramas de feature: sprint/IC360-SXX-<nombre>. PROHIBIDO push directo a main.
-3. PROHIBIDO: firebase deploy no autorizado, rotar secretos o cambiar fórmulas en src/lib/norms/.
-4. Aislamiento Multi-Tenant Estricto: Toda entidad vive bajo /organizations/{orgId}/projects/{projId}/...
-5. Ninguna clave o secreto se incluye en src/ ni en el bundle de cliente.
-6. Al terminar cada tarea, responde el Auto-Checklist Obligatorio de 7 Preguntas de Claude y abre PR sin mergear.
+⚠️ REGLAS INQUEBRANTABLES — GAIS:
+1. Eres GAIS, el ÚNICO desarrollador autorizado a escribir código en este repo.
+2. Trabajas SOLO en ramas sprint/IC360-SXX-<nombre>. PROHIBIDO push directo a main.
+3. PROHIBIDO: firebase deploy no autorizado, rotar secretos, cambiar fórmulas en src/lib/norms/ sin ticket específico, o crear wildcards permisivos.
+4. Aislamiento multi-tenant estricto: toda entidad vive bajo /organizations/{orgId}/projects/{projId}/...
+5. Ningún secreto, token o clave se incluye en src/ ni en el bundle cliente.
+6. Ningún dato mostrado puede ser Math.random(), mock o simulación presentada como real, salvo que esté explícitamente gateado y marcado.
+7. Todo ID oficial regulatorio (PTW, ART, LOTO, RASDA, MAT, WBS) se emite por Cloud Function con Admin SDK, nunca por el cliente.
+8. Al terminar, responde el Auto-Checklist Obligatorio de 12 Preguntas de Claude y abre PR sin mergear.
 ```
 
-### ❓ Auto-Checklist Obligatorio de Cierre de Claude (7 Preguntas al final de cada Sprint):
+### ❓ Auto-Checklist Obligatorio de 12 Preguntas (Cierre de cada Sprint):
 ```text
-1. ¿Qué archivos se modificaron y por qué?
-2. ¿npx tsc --noEmit pasa 100% con 0 errores?
-3. ¿Se probó el estado vacío y el estado de error de cada función tocada?
-4. ¿Algún dato mostrado sigue siendo Math.random(), array hardcodeado o simulación?
-5. ¿Se expone alguna clave o secreto nuevo en src/ o en el bundle de cliente?
-6. ¿Los cambios respetan /organizations/{orgId}/projects/{projId}/... sin excepción?
-7. ¿Qué quedó explícitamente FUERA de alcance de este sprint y por qué?
+1. ¿Qué archivos se modificaron, por qué y qué ticket lo autoriza?
+2. ¿Qué archivos deliberadamente NO se modificaron?
+3. ¿npm ci, lint, tsc --noEmit, build y tests relevantes están verdes?
+4. Si toca Firebase, ¿los tests Emulator pasan y fallan cuando deben fallar?
+5. Si se tocaron roles, reglas, Storage, tokens o Functions, ¿qué prueba demuestra que Org A no accede a Org B?
+6. ¿Se expuso algún secreto, token, URL firmada o dato PII nuevo?
+7. ¿Se agregó código temporal, mock o demo? ¿Está gateado y fuera de producción?
+8. ¿Qué migración de datos, índice o cambio de compatibilidad existe?
+9. ¿Cuál es el rollback exacto?
+10. ¿Qué estados vacío, error, offline y permiso denegado se probaron?
+11. ¿Qué evidencia (CLI/capturas) acompaña el PR?
+12. ¿Qué quedó fuera de alcance y qué riesgo residual permanece?
 ```
 
 ---
 
-## 📊 1. MAPA COMPLETO DE SPRINTS (S1 → S13)
+## 📊 1. MAPA DE SPRINTS CORREGIDO (S0 → S14)
 
-| Sprint | Nombre | Prioridad | Cierra Brecha | Estado |
+| Sprint | Nombre | Prioridad | Depende de | Cierra Brecha / Objetivo |
 |---|---|---|---|---|
-| **S1** | Zero-Trust: Custom Claims en Backend + Refresco Token + `firestore.rules` | P0 | Base de datos pública (`signedIn() { return true; }`) | 🟡 Siguiente |
-| **S2** | RBAC Real en Cliente + Redirección de Rutas Alias | P0 | Eliminación del `<select>` superadmin y `localStorage` | ⬜ Pendiente |
-| **S3** | Endpoints `/api/*` Auth + Rate-Limit + CORS Estricto + `storage.rules` | P0 | Abuso de cuota Gemini/Resend y aislamiento de fotos | ⬜ Pendiente |
-| **S4** | Autenticación Endurecida (Sin Cuentas Automáticas ni Demo Silencioso) | P0 | Requiere registro explícito por administrador | ⬜ Pendiente |
-| **S5** | CI/CD Bloqueante + Desacople de `server.ts` / `functions/` + Secret Scan | P1 | Reparación de tipos `tsc` en `server.ts` y pipeline bloqueante | ⬜ Pendiente |
-| **S6** | Migración Multi-Tenant Completa (13/13) + Repositorios + IDs Secuenciales | P1 | Adiós `Math.random()`, contadores atómicos `runTransaction` | ⬜ Pendiente |
-| **S7** | Sanitización XSS (DOMPurify) + Error Boundaries + Eliminación Mocks | P1 | Sanitización SVG/HTML e higienización de `PlatformOwnerConsole` | ⬜ Pendiente |
-| **S8** | Motor Normativo Modular (ASME B31.3/B31G/API 570/API 1163) + Golden Tests | P1 | Calculadoras puras tipadas y testeables | ⬜ Pendiente |
-| **S9** | **PILOTO PROINTECA END-TO-END (Propanoducto Cardón-Amuay)** | P0 (Comercial) | **Valor Tangible YA:** Flujo completo WBS→PTW→Campo→QA/QC→Dossier | ⬜ Pendiente |
-| **S10**| Portal Cliente Seguro (Token Opaco/Revocable) + Sello Server-Side SHA-256 | P1 | Dossier inviolable con verificación QR en tiempo real | ⬜ Pendiente |
-| **S11**| Motor Offline Unificado en `DexieDB` con Outbox & Deduplicación | P1 | Cero duplicados en sync y resolución de conflictos | ⬜ Pendiente |
-| **S12**| Observabilidad (Sentry) + Rendimiento (Code-Splitting) + Migración `exceljs` | P2 | Sustitución de `xlsx` vulnerable y monitoreo en producción | ⬜ Pendiente |
-| **S13**| Auditoría Final y Re-Scoring de Producción | — | Verificación de cierre total (Puntaje Objetivo: ≥93-95/100) | ⬜ Pendiente |
+| **S0** | Fundación de pruebas: Emulator real + scripts CI mínimos | P0 | — | Pruebas de reglas en emulador obligatorias (sin pasadas en silencio) |
+| **S1** | Zero-Trust: Membership admin + Custom Claims + `firestore.rules` explícito | P0 | S0 | Base de datos pública (`signedIn() { return true; }`) |
+| **S2** | RBAC real en cliente (JWT como única fuente) | P0 | S1 | Eliminación del `<select>` superadmin y `localStorage` |
+| **S3** | Backend único + API Auth + Rate-limit persistente + `storage.rules` | P0 | S1 | Abuso de cuota Gemini/Resend y aislamiento de fotos |
+| **S4** | Autenticación endurecida (sin demo silencioso) | P0 | S2 | Registro explícito por administrador |
+| **S5** | CI/CD bloqueante + desacople `server.ts` / `functions/` | P1 | S0, S3 | Reparación de tipos `tsc` en `server.ts` y pipeline bloqueante |
+| **S6** | Multi-tenant 13/13 + repositorios + IDs regulatorios server-side | P1 | S1, S3 | Adiós `Math.random()`, emisión por Cloud Function con Admin SDK |
+| **S7** | Sanitización XSS + Error Boundaries + eliminación de mocks | P1 | S2 | Sanitización SVG/HTML e higienización de `PlatformOwnerConsole` |
+| **S8** | Motor normativo modular (B31G/API 570/API 1163) + golden tests | P1 | S5 | Calculadoras puras tipadas y testeables con referencias normativas |
+| **S9** | Portal Cliente seguro (token hasheado) + sello documental SHA-256 | P1 | S3, S6 | Dossier inviolable con verificación QR en tiempo real |
+| **S10**| Motor offline unificado: outbox + idempotencia + conflictos | P1 | S6 | Cero duplicados en sync y resolución de conflictos |
+| **S11**| Observabilidad y datos sensibles (Sentry/logger) | P2 | S5 | Redacción de PII y monitoreo de errores en producción |
+| **S12**| Rendimiento (code-splitting) y auditoría de dependencias | P2 | S11 | Sustitución de `xlsx` si aplica y división de chunks de JS |
+| **S13**| **PILOTO PROINTECA END-TO-END (Propanoducto Cardón-Amuay)** | P0 comercial | S6, S8, S9, S10 | **Valor Tangible YA:** Flujo completo WBS→PTW→Campo→QA/QC→Dossier |
+| **S14**| Auditoría final y dictamen de producción | — | Todos | Verificación de cierre total con rúbrica enterprise (≥93-95/100) |
 
 ---
 
-# 🚀 2. PROMPTS LISTOS PARA COPIAR Y PEGAR EN GOOGLE AI STUDIO (S1 → S12)
+# 🚀 2. PROMPTS LISTOS PARA COPIAR Y PEGAR EN GOOGLE AI STUDIO (S0 → S13)
 
 ---
 
-### 📋 PROMPT GAIS — SPRINT S1 (Zero-Trust & Custom Claims)
+### 📋 PROMPT GAIS — SPRINT S0 (Fundación de Pruebas: Emulator Real & Harness)
+```text
+Actúa como Senior Test Infrastructure Engineer (Firebase Emulator Suite). 
+Trabajas SOLO en la rama `sprint/IC360-S0-test-foundation`. 
+PROHIBIDO: Push a main, firebase deploy, modificar firestore.rules, modificar lógica de negocio.
+
+CONTEXTO: securityRules.test.ts contiene casos con `if (!testEnv) return;`, lo que hace que los tests pasen en silencio sin validar nada si el emulador no está corriendo. Antes de escribir ninguna regla nueva, necesitamos una fundación de pruebas que falle ruidosamente si no hay emulador real.
+
+TAREA 1 — SCRIPTS DE TEST EXPLÍCITOS (package.json):
+{
+  "test:unit": "vitest run",
+  "test:rules": "firebase emulators:exec --only firestore \"vitest run tests/rules\"",
+  "test:storage-rules": "firebase emulators:exec --only storage \"vitest run tests/storage\"",
+  "test:all": "npm run test:unit && npm run test:rules && npm run test:storage-rules"
+}
+
+TAREA 2 — ELIMINAR EL TEST SILENCIOSO:
+- En securityRules.test.ts, reemplaza cada `if (!testEnv) return;` por un beforeAll() que use initializeTestEnvironment() de @firebase/rules-unit-testing y haga throw si el emulador no responde en localhost:8080. La suite debe ABORTAR, no pasar en silencio.
+- Usa authenticatedContext(uid, claims) para simular usuarios con distintos role/orgId en los claims (no en Firestore).
+
+TAREA 3 — HARNESS REUTILIZABLE (tests/rules/setup.ts):
+- Exporta getTestEnv(), getAuthedDb(uid, claims), getUnauthedDb().
+- Exporta helpers assertDenied() y assertAllowed() que envuelven assertFails/assertSucceeds con mensajes descriptivos.
+
+TAREA 4 — CI MÍNIMO (.github/workflows/ci.yml):
+- Job test: instala Firebase CLI, corre `npm run test:all` con el emulador.
+- Si no hay workflow, créalo. Si existe, NO rompas jobs existentes, añade este como job nuevo obligatorio (required check).
+
+VERIFICACIÓN Y ENTREGA:
+- Corre npm run test:rules localmente (documenta el comando exacto).
+- Sin emulador corriendo: el comando debe fallar visiblemente, no pasar.
+- npx tsc --noEmit sin errores.
+- Abre PR a sprint/IC360-S0-test-foundation. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
+```
+
+---
+
+### 📋 PROMPT GAIS — SPRINT S1 (Zero-Trust: Membership Admin + Custom Claims + Rules)
 ```text
 Actúa como Lead Firebase Security Engineer. Trabajas SOLO en la rama `sprint/IC360-S1-zero-trust`. 
-PROHIBIDO: Push a main, firebase deploy no autorizado, borrar datos o tocar src/lib/norms/.
+PROHIBIDO: Push a main, firebase deploy no autorizado, tocar src/lib/norms/. Depende de S0 mergeado.
 
-CONTEXTO VERIFICADO (Auditoría Qwen #20 sobre HEAD 11c6bb4):
-- firestore.rules tiene `signedIn() { return true; }` → DB 100% pública.
-- securityRules.test.ts tiene 4 casos correctos PERO cada uno arranca con `if (!testEnv) return;` → pasan en silencio.
+CONTEXTO VERIFICADO:
+- firestore.rules tiene un helper signedIn() que retorna true incondicional → base de datos efectivamente pública.
+- No se debe usar /users/{uid} como fuente de claims si ese documento es editable por el propio usuario: eso permitiría auto-escalar rol.
 
 ⚠️ REGLAS INQUEBRANTABLES:
 1. El fallback de TODA función helper es DENEGAR (false), nunca permitir.
 2. Catch-all final: match /{document=**} { allow read, write: if false; }
-3. NO modifiques las aserciones de securityRules.test.ts (ya están bien). Tu trabajo es hacer que pasen DE VERDAD contra reglas reales.
-4. NO hagas firebase deploy. Solo commitea.
+3. PROHIBIDO wildcard de escritura tipo /organizations/{org}/{path=**}. Cada colección se declara explícitamente.
+4. El rol y la organización de un usuario NUNCA se derivan de un documento que el propio usuario puede escribir.
+5. NO modifiques las aserciones ya correctas de securityRules.test.ts.
+6. NO hagas firebase deploy. Solo commitea.
 
-TAREA 1 — CUSTOM CLAIMS REALES (PRIMERO PARA EVITAR BLACKOUT):
-- functions/src/index.ts: callable `ensureUserClaims` que (a) exige context.auth; (b) lee /users/{uid} del PROPIO usuario; (c) fija claims {orgId, role} desde ese documento SI es válido, o rol mínimo 'campo' + su orgId; (d) NUNCA acepta role/orgId desde el payload del cliente; (e) llama revokeRefreshTokens(uid).
-- src/firebase.ts: tras login exitoso invocar ensureUserClaims y await user.getIdTokenResult(true) ANTES de redirigir al dashboard.
+TAREA 1 — MEMBERSHIP ADMINISTRADO (functions/src/membership.ts):
+- Colección backend-only /organizations/{orgId}/memberships/{uid} con { role, status, invitedBy, createdAt }. El cliente NUNCA escribe esta colección (ni siquiera con reglas "solo lectura del propio uid").
+- Callable assignMembership(targetUid, orgId, role): (a) exige context.auth; (b) verifica que el actor sea superadmin o gerente de esa misma orgId; (c) valida que el rol solicitado esté permitido para el actor; (d) escribe membership; (e) llama admin.auth().setCustomUserClaims(uid, { orgId, role, claimsVersion: Date.now() }); (f) escribe audit log append-only en /organizations/{orgId}/audit_logs.
+- Callable revokeMembership(targetUid, orgId): solo superadmin o gerente de esa org; limpia claims; NO borra el historial de membership, marca status: 'revoked'.
+- src/firebase.ts: tras login, invoca user.getIdTokenResult(true) y lee claims.role/claims.orgId. NO leas rol desde Firestore.
 
-TAREA 2 — REESCRIBIR firestore.rules (Zero-Trust con Custom Claims):
-- Helpers: isAuthenticated() (request.auth != null), tokenOrgId() (request.auth.token.get('orgId','')), tokenRole(), belongsToOrg(org), hasAnyRole(roles).
-- /users/{userId}: solo el dueño o superadmin lee; el usuario NUNCA escribe role/orgId/approvedBy/createdBy.
-- /organizations/{org}/** : read si belongsToOrg; write si belongsToOrg + hasAnyRole. orgId y projectId del payload DEBEN coincidir con la ruta.
-- CollectionGroups (valuations, siho_ptw, weld_joints, tasks, field_reports, documents, inventory): validar resource.data.orgId == tokenOrgId en lectura y request.resource.data.orgId == tokenOrgId en escritura.
-- CERO wildcards permisivos. CERO if true.
+TAREA 2 — REESCRIBIR firestore.rules (Zero-Trust explícito por colección):
+- Helpers: isAuthenticated(), tokenOrgId(), tokenRole(), belongsToOrg(orgId), hasAnyRole(roles).
+- /organizations/{orgId}/memberships/{uid}: lectura solo del propio uid o superadmin; escritura SIEMPRE false desde cliente.
+- /organizations/{orgId}/projects/{projectId}/tasks/{id}, /field_reports/{id}, /siho_ptw/{id}, /weld_joints/{id}, /expenses/{id}, /valuations/{id}, /documents/{id}, /inventory/{id}: declara cada una individualmente. read si belongsToOrg(orgId). create/update exige belongsToOrg(orgId) + hasAnyRole([...]) + request.resource.data.orgId == orgId + request.resource.data.projectId == projectId. orgId, projectId, createdBy, createdAt son inmutables en update.
+- /organizations/{orgId}/audit_logs/{id}: create solo desde Functions; read solo superadmin/gerente de esa org.
+- /organizations/{orgId}/counters/{id}: allow read, write: if false (solo Admin SDK).
+- CERO wildcards permisivos. CERO "if true".
 
-TAREA 3 — MATAR EL TEST SILENCIOSO:
-- En securityRules.test.ts reemplaza cada `if (!testEnv) return;` por un beforeAll que haga `throw new Error('Firestore emulator no disponible — el test no puede validar nada sin él')` y aborte la suite completa.
-- Añade 2 casos nuevos: (a) rol 'campo' NO puede borrar documentos; (b) usuario de otra org NO puede escribir en counters ajenos.
+TAREA 3 — TESTS REALES (usando el harness de S0):
+- Caso: usuario sin membership no lee ningún dato de la org.
+- Caso: usuario Org A no lee/escribe Org B.
+- Caso: rol 'campo' no puede aprobar ni borrar documentos.
+- Caso: usuario no puede escribir su propia membership ni counters.
+- Caso: gerente no puede crear otro gerente/superadmin vía la Function.
 
 VERIFICACIÓN Y ENTREGA:
-- firebase emulators:exec --only firestore "npm test" → pega la salida COMPLETA.
+- npm run test:rules → pega salida completa.
 - npx tsc --noEmit sin errores.
-- Abre PR a sprint/IC360-S1-zero-trust describiendo antes/después de cada regla. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Abre PR a sprint/IC360-S1-zero-trust describiendo antes/después de cada regla y de la emisión de claims. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
@@ -100,79 +156,92 @@ VERIFICACIÓN Y ENTREGA:
 ### 📋 PROMPT GAIS — SPRINT S2 (RBAC Real en Cliente)
 ```text
 Actúa como Senior React 19 / TypeScript Security Engineer. Trabajas SOLO en la rama `sprint/IC360-S2-rbac-cliente`. 
-PROHIBIDO: Merge a main, firebase deploy, tocar firestore.rules (cerrado en S1).
-Depende de S1 mergeado (claims ya se emiten server-side).
+PROHIBIDO: Merge a main, firebase deploy, tocar firestore.rules. Depende de S1 mergeado.
 
 ⚠️ REGLAS INQUEBRANTABLES:
-- El rol de usuario JAMÁS vuelve a escribirse en localStorage como fuente de verdad.
-- El token JWT verificado es la ÚNICA fuente de verdad del rol.
+- El rol JAMÁS vuelve a escribirse en localStorage como fuente de verdad.
+- El JWT verificado (claims) es la ÚNICA fuente de autorización.
 
 1. NUEVO HOOK src/hooks/useAuthClaims.ts:
-   - Usa auth.onIdTokenChanged + user.getIdTokenResult() para exponer { role, orgId, loading } leídos del JWT verificado.
-   - NO leer rol desde Firestore /users/{uid} ni desde localStorage.
+   - auth.onIdTokenChanged + user.getIdTokenResult() expone { role, orgId, claimsVersion, loading, error }.
+   - Si claims.role u orgId son undefined tras login exitoso, expón estado 'pending-membership' (el usuario existe en Auth pero aún no tiene membresía asignada).
+   - NO leer rol desde Firestore ni localStorage.
 
 2. REFACTOR ProjectContext.tsx:
-   - Elimina ic360_userRole de localStorage (lectura y escritura) y el estado local de rol. userRole deriva de useAuthClaims(). Elimina setUserRole del contexto (nadie cambia su rol desde la UI).
+   - Elimina ic360_userRole de localStorage (lectura y escritura).
+   - userRole deriva de useAuthClaims(). Elimina setUserRole del contexto.
+   - Perfil (displayName, photoURL, preferencias) sigue leyendo Firestore normalmente.
 
 3. REFACTOR ProtectedRoute.tsx:
    - Usa useAuthClaims() en lugar de useProject().userRole.
-   - ELIMINA por completo el bloque del <select> "¿Entorno de Pruebas / Demo?" que permite cambiar de rol. Si quieres conservar un selector de desarrollo, envuélvelo en {import.meta.env.DEV && (...)} para que desaparezca del bundle de producción.
-   - Muestra pantalla de acceso denegado con el rol REAL del token.
+   - Maneja 3 estados: loading, pending-membership (pantalla "Su cuenta está pendiente de asignación de rol"), y denied (rol real insuficiente).
+   - ELIMINA el <select> "Cambiar rol / Entorno de Pruebas". Si se necesita para desarrollo, envuélvelo en {import.meta.env.DEV && (...)} para que no exista en el bundle de producción.
 
-4. RUTAS SIN FUGAS (src/App.tsx):
-   - Para cada módulo sensible deja UNA sola ruta protegida y convierte los alias en redirecciones: /master-console → /platform-owner-console, /loto → /loto-isolation, /apu → /apu-estimation, /instrumentation → /instrumentation-control, /civil → /civil-engineering.
-   - PlatformOwnerConsole queda excluido para cualquier rol distinto de superadmin.
+4. AUTORIZACIÓN EN DOS CAPAS:
+   - Audita Command Palette, menús de acción rápida y botones sensibles. Cada uno debe verificar useAuthClaims().role.
+
+5. RUTAS SIN FUGAS (src/App.tsx):
+   - Alias existentes se convierten en <Navigate replace /> hacia la ruta canónica: /master-console → /platform-owner-console, /loto → /loto-isolation, /apu → /apu-estimation, /instrumentation → /instrumentation-control, /civil → /civil-engineering.
+   - PlatformOwnerConsole excluido para cualquier rol distinto de superadmin.
 
 VERIFICACIÓN Y ENTREGA:
-- npm run build → busca en dist/ el texto "Cambiar a:" → NO debe aparecer.
+- npm run build → grep en dist/ buscando "Cambiar a:" → no debe aparecer.
 - npx tsc --noEmit sin errores.
-- Prueba manual documentada: sin claims → acceso denegado; con rol correcto → renderiza.
-- Abre PR a sprint/IC360-S2-rbac-cliente. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Prueba manual documentada: sin claims → pantalla pending-membership; con rol insuficiente → denegado; con rol correcto → renderiza.
+- Abre PR a sprint/IC360-S2-rbac-cliente. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
 
-### 📋 PROMPT GAIS — SPRINT S3 (Endpoints API, Rate Limit & Storage Rules)
+### 📋 PROMPT GAIS — SPRINT S3 (Backend Único, API Auth, Rate Limit Persistente & Storage Rules)
 ```text
-Actúa como Senior Backend Engineer (Node/Express + Firebase Admin) y Cloud Security Engineer. 
-Trabajas SOLO en la rama `sprint/IC360-S3-api-storage`.
-PROHIBIDO: Merge a main, firebase deploy, rotar secretos, imprimir valores de API keys.
+Actúa como Senior Backend Engineer (Firebase Functions) y Cloud Security Engineer. Trabajas SOLO en la rama `sprint/IC360-S3-api-storage`. 
+PROHIBIDO: Merge a main, firebase deploy, rotar secretos, imprimir valores de API keys, mantener dos backends para la misma responsabilidad.
+
+DECISIÓN DE ARQUITECTURA:
+Firebase Cloud Functions es el backend único para Auth, Gemini proxy, correo, PDFs y auditoría. Si server.ts duplica alguna de estas responsabilidades, se retira de server.ts y queda solo en functions/.
 
 ⚠️ REGLAS INQUEBRANTABLES:
-- GEMINI_API_KEY y RESEND_API_KEY solo en servidor (process.env).
-- Sin fallback CORS wildcard (*): solo orígenes explícitos.
-- El proxy de Gemini NUNCA devuelve "datos de contingencia" disfrazados de respuesta de IA: los errores se propagan con código y mensaje honestos.
+- GEMINI_API_KEY y RESEND_API_KEY solo en variables de entorno de Functions.
+- Sin fallback CORS wildcard (*): solo orígenes explícitos en lista blanca.
+- Rate limiting debe sobrevivir a múltiples instancias (no memoria local en proceso).
 
-1. MIDDLEWARE requireAuth (server.ts + functions/src/index.ts):
-   - Extrae Authorization: Bearer <idToken>, verifica con admin.auth().verifyIdToken(). 401 si falta/inválido; 403 si no hay claim orgId.
-   - Inicializa firebase-admin en server.ts (credenciales de entorno).
+1. MIDDLEWARE requireAuth (functions/src/middleware/requireAuth.ts):
+   - Verifica Authorization: Bearer <idToken> con admin.auth().verifyIdToken(idToken, true).
+   - 401 si falta/inválido; 403 si no hay claims.orgId.
+   - Adjunta { uid, orgId, role } al contexto.
 
-2. RATE LIMITING:
-   - Añade express-rate-limit. /api/callGeminiProxy: máx 20 req/min por uid (fallback IP). /api/send-email: máx 10 req/min por uid. 429 con { error, retryAfterSeconds }.
+2. RATE LIMITING PERSISTENTE (functions/src/middleware/rateLimit.ts):
+   - Usa colección Firestore /rate_limits/{uid}_{operation}_{windowKey} con TTL lógico o transacción.
+   - Límites: callGeminiProxy 20/min por uid + 200/día por orgId; sendEmail 5/min por uid + 100/día por orgId. 429 con { error, retryAfterSeconds }.
 
 3. CORS ESTRICTO:
-   - Elimina la rama `else if (!origin) { '*' }`. Orígenes vía lista blanca explícita (producción + localhost solo si NODE_ENV !== 'production'). Añade Vary: Origin.
+   - Lista blanca explícita de orígenes de producción + localhost SOLO si process.env.NODE_ENV !== 'production'. Header Vary: Origin.
 
 4. VALIDACIÓN DE PAYLOAD:
-   - /api/callGeminiProxy: exige prompt (string ≤30.000 chars) o contents; rechaza lo demás con 400.
-   - /api/send-email: valida formato de to, subject ≤200 chars, html ≤100KB. Si RESEND_API_KEY no está configurada → 503 con error honesto (NUNCA { success: true, simulated: true }).
+   - callGeminiProxy: exige prompt (string ≤30000 chars) o contents estructurado; 400 si no cumple.
+   - sendEmail: valida destinatario, subject ≤200 chars, html ≤100KB. Si RESEND_API_KEY no está configurada → 503 con error honesto (JAMÁS { success: true, simulated: true }).
 
-5. ENDPOINT DUPLICADO: elimina /api/gemini/proxy; deja solo /api/callGeminiProxy. Verifica con búsqueda global que ningún cliente llama al duplicado.
+5. ELIMINAR ENDPOINT DUPLICADO:
+   - Deja solo un endpoint /api/callGeminiProxy. Revisa todo el repo.
 
 6. CLIENTE CON TOKEN:
-   - src/lib/geminiProxy.ts y emailService.ts: obtén ID token con auth.currentUser?.getIdToken() y envíalo en Authorization. Sin sesión → error visible.
+   - src/lib/geminiProxy.ts y emailService.ts obtienen auth.currentUser?.getIdToken() y lo envían en Authorization.
 
-7. STORAGE RULES (storage.rules, nuevo):
+7. STORAGE RULES (storage.rules):
    - Denegación por defecto: match /{allPaths=**} { allow read, write: if false; }
-   - Ruta /organizations/{orgId}/{allPaths=**}: read/write solo si request.auth != null y (request.auth.token.orgId == orgId o superadmin).
-   - Límite request.resource.size < 20MB y validación de contentType.
-   - Lectura pública SOLO para /organizations/{orgId}/brandkit/... (logos PDF/portal).
+   - /organizations/{orgId}/{allPaths=**}: read/write solo si request.auth != null y (request.auth.token.orgId == orgId o superadmin).
+   - request.resource.size < 20MB y contentType de imagen o PDF.
+   - /organizations/{orgId}/brandkit_public/{allPaths=**}: read público permitido SOLO para esta subcarpeta (max 2MB, png/jpeg/svg).
    - Registra "storage": { "rules": "storage.rules" } en firebase.json.
 
 VERIFICACIÓN Y ENTREGA:
-- Prueba manual documentada: sin token → 401; con token → 200; ráfaga 25 → 429.
+- Prueba manual documentada: sin token → 401; token revocado → 401; ráfaga 25 → 429.
+- npm run test:storage-rules en verde.
 - npx tsc --noEmit sin errores.
-- Abre PR a sprint/IC360-S3-api-storage. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Abre PR a sprint/IC360-S3-api-storage. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
@@ -183,120 +252,121 @@ Actúa como Senior React 19 / TypeScript Security Engineer. Trabajas SOLO en la 
 PROHIBIDO: Merge a main, firebase deploy. Depende de S2 mergeado.
 
 ⚠️ REGLAS INQUEBRANTABLES:
-- El comportamiento por defecto (sin variables de entorno) es el SEGURO: ningún acceso anónimo ni demo.
-- No elimines el modo demo: gatéalo tras flag explícito para desarrollo.
+- El comportamiento por defecto es el SEGURO: ningún acceso anónimo, ninguna cuenta creada automáticamente.
+- NO elimines el modo demo: gatéalo tras un flag explícito solo para desarrollo.
 
 1. FLAG DE ENTORNO:
-   - Añade a .env.example: VITE_ENABLE_DEMO_AUTH= con comentario: "SOLO desarrollo/demos. En producción debe estar ausente o en false."
-   - Crea src/config.ts exportando const DEMO_AUTH_ENABLED = import.meta.env.VITE_ENABLE_DEMO_AUTH === 'true'.
+   - .env.example: VITE_ENABLE_DEMO_AUTH= con comentario "SOLO desarrollo/demos. Ausente o false en producción."
+   - src/config.ts: export const DEMO_AUTH_ENABLED = import.meta.env.VITE_ENABLE_DEMO_AUTH === 'true';
 
 2. loginWithEmail (src/firebase.ts):
-   - Elimina la rama que crea la cuenta ante auth/user-not-found. Lanza: "Cuenta no registrada. Contacte al administrador de su organización."
-   - Elimina el fallback silencioso a usuario local ante errores de API key/dominio.
+   - Elimina la rama que crea cuenta automáticamente ante auth/user-not-found. Lanza error: "Cuenta no registrada. Contacte al administrador."
+   - Elimina cualquier fallback silencioso a usuario local si la API key o el dominio fallan.
 
 3. AUTO-SIGNIN ANÓNIMO:
-   - En useAppAuthState elimina signInAnonymously(auth) automático salvo que DEMO_AUTH_ENABLED sea true. Sin flag: user = null → App muestra Landing/Login.
+   - En useAppAuthState, elimina signInAnonymously(auth) automático salvo que DEMO_AUTH_ENABLED sea true. Sin flag: user = null → App muestra Landing/Login.
 
-4. MODO DEMO GATEADO:
-   - loginAnonymously() y el botón "Acceso Demo" de Login.tsx solo se renderizan/ejecutan si DEMO_AUTH_ENABLED. Con modo demo activo muestra banner persistente: "MODO DEMOSTRACIÓN — los datos no son reales".
+4. MODO DEMO GATEADO Y VISIBLE:
+   - loginAnonymously() y el botón "Acceso Demo" solo se renderizan si DEMO_AUTH_ENABLED. Con modo demo activo, banner persistente no descartable: "MODO DEMOSTRACIÓN — los datos no son reales."
 
 5. GATEAR SEEDS:
-   - seedDemoData (ProjectContext.tsx) solo puede invocarse con el flag activo. Elimina el auto-seed silencioso en producción.
+   - seedDemoData solo se invoca con el flag activo.
 
 VERIFICACIÓN Y ENTREGA:
-- Verificación manual: sin flag → visitante solo ve Login; con flag → demo con banner.
+- Verificación manual: build sin flag → visitante solo ve Login; build con flag → demo con banner visible.
 - npx tsc --noEmit sin errores.
-- Abre PR a sprint/IC360-S4-auth-hardening. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Abre PR a sprint/IC360-S4-auth-hardening. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
 
-### 📋 PROMPT GAIS — SPRINT S5 (CI/CD Bloqueante & Desacople de Server/Functions)
+### 📋 PROMPT GAIS — SPRINT S5 (CI/CD Bloqueante & Desacople Server/Functions)
 ```text
 Actúa como Senior DevSecOps Engineer (GitHub Actions) y TypeScript Build Engineer. 
-Trabajas SOLO en la rama `sprint/IC360-S5-ci-hardening`. PROHIBIDO: Merge a main, firebase deploy.
+Trabajas SOLO en la rama `sprint/IC360-S5-ci-hardening`. PROHIBIDO: Merge a main, firebase deploy. Depende de S0 y S3 mergeados.
 
-CONTEXTO (Auditoría Qwen #9): server.ts importa handleGeminiProxy desde ./functions/src/index → TypeScript mete functions/ en el programa de la raíz ignorando el exclude → 14 errores de tsc. Hay que separarlo.
-
-⚠️ REGLAS INQUEBRANTABLES:
-- Ningún secreto en el YAML: todo vía GitHub Secrets.
-- El deploy de reglas SOLO ocurre desde CI en main con approval manual.
+CONTEXTO: server.ts importaba handleGeminiProxy desde ./functions/src/index → tsc incluyía functions/ en el programa de la raíz ignorando el exclude.
 
 1. EXTRAER MÓDULO COMPARTIDO:
-   - Crea src/server/geminiProxyHandler.ts con la lógica de handleGeminiProxy.
-   - functions/src/index.ts y server.ts importan desde ese módulo compartido.
-   - functions/ queda con solo lo que se despliega como Cloud Function.
-   - Alinea firebase-admin a la misma major en raíz y functions/package.json.
-   - Confirma: npx tsc --noEmit en la raíz → 0 errores.
+   - src/server/geminiProxyHandler.ts con la lógica compartida si server.ts necesita coexistir con functions/.
+   - Si S3 concluyó que Functions es el único backend, retira de server.ts toda lógica redundante.
+   - Alinea firebase-admin a la misma versión mayor en raíz y functions/package.json.
+   - npx tsc --noEmit en la raíz → 0 errores.
 
 2. PIPELINE ENDURECIDO (.github/workflows/ci.yml):
-   - Job security: npm audit --audit-level=high + escaneo de secretos con gitleaks.
-   - Job rules-check: despliega reglas al emulador y corre securityRules.test.ts (bloqueante).
-   - Job build: npm ci, lint, tsc --noEmit, build, tests unitarios.
+   - Job security: npm audit --audit-level=high + gitleaks.
+   - Job rules-check: usa npm run test:rules y test:storage-rules del harness de S0 (bloqueante).
+   - Job build: npm ci, lint, tsc --noEmit, build, test:unit.
 
 VERIFICACIÓN Y ENTREGA:
-- Provoca un fallo deliberado de lint en un commit de prueba y confirma que el check falla.
+- Provoca un fallo deliberado de lint en un commit de prueba dentro de la rama del sprint y confirma que el check falla.
 - npx tsc --noEmit en verde.
-- Abre PR a sprint/IC360-S5-ci-hardening. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Abre PR a sprint/IC360-S5-ci-hardening. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
 
-### 📋 PROMPT GAIS — SPRINT S6 (Migración Multi-Tenant 13/13 & IDs Secuenciales)
+### 📋 PROMPT GAIS — SPRINT S6 (Multi-tenant 13/13 & IDs Regulatorios Server-Side)
 ```text
-Actúa como Principal Full Stack Architect y Firebase Transaction Engineer. 
-Trabajas SOLO en la rama `sprint/IC360-S6-multitenant-ids`. PROHIBIDO: Merge a main, firebase deploy, tocar firestore.rules o src/lib/norms/.
+Actúa como Principal Full Stack Architect y Firebase Backend Engineer. 
+Trabajas SOLO en la rama `sprint/IC360-S6-multitenant-ids`. PROHIBIDO: Merge a main, firebase deploy, tocar firestore.rules o src/lib/norms/. Depende de S1 y S3 mergeados.
 
 ⚠️ REGLAS INQUEBRANTABLES:
 - TODO dato de proyecto bajo /organizations/{orgId}/projects/{projId}/...
-- Todo documento escrito incluye orgId y projectId en el payload.
-- Cero Math.random() para IDs oficiales (PTW, LOTO, AST, RASDA, WBS, MAT, tags).
+- CERO Math.random() para IDs oficiales (PTW, LOTO, AST, RASDA, WBS, MAT, tags).
+- Los IDs oficiales se emiten por Cloud Function con Admin SDK, NUNCA por transacción del cliente sobre un counter.
 
 1. CAPA REPOSITORIO (src/lib/repositories/):
-   - Un módulo por dominio (tasksRepo, valuationsRepo, weldJointsRepo, fieldReportsRepo, documentsRepo, inventoryRepo, routesRepo, sihoPtwRepo, apusRepo, workersRepo).
+   - Un módulo por dominio: tasksRepo, valuationsRepo, weldJointsRepo, fieldReportsRepo, documentsRepo, inventoryRepo, routesRepo, sihoPtwRepo, apusRepo, workersRepo.
    - Tipos de dominio explícitos en src/lib/repositories/types.ts (sin any).
+   - Cada método de escritura exige orgId y projectId como parámetros obligatorios.
 
 2. MIGRACIÓN DE CALL-SITES:
    - ClientPortalView, Valuations, FieldReports, LogisticsMap, QaQcWelding, Documents, Inventory, Expenses, SihoPtw.
 
-3. IDs SECUENCIALES (src/lib/documents/sequentialId.ts):
-   - nextSequentialId(orgId, series): Promise<string> usando runTransaction sobre doc(db,'organizations',orgId,'counters',`${series}-${year}`).
-   - Formato: `${series}-${year}-${String(next).padStart(4,'0')}`.
-   - Reemplaza los 10 usos de Math.random(): SihoPtw (PTS), LotoIsolation (LOCK/PTW), AstForm (AST), EnvironmentalManagement (RASDA), TaskModal (WBS), ProcurementInventory (MAT), InstrumentationControl (LOOP).
+3. IDs REGULATORIOS SERVER-SIDE (functions/src/regulatoryIds.ts):
+   - Callable issueRegulatoryCode(orgId, projectId, series): (a) requireAuth; (b) valida rol autorizado; (c) runTransaction en admin SDK sobre /organizations/{orgId}/counters/{series}-{year}; (d) retorna código formato `${series}-${year}-${String(next).padStart(4,'0')}`; (e) registra emisión en audit log.
+   - src/lib/documents/regulatoryId.ts (cliente): función requestRegulatoryCode() que llama la Callable, NUNCA genera el código localmente. Para trabajo offline, el borrador usa un tempId local (UUID) y solicita el código oficial al sincronizar.
+   - Reemplaza los usos de Math.random() en: SihoPtw (PTS), LotoIsolation (LOCK/PTW), AstForm (AST), EnvironmentalManagement (RASDA), TaskModal (WBS), ProcurementInventory (MAT), InstrumentationControl (LOOP).
 
 VERIFICACIÓN Y ENTREGA:
-- rg "Math.random" src/pages src/components → cero en IDs oficiales.
+- rg "Math.random" src/pages src/components → cero resultados en contextos de generación de ID oficial.
+- npm run test:rules sigue en verde.
 - npx tsc --noEmit sin errores.
-- Abre PR a sprint/IC360-S6-multitenant-ids. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Abre PR a sprint/IC360-S6-multitenant-ids. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
 
 ### 📋 PROMPT GAIS — SPRINT S7 (Sanitización XSS & Error Boundaries)
 ```text
-Actúa como Senior Frontend Security Engineer y React 19 / TypeScript Developer. 
-Trabajas SOLO en la rama `sprint/IC360-S7-xss-resilience`. PROHIBIDO: Merge a main, firebase deploy.
+Actúa como Senior Frontend Security Engineer y React 19/TypeScript Developer. 
+Trabajas SOLO en la rama `sprint/IC360-S7-xss-resilience`. PROHIBIDO: Merge a main, firebase deploy. Depende de S2 mergeado.
 
 ⚠️ REGLAS INQUEBRANTABLES:
 - Ningún dangerouslySetInnerHTML sin DOMPurify antes.
-- Ninguna simulación puede presentarse como funcionalidad real (AGENTS.md §1).
+- Ninguna simulación puede presentarse como funcionalidad real.
 
 1. SANITIZACIÓN:
    - Instala dompurify y @types/dompurify.
-   - IsometricViewer.tsx: aplica DOMPurify.sanitize(content, { USE_PROFILES: { svg: true, svgFilters: true } }). Rechaza >2MB.
+   - IsometricViewer.tsx: aplica DOMPurify.sanitize(content, { USE_PROFILES: { svg: true } }) SIN svgFilters, prohíbe foreignObject y scripts. Rechaza >2MB.
    - DossierCompiler.tsx: sanitiza el HTML generado antes de dangerouslySetInnerHTML.
 
 2. ELIMINAR SIMULACIONES:
-   - FleetEquipment.tsx: elimina handleSimulateOCRScan. Sustitúyelo por upload real a Storage + estado "Extracción OCR pendiente".
+   - FleetEquipment.tsx: elimina handleSimulateOCRScan. Sustituye por upload real a Storage + estado "Extracción OCR pendiente".
    - PlatformOwnerConsole.tsx: conecta tenants a /organizations y audit logs a /{org}/audit_logs reales. Métrica no implementada → badge "DEMO".
 
 3. ERROR BOUNDARIES:
-   - Crea src/components/ErrorBoundary.tsx con fallback UI institucional. Envuelve cada ruta lazy() en App.tsx.
+   - src/components/ErrorBoundary.tsx con fallback UI institucional. Envuelve cada ruta lazy() en App.tsx con su propio boundary.
 
 VERIFICACIÓN Y ENTREGA:
-- Prueba documentada: subir SVG con <script>alert(1)</script> → no ejecuta.
+- Prueba documentada: subir SVG con <script>alert(1)</script> → no se ejecuta ni se renderiza.
 - npx tsc --noEmit sin errores.
-- Abre PR a sprint/IC360-S7-xss-resilience. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Abre PR a sprint/IC360-S7-xss-resilience. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
@@ -304,161 +374,171 @@ VERIFICACIÓN Y ENTREGA:
 ### 📋 PROMPT GAIS — SPRINT S8 (Motor Normativo Modular ASME/API)
 ```text
 Actúa como Senior TypeScript Engineer con prácticas de software de ingeniería verificable. 
-Trabajas SOLO en la rama `sprint/IC360-S8-norm-engine`. PROHIBIDO: Merge a main, firebase deploy, cambiar fórmulas sin evidencia.
+Trabajas SOLO en la rama `sprint/IC360-S8-norm-engine-phase1`. PROHIBIDO: Merge a main, firebase deploy, cambiar fórmulas sin evidencia. Depende de S5.
 
-1. CONSOLIDAR JERARQUÍA:
-   - Elimina duplicados en raíz dejando UNA jerarquía: src/lib/norms/{api,asme,pdvsa,core}.
-   - npm test en verde tras la consolidación.
+1. INVENTARIO PRIMERO:
+   - Lista en el PR qué archivos/funciones implementan B31G, API 570 y API 1163 actualmente.
 
 2. EXTRAER CALCULADORAS (EngineeringTools.tsx → src/lib/norms/):
-   - B31G, API 570, API 1163 como calculadoras puras tipadas con interfaz NormCalculator: { id, standard, edition, reference, validate(), calculate() }.
-   - Incluye disclaimer: "Apoyo técnico sujeto a revisión/aprobación del ingeniero responsable".
+   - src/lib/norms/types.ts: interfaz NormCalculator<TInput, TResult> con { id, standard, edition, reference, validate(input), calculate(input) }.
+   - src/lib/norms/b31g.ts, api570.ts, api1163.ts: funciones puras, sin dependencias de React, completamente tipadas.
+   - Cada resultado incluye disclaimer: "Apoyo técnico sujeto a revisión/aprobación del ingeniero responsable."
+   - EngineeringTools.tsx pasa a IMPORTAR estas funciones en vez de contener la lógica inline.
 
 3. GOLDEN TESTS:
-   - Un test por calculadora fijando el resultado esperado contra casos de referencia por norma citada.
+   - Un test por calculadora. El valor esperado debe provenir de un ejemplo publicado en la norma citada.
 
 VERIFICACIÓN Y ENTREGA:
-- npm test en verde.
+- npm run test:unit en verde.
 - npx tsc --noEmit sin errores.
-- Abre PR a sprint/IC360-S8-norm-engine. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Abre PR a sprint/IC360-S8-norm-engine-phase1. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
 
-### 📋 PROMPT GAIS — SPRINT S9 (Piloto PROINTECA End-to-End: Propanoducto Cardón-Amuay)
-```text
-Actúa como QA Lead y Product Engineer para software industrial. 
-Trabajas SOLO en la rama `sprint/IC360-S9-pilot-prointeca`. PROHIBIDO: Merge a main, firebase deploy, usar datos reales en producción.
-
-OBJETIVO DEL PILOTO (Flujo del contratista PROINTECA):
-Proyecto → WBS/tarea → PTW/ART → reporte de campo offline → fotos/GPS/evidencia → QA/QC/NDT → avance físico → valuación ROE → dossier.
-
-DATOS DEL PILOTO (Tenant prointeca, proyecto Propanoducto Cardón-Amuay):
-- Ducto 6" SCH 40, 17.0 km, MAOP 2126 psi.
-- 3 defectos ILI para alimentar el motor B31G/API 570.
-- Roles reales: gerente, supervisor, inspector, campo, cliente.
-
-1. SEED SEGURO:
-   - Crea scripts/seed-prointeca-pilot.ts que puebla el tenant prointeca SOLO en entorno local/emulador (NUNCA producción).
-
-2. CHECKLIST OPERATIVO Y TESTS SMOKE:
-   - Documenta en docs/pilot/PILOT_ACCEPTANCE.md qué hace cada rol y qué evidencia deja.
-   - Tests que recorran: Proyecto → Tarea → PTW → Field Report → QA/QC → Valuación → Dossier.
-
-VERIFICACIÓN Y ENTREGA:
-- Evidencia de prueba del flujo completo.
-- npx tsc --noEmit sin errores.
-- Abre PR a sprint/IC360-S9-pilot-prointeca. NO merges. Responde el Auto-Checklist de 7 preguntas.
-```
-
----
-
-### 📋 PROMPT GAIS — SPRINT S10 (Portal Cliente Seguro & Sello Server-Side SHA-256)
+### 📋 PROMPT GAIS — SPRINT S9 (Portal Cliente Seguro & Sello SHA-256)
 ```text
 Actúa como Lead Security Engineer (Firebase) y Backend Engineer de trazabilidad documental. 
-Trabajas SOLO en la rama `sprint/IC360-S10-portal-dossier`. PROHIBIDO: Merge a main, firebase deploy.
+Trabajas SOLO en la rama `sprint/IC360-S9-portal-dossier`. PROHIBIDO: Merge a main, firebase deploy. Depende de S3 y S6.
 
-1. MODELO DE PORTAL SEGURO (ClientPortalBuilder.tsx):
-   - Al crear portal escribe en /organizations/{orgId}/client_portals/{portalId} con: accessToken (crypto.randomUUID()), accessEnabled: true, expiresAt, revokedAt: null.
-   - URL pública: ${APP_URL}/portal/{portalId}?k={accessToken}.
+1. MODELO DE PORTAL SEGURO (ClientPortalBuilder.tsx + Function):
+   - Callable createClientPortal(orgId, projectId, config): genera token aleatorio de 32 bytes con crypto; guarda en Firestore SOLO el hash SHA-256 del token junto con expiresAt, revokedAt: null, publishedWidgets; retorna el token en texto plano UNA sola vez.
 
-2. LECTURA PÚBLICA CONTROLADA (ClientPortalView.tsx):
-   - Token inválido/expirado/revocado → "Acceso no válido o revocado". Access log en /organizations/{orgId}/client_portal_access_logs.
+2. ACCESO PÚBLICO CONTROLADO (Function HTTPS getClientPortal):
+   - Recibe portalId y token por query/body. Calcula hash del token recibido y lo compara con el hash guardado. Aplica rate limiting. Retorna únicamente los widgets marcados como publicados. Registra acceso server-side en /organizations/{orgId}/client_portal_access_logs.
 
-3. HASH SERVER-SIDE (Cloud Function sealDocument):
+3. SELLO DOCUMENTAL SERVER-SIDE (Callable sealDocument):
    - Modelo DocumentVerification: { documentId, orgId, projectId, version, sha256, status, issuedBy, issuedAt, storagePath }.
-   - Callable autenticada que calcula SHA-256 server-side sobre los bytes del PDF y registra en log append-only.
-   - Endpoint de verificación por QR: respuesta mínima. UI de estado: Borrador, Emitido, Aprobado, Reemplazado, Anulado.
+   - Function descarga bytes del PDF desde Storage, calcula SHA-256 server-side, y escribe en colección append-only.
+   - Function de verificación por QR (HTTPS, pública): retorna { status, version, issuedAt } sin exponer contenido.
+   - UI de estado: Borrador, Emitido, Aprobado, Reemplazado, Anulado.
 
 VERIFICACIÓN Y ENTREGA:
-- Prueba manual: URL sin k → denegado; con k válido → portal; tras revocar → denegado.
+- Prueba manual: URL de portal sin token → denegado; token válido → muestra widgets; tras revocar → denegado.
 - npx tsc --noEmit sin errores.
-- Abre PR a sprint/IC360-S10-portal-dossier. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Abre PR a sprint/IC360-S9-portal-dossier. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
 
-### 📋 PROMPT GAIS — SPRINT S11 (Motor Offline Unificado DexieDB con Outbox)
+### 📋 PROMPT GAIS — SPRINT S10 (Motor Offline Unificado DexieDB con Outbox)
 ```text
-Actúa como Principal Offline-First Engineer (PWA) y Concurrencia Transaccional. 
-Trabajas SOLO en la rama `sprint/IC360-S11-offline-unified`. PROHIBIDO: Merge a main, firebase deploy.
+Actúa como Principal Offline-First Engineer (PWA) especializado en sistemas de cola idempotentes. 
+Trabajas SOLO en la rama `sprint/IC360-S10-offline-unified`. PROHIBIDO: Merge a main, firebase deploy. Depende de S6.
 
 1. CONSOLIDACIÓN:
-   - src/lib/offline/ queda como única implementación: dexieDb.ts, syncEngine.ts, outbox.ts.
-   - offlineSync.ts y offlineStore.ts: migra sus call-sites y elimínalos.
+   - src/lib/offline/ queda como única implementación: dexieDb.ts, syncEngine.ts, outbox.ts, conflictPolicy.ts. Migra call-sites y elimina offlineSync.ts u offlineStore.ts viejos.
 
-2. DEDUPLICACIÓN Y CONFLICTOS:
-   - Cada operación lleva tempId determinístico (uuid v4).
-   - syncEngine: consulta si existe documento con ese tempId; si existe → marca sincronizada sin duplicar.
-   - Conflictos en PTW/QA/QC/valuaciones = conflicto BLOQUEANTE.
-   - Reintentos con backoff exponencial.
+2. IDENTIFICADORES DE OPERACIÓN (Idempotencia):
+   - Cada operación en cola genera operationId = uuid v4 UNA sola vez al crearse localmente.
+   - El backend (Function o repositorio) verifica en /idempotency_keys/{operationId} si ya fue procesado; si existe, retorna el resultado previo sin duplicar.
 
-3. SERVICE WORKER:
-   - Alinea public/sw.js con la DB Dexie real.
+3. RESOLUCIÓN DE CONFLICTOS:
+   - Fotos/evidencia: append-only. Reportes de campo no críticos: conflicto visible. PTW, QA/QC, valuaciones, aprobaciones: conflicto BLOQUEANTE.
+
+4. UI SYNC CENTER & SERVICE WORKER:
+   - UI que muestra operaciones pending/syncing/synced/failed/conflict. SW alineado con la estructura real de Dexie.
 
 VERIFICACIÓN Y ENTREGA:
-- Prueba documentada: encolar 3 reportes offline → reconectar → 3 documentos sin duplicar.
+- Prueba documentada: encolar 3 reportes offline → reconectar → exactamente 3 documentos remotos.
 - npx tsc --noEmit sin errores.
-- Abre PR a sprint/IC360-S11-offline-unified. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Abre PR a sprint/IC360-S10-offline-unified. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
 
-### 📋 PROMPT GAIS — SPRINT S12 (Observabilidad, Code-Splitting & ExcelJS)
+### 📋 PROMPT GAIS — SPRINT S11 (Observabilidad & Redacción de PII)
 ```text
-Actúa como Senior DevSecOps + Performance + DX Engineer. 
-Trabajas SOLO en la rama `sprint/IC360-S12-observability-perf`. PROHIBIDO: Merge a main, firebase deploy.
+Actúa como Senior DevSecOps + Observability Engineer. 
+Trabajas SOLO en la rama `sprint/IC360-S11-observability`. PROHIBIDO: Merge a main, firebase deploy. Depende de S5.
 
-1. MIGRACIÓN EXCELJS:
-   - Migra xlsx → exceljs en src/lib/excelExporter.ts y todo import. Conserva hojas múltiples, formatos y anchos.
-   - vite → última 6.x parcheada.
+1. LOGGER SANITIZADO (src/lib/logger.ts):
+   - Wrapper único de logging que redacta automáticamente: emails, UIDs completos, tokens, coordenadas GPS precisas. Reemplaza console.log/console.error dispersos en Auth, Functions y sync engine.
 
-2. LOGGER Y SENTRY:
-   - Crea src/lib/logger.ts (sanitiza emails/UIDs, sin PII).
-   - Integra Sentry con VITE_SENTRY_DSN en .env.example.
-
-3. PERFORMANCE (vite.config.ts):
-   - build.rollupOptions.output.manualChunks separando: 3d, maps, charts, pdf, excel.
+2. INTEGRACIÓN SENTRY & CLOUD FUNCTIONS:
+   - VITE_SENTRY_DSN en .env.example. Configura scrub de PII por defecto y separación de entorno (dev/staging/prod).
+   - Captura errores no controlados en Cloud Functions con logging estructurado.
 
 VERIFICACIÓN Y ENTREGA:
-- npm audit --omit=dev → 0 críticas/0 altas.
-- npx tsc --noEmit y tests en verde.
-- Abre PR a sprint/IC360-S12-observability-perf. NO merges. Responde el Auto-Checklist de 7 preguntas.
+- Prueba: forzar error intencional → confirmar que log/Sentry no contiene email completo ni token.
+- npx tsc --noEmit sin errores.
+- Abre PR a sprint/IC360-S11-observability. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
 ```
 
 ---
 
-### 📋 PROMPT DE AUDITORÍA Y CERTIFICACIÓN FINAL — SPRINT S13 (Para Modelos Auditores)
+### 📋 PROMPT GAIS — SPRINT S12 (Rendimiento, Code-Splitting & Auditoría de Dependencias)
+```text
+Actúa como Senior Performance + Supply Chain Security Engineer. 
+Trabajas SOLO en la rama `sprint/IC360-S12-perf-dependencies`. PROHIBIDO: Merge a main, firebase deploy. Depende de S11.
+
+1. AUDITORÍA PRIMERO:
+   - Ejecuta npm audit --omit=dev y documenta cada vulnerabilidad Alta/Crítica. Solo si xlsx aparece confirmada, procede con la migración a exceljs en src/lib/excelExporter.ts.
+
+2. PERFORMANCE (vite.config.ts):
+   - build.rollupOptions.output.manualChunks separando por dominio: chunk '3d', 'maps', 'charts', 'pdf', 'excel'.
+
+VERIFICACIÓN Y ENTREGA:
+- npm audit --omit=dev → adjunta salida completa.
+- npx tsc --noEmit y npm run test:unit en verde.
+- Abre PR a sprint/IC360-S12-perf-dependencies. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
+```
+
+---
+
+### 📋 PROMPT GAIS — SPRINT S13 (Piloto PROINTECA End-to-End: Propanoducto Cardón-Amuay)
+```text
+Actúa como QA Lead y Product Engineer para software industrial. 
+Trabajas SOLO en la rama `sprint/IC360-S13-pilot-prointeca`. PROHIBIDO: Merge a main, firebase deploy, usar datos reales de producción. Depende de S6, S8, S9 y S10 mergeados.
+
+OBJETIVO DEL PILOTO: Proyecto → WBS/tarea → PTW/ART → reporte de campo offline → fotos/GPS/evidencia → QA/QC/NDT → avance físico → valuación ROE → dossier → portal cliente.
+
+DATOS DEL PILOTO (Tenant "prointeca-demo"):
+- Ducto 6" SCH 40, 17.0 km, MAOP 2126 psi. 3 defectos ILI sintéticos para ejercitar B31G/API 570 (S8). Roles reales: gerente, supervisor, inspector, campo, cliente.
+
+1. SEED SEGURO:
+   - scripts/seed-prointeca-pilot.ts puebla el tenant SOLO si process.env.NODE_ENV !== 'production' y contra el emulador. Usa la Function assignMembership de S1 para crear usuarios.
+
+2. CHECKLIST OPERATIVO Y TESTS SMOKE:
+   - docs/pilot/PILOT_ACCEPTANCE.md documenta qué hace cada rol y qué evidencia deja.
+   - Smoke tests que recorran todo el ciclo. Confirma que el PTW usó el código regulatorio emitido por Function (S6).
+
+VERIFICACIÓN Y ENTREGA:
+- Evidencia del flujo completo.
+- npx tsc --noEmit sin errores.
+- Abre PR a sprint/IC360-S13-pilot-prointeca. NO merges.
+- Responde el Auto-Checklist Obligatorio de 12 preguntas.
+```
+
+---
+
+### 📋 PROMPT DE AUDITORÍA Y CERTIFICACIÓN FINAL — SPRINT S14 (Para Modelos Auditores)
 ```text
 Actúa como Auditor Principal de Seguridad, DevSecOps y Arquitectura de Software Enterprise.
 
-OBJETIVO: Realizar la Re-Auditoría Final y Certificación de Producción de la plataforma Industrial Control 360 (IC360) sobre el HEAD de la rama `main` en GitHub, evaluando la resolución total de los hallazgos identificados en las auditorías de origen (ChatGPT 5.6, Claude 5, Kimi K3 y Qwen 3.8).
+OBJETIVO: Re-auditar el HEAD de la rama `main` en GitHub tras los Sprints S0 a S13 y emitir un dictamen honesto y fundamentado.
 
-1. AUDITORÍA DE SEGURIDAD Y EXPLOTACIÓN CONTROLADA (Pruebas de Penetración):
-   - Prueba A (Zero-Trust Firestore): Verifica firestore.rules. ¿El catch-all final es `allow read, write: if false;`? ¿Se exige `belongsToOrg(orgId)` en todas las subcolecciones? ¿Existen wildcards o `if true` permisivos?
-   - Prueba B (Escalación RBAC UI): Revisa ProtectedRoute.tsx y ProjectContext.tsx. ¿El rol de usuario se lee estrictamente del JWT token verificado (`getIdTokenResult().claims.role`)? ¿El `<select>` de cambio de rol desapareció de producción?
-   - Prueba C (Servidor y API Proxies): Revisa server.ts y functions/src/index.ts. ¿Los endpoints `/api/callGeminiProxy` y `/api/send-email` cuentan con middleware `requireAuth`, validación de `orgId` y rate-limiting `express-rate-limit`? ¿Se eliminó cualquier fallback CORS `*`?
-   - Prueba D (Sanitización XSS): Revisa IsometricViewer.tsx y DossierCompiler.tsx. ¿Todo SVG u HTML inyectado pasa obligatoriamente por `DOMPurify.sanitize()`?
+1. PRUEBAS DE PENETRACIÓN CONTROLADA:
+   - Zero-Trust Firestore: confirma catch-all if false, ausencia de wildcards de escritura, reglas explícitas.
+   - RBAC: confirma que el rol se lee de getIdTokenResult().claims, que membership es backend-only y que el <select> no existe en build de producción.
+   - Backend: confirma requireAuth + rate limiting persistente + CORS sin wildcard en Functions.
+   - XSS: confirma DOMPurify en todo dangerouslySetInnerHTML.
+   - Portal: confirma que el token se compara por hash y que Firestore permanece privado.
 
-2. VERIFICACIÓN DE INTEGRIDAD DE DATOS Y OPERACIÓN:
-   - Cobertura Multi-Tenant (13/13 pantallas): ¿Toda consulta e inclusión de datos utiliza la jerarquía `/organizations/{orgId}/projects/{projId}/...`?
-   - IDs Secuenciales: ¿Cero `Math.random()` en códigos oficiales de PTW, ART, LOTO, RASDA, MAT y WBS? ¿Los correlativos son atómicos vía `runTransaction`?
-   - Motor Offline Outbox: ¿DexieDB previene la duplicación de registros al reconectar mediante `tempId` determinístico?
-   - Trazabilidad Documental: ¿El sello de inmutabilidad del Dossier (Hash SHA-256) se calcula server-side en Cloud Functions con registro append-only y código QR funcional?
+2. INTEGRIDAD DE DATOS:
+   - Multi-tenant 13/13, IDs regulatorios emitidos por Function con Admin SDK, motor offline Dexie con idempotencia por operationId, y sello documental SHA-256 server-side con QR.
 
-3. AUDITORÍA DE CALIDAD Y SUMINISTRO (Supply Chain):
-   - Dependencias: Ejecuta `npm audit --omit=dev`. ¿Existen vulnerabilidades de severidad Alta o Crítica (incluyendo `xlsx`)?
-   - Salud del Compilador: Ejecuta `npx tsc --noEmit`. ¿La salida arroja 0 errores de tipo?
-   - Cobertura de Pruebas: Ejecuta `npm test`. ¿Los tests de reglas y de normas de ingeniería pasan con aserciones reales (sin `if (!testEnv) return;`)?
+3. CALIDAD Y SUPPLY CHAIN:
+   - npm audit --omit=dev sin vulnerabilidades críticas; npx tsc --noEmit en 0 errores; npm run test:all en verde con aserciones reales.
 
-4. DICTAMEN DE RE-SCORING FINAL (Rúbrica Enterprise):
-   - Asigna la calificación final por categoría (1-100):
-     • Seguridad y DevSecOps (Peso 35%)
-     • Arquitectura y Multi-Tenancy (Peso 20%)
-     • Mantenibilidad y DX (Peso 15%)
-     • Cobertura de Pruebas y Calidad (Peso 15%)
-     • Rendimiento y Bundle (Peso 15%)
-   - Emite el Dictamen Final: `APTO PARA PRODUCCIÓN INDUSTRIAL / PILOTO PROINTECA` o `RECHAZADO POR RIESGO RESIDUAL`.
+4. DICTAMEN FINAL (Rúbrica Enterprise 1-100):
+   - Asigna calificación final en Seguridad (35%), Arquitectura (20%), Mantenibilidad (15%), Cobertura (15%) y Rendimiento (15%).
+   - Emite dictamen: APTO PARA PILOTO PROINTECA, APTO PARA PRODUCCIÓN LIMITADA MULTI-TENANT, o RECHAZADO POR RIESGO RESIDUAL.
 ```
 
 ---
