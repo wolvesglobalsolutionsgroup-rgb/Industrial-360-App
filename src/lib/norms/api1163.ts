@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
-import { ASMEB31GCalculator } from './asme/asmeB31g';
+import { ASMEB31GCalculator } from './b31g';
+import { NormCalculator, NormField, NormResult, NORM_DISCLAIMER } from './types';
 
 export interface IliAnomalyExtended {
   id: string;
@@ -44,11 +45,134 @@ export interface IliPipelineDataset {
   anomalies: IliAnomalyExtended[];
 }
 
+export interface API1163AnomalyEvaluationResult {
+  erf: number;
+  pSafePsi: number;
+  adjustedDepthPercent: number;
+  burstPressureRatio: number;
+  actionRequired: 'Acción Inmediata' | 'Atención Programada' | 'Monitoreo Continuo';
+  recommendedRepair: string;
+  disclaimer: string;
+}
+
+/**
+ * Función pura para evaluar una anomalía ILI según API 1163
+ */
+export function evaluateAPI1163Anomaly(
+  anomaly: Partial<IliAnomalyExtended> & {
+    depthPercent: number;
+    lengthMm: number;
+    pipeDiameter: number;
+    nominalWT: number;
+    smys: number;
+    maop: number;
+    type: 'Metal Loss' | 'Dent' | 'Gouge' | 'Crack' | 'Manufacturing Defect';
+    dentDepthPercentOd?: number;
+  },
+  tolerancePercent: number = 10
+): API1163AnomalyEvaluationResult {
+  const evaluator = new API1163Evaluator();
+  const res = evaluator.evaluateAnomaly(anomaly, tolerancePercent);
+  return {
+    ...res,
+    disclaimer: NORM_DISCLAIMER,
+  };
+}
+
+export const evaluateAPI1163 = evaluateAPI1163Anomaly;
+
 /**
  * API 1163 ILI System Qualification & Uncertainty Evaluator
  */
-export class API1163Evaluator {
+export class API1163Evaluator implements NormCalculator<Record<string, any>, NormResult[]> {
+  id = 'api_1163';
+  standard = 'API 1163';
+  edition = '2021';
+  reference = 'API 1163 In-line Inspection System Qualification';
+  name = 'API 1163 — Evaluación de Calificación de Sistemas de Inspección ILI';
+  description = 'Evaluación de incertidumbre de herramientas ILI (MFL/UT), profundidad ajustada por tolerancia y categorización de severidad de anomalías.';
+  category: 'inspeccion' = 'inspeccion';
+  disclaimer = NORM_DISCLAIMER;
+
   private b31gCalc = new ASMEB31GCalculator();
+
+  getFields(): NormField[] {
+    return [
+      {
+        id: 'depthPercent',
+        label: 'Profundidad Reportada (%WT)',
+        type: 'number',
+        unit: '%',
+        defaultValue: 35,
+        min: 1,
+        max: 100,
+        description: 'Pérdida de espesor reportada por la herramienta ILI.',
+        normaReference: 'API 1163 Tabla 1'
+      },
+      {
+        id: 'tolerancePercent',
+        label: 'Tolerancia de la Herramienta (±%WT)',
+        type: 'number',
+        unit: '%',
+        defaultValue: 10,
+        min: 1,
+        max: 30,
+        description: 'Incertidumbre declarada por el proveedor ILI (API 1163 Nivel 3).',
+        normaReference: 'API 1163 §6.2'
+      }
+    ];
+  }
+
+  validate(inputs: Record<string, any>): string[] {
+    const errors: string[] = [];
+    if (!inputs.depthPercent || inputs.depthPercent < 0) errors.push('La profundidad debe ser >= 0.');
+    return errors;
+  }
+
+  calculate(inputs: Record<string, any>): NormResult[] {
+    const depthPercent = Number(inputs.depthPercent || 35);
+    const tolerancePercent = Number(inputs.tolerancePercent || 10);
+    const lengthMm = Number(inputs.lengthMm || 80);
+    const pipeDiameter = Number(inputs.pipeDiameter || 6.625);
+    const nominalWT = Number(inputs.nominalWT || 7.11);
+    const smys = Number(inputs.smys || 35000);
+    const maop = Number(inputs.maop || 2126);
+    const type = (inputs.type as any) || 'Metal Loss';
+
+    const evalRes = this.evaluateAnomaly({
+      depthPercent,
+      lengthMm,
+      pipeDiameter,
+      nominalWT,
+      smys,
+      maop,
+      type
+    }, tolerancePercent);
+
+    const passed = evalRes.actionRequired !== 'Acción Inmediata';
+
+    return [{
+      passed,
+      value: `${evalRes.adjustedDepthPercent}% WT (Ajustada)`,
+      unit: 'Profundidad con Incertidumbre',
+      label: `Anomalía ${type} (API 1163)`,
+      codeReference: 'API 1163 §6.2 / ASME B31G',
+      recommendations: [
+        `Clasificación de Acción: ${evalRes.actionRequired}`,
+        `Reparación Sugerida: ${evalRes.recommendedRepair}`
+      ],
+      severity: evalRes.actionRequired === 'Acción Inmediata' ? 'error' : evalRes.actionRequired === 'Atención Programada' ? 'warning' : 'success',
+      disclaimer: NORM_DISCLAIMER,
+      details: {
+        'Profundidad Reportada ILI': `${depthPercent}% WT`,
+        'Tolerancia de Herramienta': `±${tolerancePercent}% WT`,
+        'Profundidad Ajustada (API 1163)': `${evalRes.adjustedDepthPercent}% WT`,
+        'Relación Presión de Falla (BPR)': evalRes.burstPressureRatio,
+        'Factor de Reparación Estimado (ERF)': evalRes.erf,
+        'Presión Segura Estimada': `${evalRes.pSafePsi} psi`
+      }
+    }];
+  }
 
   /**
    * Applies API 1163 Tool Depth Uncertainty Adjustment

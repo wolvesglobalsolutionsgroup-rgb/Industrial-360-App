@@ -1,12 +1,14 @@
-import { NormCalculator, NormField, NormResult } from '../core/NormCalculator';
+import { NormCalculator, NormField, NormResult, NORM_DISCLAIMER } from '../types';
 
 export class PDVSA906Calculator implements NormCalculator {
   id = 'pdvsa_906';
   name = 'PDVSA 906 — Criterios de Aceptación/Rechazo de Defectos de Soldadura NDT';
-  standard = 'PDVSA PI-02-05-01 / PDVSA 906 / API 1104 Secc. 9';
-  version = '2020';
+  standard = 'PDVSA 906';
+  edition = '2020';
+  reference = 'PDVSA PI-02-05-01 / PDVSA 906 / API 1104 Secc. 9';
   description = 'Evaluación de discontinuidades y defectos de soldadura detectados por Radiografía (RT) o Ultrasonido (UT) según la norma PDVSA 906 y API 1104.';
   category: 'soldadura' = 'soldadura';
+  disclaimer = NORM_DISCLAIMER;
 
   getFields(): NormField[] {
     return [
@@ -81,7 +83,8 @@ export class PDVSA906Calculator implements NormCalculator {
         label: 'Error de entrada de datos',
         codeReference: 'PDVSA 906 §5.1',
         recommendations: validationErrors,
-        severity: 'error'
+        severity: 'error',
+        disclaimer: NORM_DISCLAIMER
       }];
     }
 
@@ -172,6 +175,7 @@ export class PDVSA906Calculator implements NormCalculator {
         codeReference: 'PDVSA 906 §5.2 / API 1104 §9.3',
         recommendations,
         severity: passed ? 'success' : 'error',
+        disclaimer: NORM_DISCLAIMER,
         details: {
           'Tipo Defecto': defectType.toUpperCase(),
           'Longitud Medida': `${L} mm`,

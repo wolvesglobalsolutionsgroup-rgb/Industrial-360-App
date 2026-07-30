@@ -1,5 +1,5 @@
-import { NormCalculator, NormField, NormResult } from './core/NormCalculator';
-import { FLANGE_DATA, FlangeSpec } from './asme/asmeB165';
+import { NormCalculator, NormField, NormResult, NORM_DISCLAIMER } from './types';
+import { FLANGE_DATA, FlangeSpec } from './b165';
 
 export interface PCC1Pass {
   passNumber: number;
@@ -18,10 +18,12 @@ export const PCC1_PASSES: PCC1Pass[] = [
 export class ASMEPCC1Calculator implements NormCalculator {
   id = 'asme_pcc1';
   name = 'ASME PCC-1 — Torque de Apriete de Pernos y Secuencia Cruzada en Bridas';
-  standard = 'ASME PCC-1 / Guidelines for Pressure Boundary Bolted Flange Joint Assembly';
-  version = '2022';
+  standard = 'ASME PCC-1';
+  edition = '2022';
+  reference = 'ASME PCC-1 Guidelines for Pressure Boundary Bolted Flange Joint Assembly';
   description = 'Cálculo del torque objetivo de apriete de pernos, momentos de tensión según coeficiente de fricción k, diámetro de copas/dados y protocolo de 4 pasadas (Star Pattern).';
   category: 'bridas' = 'bridas';
+  disclaimer = NORM_DISCLAIMER;
 
   getFields(): NormField[] {
     return [
@@ -98,7 +100,8 @@ export class ASMEPCC1Calculator implements NormCalculator {
         label: 'Combinación Rating/NPS no encontrada',
         codeReference: 'ASME PCC-1 / B16.5',
         recommendations: ['Seleccione una combinación válida de Clase y NPS.'],
-        severity: 'warning'
+        severity: 'warning',
+        disclaimer: NORM_DISCLAIMER
       }];
     }
 
@@ -126,6 +129,7 @@ export class ASMEPCC1Calculator implements NormCalculator {
           `Usar dados hexagonales de ${spec.socketInches} (${spec.socketMm} mm) para tuercas de perno de ${spec.boltDiamInches}.`
         ],
         severity: 'success',
+        disclaimer: NORM_DISCLAIMER,
         details: {
           'Torque 100% (ft-lb)': `${targetTorqueFtLb} ft-lb`,
           'Torque 100% (N-m)': `${targetTorqueNm} N-m`,

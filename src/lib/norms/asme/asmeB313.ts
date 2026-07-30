@@ -1,12 +1,14 @@
-import { NormCalculator, NormField, NormResult } from '../core/NormCalculator';
+import { NormCalculator, NormField, NormResult, NORM_DISCLAIMER } from '../types';
 
 export class ASMEB313Calculator implements NormCalculator {
   id = 'asme_b313';
   name = 'ASME B31.3 — Espesor Mínimo de Pared en Tuberías de Proceso';
-  standard = 'ASME B31.3 / Process Piping Code';
-  version = '2022';
+  standard = 'ASME B31.3';
+  edition = '2022';
+  reference = 'ASME B31.3 Process Piping Code §304.1.2';
   description = 'Cálculo del espesor mínimo de pared requerido y presión de diseño admisible para tuberías de proceso en refinerías y plantas petroquímicas.';
   category: 'tuberias' = 'tuberias';
+  disclaimer = NORM_DISCLAIMER;
 
   getFields(): NormField[] {
     return [
@@ -122,7 +124,8 @@ export class ASMEB313Calculator implements NormCalculator {
         label: 'Error de entrada de datos',
         codeReference: 'ASME B31.3 §304.1.2',
         recommendations: validationErrors,
-        severity: 'error'
+        severity: 'error',
+        disclaimer: NORM_DISCLAIMER
       }];
     }
 
@@ -180,6 +183,7 @@ export class ASMEB313Calculator implements NormCalculator {
         codeReference: 'ASME B31.3 §304.1.2 — Ec. (3a)',
         recommendations,
         severity,
+        disclaimer: NORM_DISCLAIMER,
         details: {
           'Espesor por Presión (t_p)': `${t_p.toFixed(4)} in`,
           'Tolerancia Corrosión (c)': `${c.toFixed(4)} in`,

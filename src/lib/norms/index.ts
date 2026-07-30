@@ -1,3 +1,4 @@
+export * from './types';
 export * from './core/NormCalculator';
 export * from './core/NormRegistry';
 export * from './b313';
@@ -7,4 +8,5 @@ export * from './b165';
 export * from './pdvsa906';
 export * from './weldingEstimator';
 export * from './pcc1';
+export * from './api1163';
 export * from './pdfReport';

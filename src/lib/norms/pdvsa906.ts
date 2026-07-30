@@ -1,4 +1,4 @@
-import { NormCalculator, NormField, NormResult } from './core/NormCalculator';
+import { NormCalculator, NormField, NormResult, NORM_DISCLAIMER } from './types';
 import { PDVSA906Calculator } from './pdvsa/pdvsa906';
 
 export { PDVSA906Calculator };
@@ -10,10 +10,12 @@ export { PDVSA906Calculator };
 export class PDVSA90601ESeparatorCalculator implements NormCalculator {
   id = 'pdvsa_90601e';
   name = 'PDVSA 90601-E — Diseño y Dimensionamiento de Separadores y Depuradores de Gas';
-  standard = 'PDVSA 90601-E / API Spec 12J / GPSA Cap. 7';
-  version = '2021';
+  standard = 'PDVSA 90601-E';
+  edition = '2021';
+  reference = 'PDVSA 90601-E / API Spec 12J / GPSA Cap. 7';
   description = 'Cálculo de velocidad máxima permisible de gas, diámetro interno del recipiente y capacidad volumétrica en depuradores de gas de proceso.';
   category: 'proceso' = 'proceso';
+  disclaimer = NORM_DISCLAIMER;
 
   getFields(): NormField[] {
     return [
@@ -109,7 +111,8 @@ export class PDVSA90601ESeparatorCalculator implements NormCalculator {
         label: 'Error de entrada de datos',
         codeReference: 'PDVSA 90601-E §4.1',
         recommendations: errors,
-        severity: 'error'
+        severity: 'error',
+        disclaimer: NORM_DISCLAIMER
       }];
     }
 
@@ -158,6 +161,7 @@ export class PDVSA90601ESeparatorCalculator implements NormCalculator {
           `Cumplir con código de diseño de recipientes a presión ASME Secc. VIII Div. 1.`
         ],
         severity: 'success',
+        disclaimer: NORM_DISCLAIMER,
         details: {
           'Flujo Real de Gas (ACFS)': `${Q_acfs.toFixed(2)} ft³/s`,
           'Velocidad Máxima Permisible (V_max)': `${V_max.toFixed(2)} ft/s`,

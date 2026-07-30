@@ -1,4 +1,4 @@
-import { NormCalculator, NormField, NormResult } from './core/NormCalculator';
+import { NormCalculator, NormField, NormResult, NORM_DISCLAIMER } from './types';
 
 export interface ElectrodeSpec {
   id: string;
@@ -23,10 +23,12 @@ export const ELECTRODE_CATALOG: ElectrodeSpec[] = [
 export class WeldingEstimatorCalculator implements NormCalculator {
   id = 'welding_estimator';
   name = 'Estimador de Consumo de Electrodos y Horas Hombre de Soldadura';
-  standard = 'AWS D1.1 / ASME IX / API 1104 / Ratios de Campo O&G';
-  version = '2023';
+  standard = 'AWS D1.1 / ASME IX / API 1104';
+  edition = '2023';
+  reference = 'AWS D1.1 / ASME IX / API 1104 / Ratios de Campo O&G';
   description = 'Estimación del volumen de aporte, peso bruto/neto de electrodos (kg), cajas de 5 kg y rendimiento en Horas-Hombre (HH) por junta soldada.';
   category: 'soldadura' = 'soldadura';
+  disclaimer = NORM_DISCLAIMER;
 
   getFields(): NormField[] {
     return [
@@ -95,7 +97,8 @@ export class WeldingEstimatorCalculator implements NormCalculator {
         label: 'Error de entrada de datos',
         codeReference: 'AWS / API 1104',
         recommendations: errors,
-        severity: 'error'
+        severity: 'error',
+        disclaimer: NORM_DISCLAIMER
       }];
     }
 
@@ -140,6 +143,7 @@ export class WeldingEstimatorCalculator implements NormCalculator {
           `Pulgadas-Diámetro totales del lote: ${inchDiameterJoints} in-p.`
         ],
         severity: 'success',
+        disclaimer: NORM_DISCLAIMER,
         details: {
           'Peso Neto Depositado': `${netKg.toFixed(2)} kg`,
           'Peso Bruto Requerido': `${grossKg.toFixed(1)} kg`,

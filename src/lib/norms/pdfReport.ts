@@ -1,52 +1,48 @@
 import jsPDF from 'jspdf';
-import { NormCalculator, NormResult } from './core/NormCalculator';
+import { NormCalculator, NormResult } from './types';
 
+/**
+ * Generador automático de Memorias de Cálculo en PDF institucional
+ * Exporta resultados de cualquier calculadora basada en NormCalculator
+ */
 export function generateNormCalculationPDF(
   calculator: NormCalculator,
   inputs: Record<string, any>,
   results: NormResult[],
   projectName: string = 'PROYECTO INDUSTRIAL O&G',
-  engineerName: string = 'Ing. de Campo',
-  contractorName: string = 'PROINTECA C.A.',
-  clientName: string = 'PDVSA / Petrocedeño'
-) {
+  engineerName: string = 'Ingeniero de Inspección y Sostenibilidad'
+): void {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4'
   });
 
-  // Header Banner with Double Logo Header (Contratista a la izquierda, Cliente a la derecha)
-  doc.setFillColor(11, 34, 57);
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('es-VE', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  // Header Banner
+  doc.setFillColor(11, 34, 57); // Dark navy
   doc.rect(0, 0, 210, 28, 'F');
 
-  // Left side: Contratista
+  // Title in Banner
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(11);
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text(contractorName.toUpperCase(), 14, 10);
+  doc.text('INDUSTRIAL CONTROL 360', 14, 12);
 
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text('INDUSTRIAL CONTROL 360 — MEMORIA DE CÁLCULO', 14, 16);
-  doc.text(`RESPONSABLE: ${engineerName}`, 14, 22);
-
-  // Right side: Cliente Final (PDVSA)
-  doc.setTextColor(217, 119, 6);
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`CLIENTE: ${clientName.toUpperCase()}`, 196, 10, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.text('MEMORIA TÉCNICA DE CÁLCULO Y EVALUACIÓN NORMATIVA', 14, 18);
 
   doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(255, 255, 255);
-  doc.text(`FECHA: ${new Date().toLocaleDateString('es-VE')}`, 196, 16, { align: 'right' });
-  doc.text(`PROYECTO: ${projectName.substring(0, 28)}`, 196, 22, { align: 'right' });
-
-  // Divider line
-  doc.setDrawColor(217, 119, 6);
-  doc.setLineWidth(1);
-  doc.line(0, 28, 210, 28);
+  doc.setTextColor(203, 213, 225);
+  doc.text(`FECHA: ${dateStr.toUpperCase()}`, 145, 12);
+  doc.text(`PROYECTO: ${projectName.substring(0, 25)}`, 145, 18);
 
   let y = 38;
 
@@ -60,7 +56,8 @@ export function generateNormCalculationPDF(
   doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(100, 116, 139);
-  doc.text(`Norma de Referencia: ${calculator.standard} (${calculator.version})`, 14, y);
+  const editionText = calculator.edition || (calculator as any).version || '';
+  doc.text(`Norma de Referencia: ${calculator.standard} ${editionText ? `(${editionText})` : ''}`, 14, y);
 
   y += 10;
 
