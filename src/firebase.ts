@@ -1,20 +1,41 @@
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth, GoogleAuthProvider, signInWithPopup, signOut,
-  signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   signInAnonymously, onAuthStateChanged
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useEffect, useState } from 'react';
 import firebaseConfig from '../firebase-applet-config.json';
+import { DEMO_AUTH_ENABLED } from './config';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const storage = getStorage(app);
+export const functionsInstance = getFunctions(app);
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+
+/**
+ * Invoca la Cloud Function 'ensureOwnClaims' para sincronizar Custom Claims
+ * a partir de /users/{uid} y refresca el ID Token.
+ */
+export async function ensureUserClaimsAndRefreshToken(user: any) {
+  if (!user || user.isAnonymous) return;
+  try {
+    const ensureFn = httpsCallable(functionsInstance, 'ensureOwnClaims');
+    await ensureFn();
+    await user.getIdTokenResult(true);
+  } catch (err: any) {
+    console.warn('Sincronización de Custom Claims (ensureOwnClaims):', err?.message || err);
+    try {
+      await user.getIdTokenResult(true);
+    } catch {}
+  }
+}
 
 const DEMO_USER_DEFAULT = {
   uid: 'demo-operator-360',
@@ -41,59 +62,57 @@ export function getStoredUser(): any {
 
 export function getAuthUser() {
   if (auth.currentUser) return auth.currentUser;
+  if (!DEMO_AUTH_ENABLED) return null;
   return localDemoUser || getStoredUser();
 }
 
 export async function loginWithEmail(email: string, password: string) {
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    if (userCredential.user) {
+      await ensureUserClaimsAndRefreshToken(userCredential.user);
+    }
   } catch (error: any) {
     if (error.code === 'auth/user-not-found') {
-      await createUserWithEmailAndPassword(auth, email, password);
-      return;
-    }
-    if (
-      error.code === 'auth/unauthorized-domain' || 
-      error.code === 'auth/operation-not-allowed' || 
-      error.code === 'auth/api-key-not-valid' ||
-      error.code === 'auth/invalid-api-key'
-    ) {
-      // Fallback local si Firebase Auth está restringido
-      setLocalUser({
-        uid: `local-${email.replace(/[^a-zA-Z0-9]/g, '_')}`,
-        displayName: email.split('@')[0],
-        email,
-        photoURL: null,
-        isLocal: true,
-      });
-      return;
+      throw new Error('Cuenta no registrada. Contacte al administrador de su organización.');
     }
     const message = error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential'
       ? 'Correo o contraseña incorrectos'
       : error.code === 'auth/too-many-requests'
         ? 'Demasiados intentos. Intenta de nuevo más tarde'
-        : 'Error al iniciar sesión';
+        : (error.message || 'Error al iniciar sesión');
     throw new Error(message);
   }
 }
 
 export async function loginAnonymously() {
+  if (!DEMO_AUTH_ENABLED) {
+    throw new Error('El modo demo no está habilitado en este entorno.');
+  }
   try {
     await signInAnonymously(auth);
   } catch {
-    // Fallback a demo local si anonymous no está habilitado
+    // Fallback a demo local si anonymous no está habilitado en Firebase Auth
     setLocalUser(DEMO_USER_DEFAULT);
   }
 }
 
 export const loginWithGoogle = async () => {
   try {
-    await signInWithPopup(auth, googleProvider);
+    const userCredential = await signInWithPopup(auth, googleProvider);
+    if (userCredential.user) {
+      await ensureUserClaimsAndRefreshToken(userCredential.user);
+    }
   } catch (error: any) {
-    console.warn("Error signing in with Google, falling back to local demo", error);
-    setLocalUser(DEMO_USER_DEFAULT);
+    console.warn("Error signing in with Google", error);
+    if (DEMO_AUTH_ENABLED) {
+      setLocalUser(DEMO_USER_DEFAULT);
+    } else {
+      throw error;
+    }
   }
 };
+
 
 export const logout = async () => {
   try {
@@ -107,7 +126,11 @@ export const logout = async () => {
 };
 
 export function useAppAuthState() {
-  const [user, setUser] = useState<any>(() => auth.currentUser);
+  const [user, setUser] = useState<any>(() => {
+    if (auth.currentUser) return auth.currentUser;
+    if (DEMO_AUTH_ENABLED) return getStoredUser();
+    return null;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -120,7 +143,7 @@ export function useAppAuthState() {
       if (firebaseUser) {
         setUser(firebaseUser);
         setLoading(false);
-      } else if (!authInitialized) {
+      } else if (DEMO_AUTH_ENABLED && !authInitialized) {
         authInitialized = true;
         try {
           const credential = await signInAnonymously(auth);
@@ -137,16 +160,20 @@ export function useAppAuthState() {
           }
         }
       } else {
-        const stored = getStoredUser();
-        setUser(stored || DEMO_USER_DEFAULT);
+        const stored = DEMO_AUTH_ENABLED ? getStoredUser() : null;
+        setUser(stored);
         setLoading(false);
       }
     });
 
     const onLocal = () => {
       if (!mounted) return;
-      const stored = getStoredUser();
-      setUser(stored || auth.currentUser || DEMO_USER_DEFAULT);
+      if (DEMO_AUTH_ENABLED) {
+        const stored = getStoredUser();
+        setUser(stored || auth.currentUser || DEMO_USER_DEFAULT);
+      } else {
+        setUser(auth.currentUser || null);
+      }
       setLoading(false);
     };
     window.addEventListener('ic360_auth_change', onLocal);

@@ -19,7 +19,6 @@ const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Projects = lazy(() => import('./pages/Projects'));
 const Tasks = lazy(() => import('./pages/Tasks'));
-const Inventory = lazy(() => import('./pages/Inventory'));
 const ProcurementInventory = lazy(() => import('./pages/ProcurementInventory'));
 const Expenses = lazy(() => import('./pages/Expenses'));
 const Chatbot = lazy(() => import('./pages/Chatbot'));
@@ -105,7 +104,7 @@ function AppContent() {
               </ProtectedRoute>
             } />
             <Route path="expenses" element={
-              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Gestión de Costos y Gastos">
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor']} moduleName="Gestión de Costos y Gastos">
                 <Expenses />
               </ProtectedRoute>
             } />
@@ -130,58 +129,88 @@ function AppContent() {
             <Route path="documents" element={<Documents />} />
             <Route path="logistics" element={<LogisticsMap />} />
             <Route path="inventory" element={<ProcurementInventory />} />
-            <Route path="procurement" element={<ProcurementInventory />} />
+            <Route path="procurement" element={<Navigate to="/inventory" replace />} />
+
             <Route path="modulos/ili-pigging" element={<IntegrityIli />} />
             <Route path="modulos/standby-moc" element={<StandbyMoc />} />
             <Route path="modulos/flota" element={<FleetEquipment />} />
-            <Route path="modulos/interoperabilidad" element={<InteroperabilityEngine />} />
+            <Route path="modulos/interoperabilidad" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Interoperabilidad Primavera/SAP">
+                <InteroperabilityEngine />
+              </ProtectedRoute>
+            } />
             <Route path="modulos/cierre" element={<DossierCompiler />} />
-            <Route path="client-portal-builder" element={<ClientPortalBuilder />} />
-            <Route path="portal-builder" element={<ClientPortalBuilder />} />
+            
+            <Route path="client-portal-builder" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Generador de Portal de Clientes">
+                <ClientPortalBuilder />
+              </ProtectedRoute>
+            } />
+            <Route path="portal-builder" element={<Navigate to="/client-portal-builder" replace />} />
+
             <Route path="hot-tap" element={<HotTapSchemes />} />
             <Route path="apu-estimation" element={
               <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor']} moduleName="Estimación APU y Cómputos Métricos">
                 <ApuEstimation />
               </ProtectedRoute>
             } />
-            <Route path="apu" element={<ApuEstimation />} />
+            <Route path="apu" element={<Navigate to="/apu-estimation" replace />} />
+
             <Route path="tools" element={<EngineeringTools />} />
             <Route path="project-brain" element={<ProjectBrain />} />
             <Route path="intelligence" element={<Intelligence />} />
             <Route path="chat" element={<Chatbot />} />
             <Route path="voice" element={<VoiceChat />} />
             <Route path="bim" element={<BIMViewer />} />
-            <Route path="settings" element={<Settings />} />
+            
+            <Route path="settings" element={
+              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Ajustes del Sistema">
+                <Settings />
+              </ProtectedRoute>
+            } />
+            
             <Route path="progress-details" element={<ProgressDetails />} />
             <Route path="personnel-details" element={<PersonnelDetails />} />
             <Route path="worker-qr-registry" element={<WorkerQrRegistry />} />
-            <Route path="personnel-qr" element={<WorkerQrRegistry />} />
+            <Route path="personnel-qr" element={<Navigate to="/worker-qr-registry" replace />} />
+
             <Route path="environmental-management" element={<EnvironmentalManagement />} />
-            <Route path="environmental" element={<EnvironmentalManagement />} />
+            <Route path="environmental" element={<Navigate to="/environmental-management" replace />} />
+
             <Route path="loto-isolation" element={
               <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']} moduleName="Control de Fuentes de Energía y LOTO">
                 <LotoIsolation />
               </ProtectedRoute>
             } />
-            <Route path="loto" element={<LotoIsolation />} />
-            <Route path="platform-owner-console" element={
-              <ProtectedRoute allowedRoles={['superadmin', 'gerente']} moduleName="Consola Maestra Admin">
+            <Route path="loto" element={<Navigate to="/loto-isolation" replace />} />
+
+            {/* Consola SaaS Exclusiva SuperAdmin */}
+            <Route path="saas-console" element={
+              <ProtectedRoute allowedRoles={['superadmin']} moduleName="Consola SaaS Platform Owner">
                 <PlatformOwnerConsole />
               </ProtectedRoute>
             } />
-            <Route path="master-console" element={<PlatformOwnerConsole />} />
+            <Route path="platform-owner-console" element={
+              <ProtectedRoute allowedRoles={['superadmin']} moduleName="Consola SaaS Platform Owner">
+                <PlatformOwnerConsole />
+              </ProtectedRoute>
+            } />
+            <Route path="master-console" element={<Navigate to="/saas-console" replace />} />
+
             <Route path="instrumentation-control" element={
               <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']} moduleName="Instrumentación & Lazos P&ID">
                 <InstrumentationControl />
               </ProtectedRoute>
             } />
-            <Route path="instrumentation" element={<InstrumentationControl />} />
+            <Route path="instrumentation" element={<Navigate to="/instrumentation-control" replace />} />
+
             <Route path="civil-engineering" element={
               <ProtectedRoute allowedRoles={['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']} moduleName="Ensayos Civiles & Suelos">
                 <CivilEngineeringRegistry />
               </ProtectedRoute>
             } />
-            <Route path="civil" element={<CivilEngineeringRegistry />} />
+            <Route path="civil" element={<Navigate to="/civil-engineering" replace />} />
+
             <Route path="alerts-details" element={<AlertsDetails />} />
             <Route path="modulos/:id" element={<ModulePlaceholder />} />
             <Route path="*" element={<Navigate to="/" replace />} />

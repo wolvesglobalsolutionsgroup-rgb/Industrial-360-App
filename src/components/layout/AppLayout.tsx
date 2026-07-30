@@ -4,6 +4,7 @@ import IconRail from './IconRail';
 import Topbar from './Topbar';
 import ModulePanel from './ModulePanel';
 import OfflineBanner from '../ui/OfflineBanner';
+import DemoBanner from '../ui/DemoBanner';
 
 export const AppLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -35,6 +36,9 @@ export const AppLayout: React.FC = () => {
           onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
           onToggleModules={toggleModules}
         />
+
+        {/* Demo Mode Persistent Banner */}
+        <DemoBanner />
 
         {/* PWA Offline Banner */}
         <OfflineBanner />

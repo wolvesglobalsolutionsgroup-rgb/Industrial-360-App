@@ -76,6 +76,7 @@ const COLUMN_CONFIGS = [
 ];
 
 import { seedDemoData, FALLBACK_DEMO_TASKS } from '../lib/seedDemoData';
+import { DEMO_AUTH_ENABLED } from '../config';
 
 export default function Tasks() {
   const { currentProject, currentOrganization } = useProject();
@@ -175,21 +176,29 @@ export default function Tasks() {
       });
 
       if (tsks.length === 0) {
-        const filteredFallback = currentProject.id === 'all'
-          ? FALLBACK_DEMO_TASKS
-          : FALLBACK_DEMO_TASKS.filter(t => t.projectId === currentProject.id);
-        setTasks(filteredFallback.length > 0 ? (filteredFallback as any) : (FALLBACK_DEMO_TASKS as any));
+        if (DEMO_AUTH_ENABLED) {
+          const filteredFallback = currentProject.id === 'all'
+            ? FALLBACK_DEMO_TASKS
+            : FALLBACK_DEMO_TASKS.filter(t => t.projectId === currentProject.id);
+          setTasks(filteredFallback.length > 0 ? (filteredFallback as any) : (FALLBACK_DEMO_TASKS as any));
+        } else {
+          setTasks([]);
+        }
       } else {
         setTasks(tsks);
       }
       setLoading(false);
       clearTimeout(timer);
     }, (error) => {
-      console.warn("Tasks read fallback to demo tasks", error);
-      const filteredFallback = currentProject.id === 'all'
-        ? FALLBACK_DEMO_TASKS
-        : FALLBACK_DEMO_TASKS.filter(t => t.projectId === currentProject.id);
-      setTasks(filteredFallback.length > 0 ? (filteredFallback as any) : (FALLBACK_DEMO_TASKS as any));
+      handleFirestoreError(error, OperationType.LIST, 'tasks');
+      if (DEMO_AUTH_ENABLED) {
+        const filteredFallback = currentProject.id === 'all'
+          ? FALLBACK_DEMO_TASKS
+          : FALLBACK_DEMO_TASKS.filter(t => t.projectId === currentProject.id);
+        setTasks(filteredFallback.length > 0 ? (filteredFallback as any) : (FALLBACK_DEMO_TASKS as any));
+      } else {
+        setTasks([]);
+      }
       setLoading(false);
       clearTimeout(timer);
     });
@@ -501,9 +510,11 @@ export default function Tasks() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleSeedDemo} disabled={isSeeding} leftIcon={<Sparkles size={16} className="text-amber-500" />}>
-            {isSeeding ? 'Sembrando...' : 'Cargar Datos Demo'}
-          </Button>
+          {DEMO_AUTH_ENABLED && (
+            <Button variant="outline" size="sm" onClick={handleSeedDemo} disabled={isSeeding} leftIcon={<Sparkles size={16} className="text-amber-500" />}>
+              {isSeeding ? 'Sembrando...' : 'Cargar Datos Demo'}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => xerFileInputRef.current?.click()} leftIcon={<FileCode size={16} />}>
             P6 (.xer)
           </Button>
@@ -644,9 +655,11 @@ export default function Tasks() {
             setIsTaskModalOpen(true);
           }}
           secondaryAction={
-            <Button variant="outline" onClick={handleSeedDemo} disabled={isSeeding}>
-              ⚡ Cargar Partidas & Obras Demo
-            </Button>
+            DEMO_AUTH_ENABLED ? (
+              <Button variant="outline" onClick={handleSeedDemo} disabled={isSeeding}>
+                ⚡ Cargar Partidas & Obras Demo
+              </Button>
+            ) : undefined
           }
         />
       ) : view === 'kanban' ? (

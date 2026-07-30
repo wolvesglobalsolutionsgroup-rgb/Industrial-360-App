@@ -34,7 +34,7 @@ export interface TopbarProps {
 export const Topbar: React.FC<TopbarProps> = ({ onToggleMobileMenu, onToggleModules, className = '' }) => {
   const [user] = useAppAuthState();
   const navigate = useNavigate();
-  const { projects, currentProject, setCurrentProject, currentOrganization, userRole, setUserRole } = useProject();
+  const { projects, currentProject, setCurrentProject, currentOrganization, userRole } = useProject();
   const { preset, setPreset, isDarkMode, toggleMode, activeTheme } = useTheme();
 
   const [isProjectMenuOpen, setIsProjectMenuOpen] = useState(false);
@@ -179,44 +179,15 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleMobileMenu, onToggleModu
           </button>
         )}
 
-        {/* User Role Simulator Badge */}
+        {/* Verified JWT Role Badge */}
         <div className="relative hidden xl:block">
-          <button
-            onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer"
-            title="Simular rol de usuario"
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-bold"
+            title="Rol verificado por JWT"
           >
             <UserCheck size={14} />
-            <span>Rol: {ROLE_LABELS[userRole] || userRole}</span>
-            <ChevronDown size={13} />
-          </button>
-
-          {isRoleMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-20" onClick={() => setIsRoleMenuOpen(false)} />
-              <div className="absolute top-full left-0 mt-2 w-64 bg-surface border border-line rounded-2xl shadow-lift z-30 py-2">
-                <div className="px-3.5 py-1.5 text-[10px] font-extrabold text-ink-faint uppercase tracking-wider">
-                  Simular Rol de Usuario
-                </div>
-                {(Object.keys(ROLE_LABELS) as UserRole[]).map((roleKey) => (
-                  <button
-                    key={roleKey}
-                    onClick={() => {
-                      setUserRole(roleKey);
-                      setIsRoleMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3.5 py-2 text-xs transition-colors cursor-pointer ${
-                      userRole === roleKey 
-                        ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold' 
-                        : 'text-ink hover:bg-surface-2'
-                    }`}
-                  >
-                    {ROLE_LABELS[roleKey]}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+            <span>Rol JWT: {ROLE_LABELS[userRole] || userRole}</span>
+          </div>
         </div>
 
         {/* Mode Toggle Button */}

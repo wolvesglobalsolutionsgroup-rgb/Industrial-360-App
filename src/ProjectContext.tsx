@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { collection, query, onSnapshot, doc, getDoc, setDoc } from 'firebase/firestore';
-import { db, auth, handleFirestoreError, OperationType } from './firebase';
+import { db, handleFirestoreError, OperationType } from './firebase';
 import { seedDemoData } from './lib/seedDemoData';
+import { DEMO_AUTH_ENABLED } from './config';
+import { useAuthClaims } from './hooks/useAuthClaims';
 
 export type UserRole = 'superadmin' | 'gerente' | 'supervisor' | 'inspector' | 'campo' | 'cliente_readonly';
 
@@ -126,7 +128,6 @@ interface ProjectContextType {
   currentProject: Project | null;
   setCurrentProject: (project: Project | null) => void;
   userRole: UserRole;
-  setUserRole: (role: UserRole) => void;
   viewMode: ViewMode;
   setViewMode: (mode: ViewMode) => void;
   isLoading: boolean;
@@ -137,6 +138,14 @@ interface ProjectContextType {
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
 
 export function ProjectProvider({ children }: { children: React.ReactNode }) {
+  const { role: claimRole, orgId: claimOrgId } = useAuthClaims();
+
+  const userRole: UserRole = (
+    ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo', 'cliente_readonly'].includes(claimRole || '')
+      ? (claimRole as UserRole)
+      : 'campo'
+  );
+
   const [currentOrganization, setCurrentOrganization] = useState<Organization>(() => {
     const saved = localStorage.getItem('ic360_organization');
     if (saved) {
@@ -145,33 +154,11 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     return DEFAULT_ORGANIZATION;
   });
 
-  const [userRole, setUserRoleState] = useState<UserRole>(() => {
-    const saved = localStorage.getItem('ic360_userRole') as UserRole;
-    if (saved && ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo', 'cliente_readonly'].includes(saved)) {
-      return saved;
-    }
-    return 'campo';
-  });
-
-  // Fetch real user role from Firestore on auth change
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user?.uid) {
-        getDoc(doc(db, 'users', user.uid)).then(snap => {
-          if (snap.exists()) {
-            const role = snap.data().role;
-            if (['superadmin', 'gerente', 'supervisor', 'inspector', 'campo', 'cliente_readonly'].includes(role)) {
-              setUserRoleState(role);
-              localStorage.setItem('ic360_userRole', role);
-            }
-          }
-        }).catch(err => {
-          console.warn('Error al leer rol real desde Firestore:', err);
-        });
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+    if (claimOrgId && claimOrgId !== currentOrganization.id) {
+      setCurrentOrganization(prev => ({ ...prev, id: claimOrgId }));
+    }
+  }, [claimOrgId, currentOrganization.id]);
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(CORPORATE_PORTFOLIO_PROJECT);
@@ -185,11 +172,6 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     }
     return defaultBrandKit;
   });
-
-  const handleSetUserRole = (role: UserRole) => {
-    setUserRoleState(role);
-    localStorage.setItem('ic360_userRole', role);
-  };
 
   const handleSetOrganization = (org: Organization) => {
     setCurrentOrganization(org);
@@ -233,23 +215,28 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const q = query(collection(db, projectsPath));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (snapshot.empty) {
-        if (!hasAttemptedSeedRef.current) {
-          hasAttemptedSeedRef.current = true;
-          seedDemoData(true)
-            .then((res) => {
-              if (!res.success) {
-                console.warn('Seeding unpermitted or failed, using local fallback demo projects');
+        if (DEMO_AUTH_ENABLED) {
+          if (!hasAttemptedSeedRef.current) {
+            hasAttemptedSeedRef.current = true;
+            seedDemoData(true)
+              .then((res) => {
+                if (!res.success) {
+                  console.warn('Seeding unpermitted or failed, using local fallback demo projects');
+                  setProjects(FALLBACK_DEMO_PROJECTS);
+                }
+              })
+              .catch(() => {
                 setProjects(FALLBACK_DEMO_PROJECTS);
-              }
-            })
-            .catch(() => {
-              setProjects(FALLBACK_DEMO_PROJECTS);
-            })
-            .finally(() => {
-              setIsLoading(false);
-            });
+              })
+              .finally(() => {
+                setIsLoading(false);
+              });
+          } else {
+            setProjects(FALLBACK_DEMO_PROJECTS);
+            setIsLoading(false);
+          }
         } else {
-          setProjects(FALLBACK_DEMO_PROJECTS);
+          setProjects([]);
           setIsLoading(false);
         }
         return;
@@ -274,7 +261,6 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       }
       setIsLoading(false);
     }, (error) => {
-      // Avoid spamming error console if permission error
       if (error?.code !== 'permission-denied') {
         handleFirestoreError(error, OperationType.GET, 'projects');
       } else {
@@ -322,7 +308,6 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
       currentProject,
       setCurrentProject: handleSetCurrentProject,
       userRole,
-      setUserRole: handleSetUserRole,
       viewMode,
       setViewMode: handleSetViewMode,
       isLoading,

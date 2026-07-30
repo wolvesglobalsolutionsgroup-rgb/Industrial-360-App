@@ -1,5 +1,6 @@
 import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
 import { db, auth, loginAnonymously } from '../firebase';
+import { DEMO_AUTH_ENABLED } from '../config';
 
 export const FALLBACK_DEMO_TASKS = [
   {
@@ -166,6 +167,13 @@ export const FALLBACK_DEMO_TASKS = [
 ];
 
 export async function seedDemoData(force = false): Promise<{ success: boolean; message: string }> {
+  if (!DEMO_AUTH_ENABLED) {
+    return {
+      success: false,
+      message: 'El sembrado de datos demo está desactivado en producción (DEMO_AUTH_ENABLED es false).'
+    };
+  }
+
   if (!auth.currentUser) {
     try {
       await loginAnonymously();

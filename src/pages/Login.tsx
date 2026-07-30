@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loginWithGoogle, loginWithEmail, loginAnonymously } from '../firebase';
+import { DEMO_AUTH_ENABLED } from '../config';
 import { HardHat, ShieldCheck, Activity, Cpu, Sparkles, Eye, EyeOff, KeyRound, Mail, ArrowLeft } from 'lucide-react';
 import { Input, Button, StatusBadge } from '../components/ui';
 
@@ -191,15 +192,17 @@ export default function Login() {
 
             {/* Botones secundarios */}
             <div className="space-y-3">
-              <Button 
-                variant="outline" 
-                className="w-full font-bold" 
-                onClick={handleDemoAccess}
-                isLoading={loading}
-                leftIcon={<Sparkles className="text-amber-500" size={18} />}
-              >
-                Acceso Demo (Sin Registro)
-              </Button>
+              {DEMO_AUTH_ENABLED && (
+                <Button 
+                  variant="outline" 
+                  className="w-full font-bold" 
+                  onClick={handleDemoAccess}
+                  isLoading={loading}
+                  leftIcon={<Sparkles className="text-amber-500" size={18} />}
+                >
+                  Acceso Demo (Sin Registro)
+                </Button>
+              )}
 
               <Button 
                 variant="outline" 

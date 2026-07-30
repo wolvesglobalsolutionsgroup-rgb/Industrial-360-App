@@ -126,7 +126,7 @@ const INITIAL_AUDIT_LOGS: SecurityAuditLog[] = [
 ];
 
 export default function PlatformOwnerConsole() {
-  const { userRole, setUserRole } = useProject();
+  const { userRole } = useProject();
 
   const [tenants, setTenants] = useState<TenantSummary[]>(INITIAL_TENANTS);
   const [auditLogs, setAuditLogs] = useState<SecurityAuditLog[]>(INITIAL_AUDIT_LOGS);
@@ -189,14 +189,6 @@ export default function PlatformOwnerConsole() {
           </div>
 
           <div className="flex items-center gap-3">
-            {!isMasterAdmin && (
-              <button 
-                onClick={() => setUserRole('superadmin')}
-                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition-colors shadow-soft"
-              >
-                Simular Rol Platform Owner
-              </button>
-            )}
             <span className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-300 font-mono">
               Rol Activo: <strong className="text-amber-400 uppercase">{userRole}</strong>
             </span>

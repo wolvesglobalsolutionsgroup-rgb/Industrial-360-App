@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { seedDemoData } from '../lib/seedDemoData';
+import { DEMO_AUTH_ENABLED } from '../config';
 import { PhaseManager } from '../components/projects/PhaseManager';
 import {
   MetricCard, 
@@ -275,15 +276,17 @@ export default function Projects() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleSeedDemo}
-            isLoading={isSeeding}
-            leftIcon={<Sparkles size={16} className="text-amber-500" />}
-          >
-            {isSeeding ? 'Sembrando...' : 'Cargar Obras Demo'}
-          </Button>
+          {DEMO_AUTH_ENABLED && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleSeedDemo}
+              isLoading={isSeeding}
+              leftIcon={<Sparkles size={16} className="text-amber-500" />}
+            >
+              {isSeeding ? 'Sembrando...' : 'Cargar Obras Demo'}
+            </Button>
+          )}
 
           <Button 
             variant="outline" 
@@ -374,9 +377,11 @@ export default function Projects() {
           actionLabel="Crear Primer Proyecto"
           onAction={handleOpenCreate}
           secondaryAction={
-            <Button variant="outline" onClick={handleSeedDemo} isLoading={isSeeding}>
-              ⚡ Cargar Obras & Datos Demo
-            </Button>
+            DEMO_AUTH_ENABLED ? (
+              <Button variant="outline" onClick={handleSeedDemo} isLoading={isSeeding}>
+                ⚡ Cargar Obras & Datos Demo
+              </Button>
+            ) : undefined
           }
         />
       ) : (

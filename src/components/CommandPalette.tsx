@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Search, LayoutDashboard, FolderKanban, CheckSquare, DollarSign, FileCheck2, 
   MapPin, ShieldAlert, Flame, Wrench, FileArchive, BookOpen, Cpu, BrainCircuit, 
-  Settings, UserCheck, X, Sparkles, Command, LucideIcon
+  Settings, UserCheck, X, Command, LucideIcon, Crown
 } from 'lucide-react';
+import { useAuthClaims } from '../hooks/useAuthClaims';
+import { UserRole } from '../ProjectContext';
 
 interface CommandItem {
   id: string;
@@ -12,14 +14,15 @@ interface CommandItem {
   category: string;
   path: string;
   icon: LucideIcon;
+  allowedRoles?: UserRole[];
 }
 
 const COMMAND_ITEMS: CommandItem[] = [
   { id: 'dash', title: 'Dashboard Principal', category: 'Navegación', path: '/dashboard', icon: LayoutDashboard },
   { id: 'proj', title: 'Proyectos & Obras', category: 'Gestión', path: '/projects', icon: FolderKanban },
   { id: 'tasks', title: 'Control de Tareas Kanban', category: 'Gestión', path: '/tasks', icon: CheckSquare },
-  { id: 'expenses', title: 'Costos & Compras (Opex/Capex)', category: 'Finanzas', path: '/expenses', icon: DollarSign },
-  { id: 'valuations', title: 'Valuaciones de Obra', category: 'Finanzas', path: '/valuations', icon: FileCheck2 },
+  { id: 'expenses', title: 'Costos & Compras (Opex/Capex)', category: 'Finanzas', path: '/expenses', icon: DollarSign, allowedRoles: ['superadmin', 'gerente', 'supervisor'] },
+  { id: 'valuations', title: 'Valuaciones de Obra', category: 'Finanzas', path: '/valuations', icon: FileCheck2, allowedRoles: ['superadmin', 'gerente'] },
   { id: 'field', title: 'Partes Diarios de Campo', category: 'Operaciones', path: '/field-reports', icon: MapPin },
   { id: 'logistics', title: 'Mapa Logístico GPS & Rutas', category: 'Operaciones', path: '/logistics', icon: MapPin },
   { id: 'ptw', title: 'Permisos de Trabajo SIHO (PTW)', category: 'Seguridad', path: '/siho-ptw', icon: ShieldAlert },
@@ -29,10 +32,11 @@ const COMMAND_ITEMS: CommandItem[] = [
   { id: 'hot-tap', title: 'Hot Tap & Stopple (PAMS)', category: 'Ingeniería', path: '/hot-tap', icon: Flame },
   { id: 'docs', title: 'Gestión Documental', category: 'Documentos', path: '/documents', icon: FileArchive },
   { id: 'dossier', title: 'Cierre & Dossier de Calidad', category: 'Documentos', path: '/modulos/cierre', icon: BookOpen },
-  { id: 'interop', title: 'Interoperabilidad (Primavera/SAP)', category: 'Sistemas', path: '/modulos/interoperabilidad', icon: Cpu },
+  { id: 'interop', title: 'Interoperabilidad (Primavera/SAP)', category: 'Sistemas', path: '/modulos/interoperabilidad', icon: Cpu, allowedRoles: ['superadmin', 'gerente'] },
   { id: 'brain', title: 'Project Brain (Asistente IA)', category: 'Inteligencia', path: '/project-brain', icon: BrainCircuit },
-  { id: 'portal', title: 'Portal de Clientes', category: 'Configuración', path: '/client-portal-builder', icon: UserCheck },
-  { id: 'settings', title: 'Ajustes del Sistema & Marca', category: 'Configuración', path: '/settings', icon: Settings },
+  { id: 'portal', title: 'Portal de Clientes', category: 'Configuración', path: '/client-portal-builder', icon: UserCheck, allowedRoles: ['superadmin', 'gerente'] },
+  { id: 'settings', title: 'Ajustes del Sistema & Marca', category: 'Configuración', path: '/settings', icon: Settings, allowedRoles: ['superadmin', 'gerente'] },
+  { id: 'platform-console', title: 'Consola SaaS Platform Owner', category: 'SuperAdmin', path: '/saas-console', icon: Crown, allowedRoles: ['superadmin'] },
 ];
 
 export function CommandPalette() {
@@ -40,6 +44,9 @@ export function CommandPalette() {
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const navigate = useNavigate();
+  const { role: claimRole } = useAuthClaims();
+
+  const userRole = (claimRole as UserRole) || 'campo';
 
   // Keyboard shortcut listener (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -57,11 +64,16 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Filtered commands
-  const filteredCommands = COMMAND_ITEMS.filter(cmd => 
-    cmd.title.toLowerCase().includes(search.toLowerCase()) ||
-    cmd.category.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filtered commands by search string AND user JWT role
+  const filteredCommands = COMMAND_ITEMS.filter(cmd => {
+    const matchesSearch = 
+      cmd.title.toLowerCase().includes(search.toLowerCase()) ||
+      cmd.category.toLowerCase().includes(search.toLowerCase());
+
+    const hasRoleAccess = !cmd.allowedRoles || cmd.allowedRoles.includes(userRole);
+
+    return matchesSearch && hasRoleAccess;
+  });
 
   // Keyboard navigation inside list
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -116,7 +128,7 @@ export function CommandPalette() {
         <div className="max-h-80 overflow-y-auto p-2 space-y-1">
           {filteredCommands.length === 0 ? (
             <div className="p-8 text-center text-xs text-ink-faint font-medium">
-              No se encontraron resultados para "{search}"
+              No se encontraron resultados permitidos para "{search}"
             </div>
           ) : (
             filteredCommands.map((cmd, idx) => {
@@ -156,11 +168,11 @@ export function CommandPalette() {
 
         {/* Footer info */}
         <div className="bg-surface-2 border-t border-line px-4 py-2.5 flex justify-between items-center text-[10px] text-ink-faint font-mono">
-          <span>Industrial Control 360 • Búsqueda Rápida</span>
+          <span>Industrial Control 360 • Búsqueda Rápida ({userRole})</span>
           <div className="flex items-center gap-2">
-            <span>↑↓ para navegar</span>
-            <span>↵ para seleccionar</span>
-            <span>ESC para cerrar</span>
+            <span>↑↓ navegar</span>
+            <span>↵ seleccionar</span>
+            <span>ESC cerrar</span>
           </div>
         </div>
       </div>
