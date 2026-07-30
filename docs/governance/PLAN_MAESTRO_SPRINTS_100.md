@@ -428,8 +428,38 @@ VERIFICACIÓN Y ENTREGA:
 
 ---
 
-### 📋 SPRINT S13 (Re-Auditoría Final y Certificación de Producción)
-*(Este Sprint NO lo ejecuta GAIS. Lo ejecutan los 3 modelos de auditoría contra `main` para certificar el score final ≥ 93-95/100).*
+### 📋 PROMPT DE AUDITORÍA Y CERTIFICACIÓN FINAL — SPRINT S13 (Para Modelos Auditores)
+```text
+Actúa como Auditor Principal de Seguridad, DevSecOps y Arquitectura de Software Enterprise.
+
+OBJETIVO: Realizar la Re-Auditoría Final y Certificación de Producción de la plataforma Industrial Control 360 (IC360) sobre el HEAD de la rama `main` en GitHub, evaluando la resolución total de los hallazgos identificados en las auditorías de origen (ChatGPT 5.6, Claude 5, Kimi K3 y Qwen 3.8).
+
+1. AUDITORÍA DE SEGURIDAD Y EXPLOTACIÓN CONTROLADA (Pruebas de Penetración):
+   - Prueba A (Zero-Trust Firestore): Verifica firestore.rules. ¿El catch-all final es `allow read, write: if false;`? ¿Se exige `belongsToOrg(orgId)` en todas las subcolecciones? ¿Existen wildcards o `if true` permisivos?
+   - Prueba B (Escalación RBAC UI): Revisa ProtectedRoute.tsx y ProjectContext.tsx. ¿El rol de usuario se lee estrictamente del JWT token verificado (`getIdTokenResult().claims.role`)? ¿El `<select>` de cambio de rol desapareció de producción?
+   - Prueba C (Servidor y API Proxies): Revisa server.ts y functions/src/index.ts. ¿Los endpoints `/api/callGeminiProxy` y `/api/send-email` cuentan con middleware `requireAuth`, validación de `orgId` y rate-limiting `express-rate-limit`? ¿Se eliminó cualquier fallback CORS `*`?
+   - Prueba D (Sanitización XSS): Revisa IsometricViewer.tsx y DossierCompiler.tsx. ¿Todo SVG u HTML inyectado pasa obligatoriamente por `DOMPurify.sanitize()`?
+
+2. VERIFICACIÓN DE INTEGRIDAD DE DATOS Y OPERACIÓN:
+   - Cobertura Multi-Tenant (13/13 pantallas): ¿Toda consulta e inclusión de datos utiliza la jerarquía `/organizations/{orgId}/projects/{projId}/...`?
+   - IDs Secuenciales: ¿Cero `Math.random()` en códigos oficiales de PTW, ART, LOTO, RASDA, MAT y WBS? ¿Los correlativos son atómicos vía `runTransaction`?
+   - Motor Offline Outbox: ¿DexieDB previene la duplicación de registros al reconectar mediante `tempId` determinístico?
+   - Trazabilidad Documental: ¿El sello de inmutabilidad del Dossier (Hash SHA-256) se calcula server-side en Cloud Functions con registro append-only y código QR funcional?
+
+3. AUDITORÍA DE CALIDAD Y SUMINISTRO (Supply Chain):
+   - Dependencias: Ejecuta `npm audit --omit=dev`. ¿Existen vulnerabilidades de severidad Alta o Crítica (incluyendo `xlsx`)?
+   - Salud del Compilador: Ejecuta `npx tsc --noEmit`. ¿La salida arroja 0 errores de tipo?
+   - Cobertura de Pruebas: Ejecuta `npm test`. ¿Los tests de reglas y de normas de ingeniería pasan con aserciones reales (sin `if (!testEnv) return;`)?
+
+4. DICTAMEN DE RE-SCORING FINAL (Rúbrica Enterprise):
+   - Asigna la calificación final por categoría (1-100):
+     • Seguridad y DevSecOps (Peso 35%)
+     • Arquitectura y Multi-Tenancy (Peso 20%)
+     • Mantenibilidad y DX (Peso 15%)
+     • Cobertura de Pruebas y Calidad (Peso 15%)
+     • Rendimiento y Bundle (Peso 15%)
+   - Emite el Dictamen Final: `APTO PARA PRODUCCIÓN INDUSTRIAL / PILOTO PROINTECA` o `RECHAZADO POR RIESGO RESIDUAL`.
+```
 
 ---
 
