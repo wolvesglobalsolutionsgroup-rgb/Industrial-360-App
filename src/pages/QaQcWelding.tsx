@@ -10,6 +10,8 @@ import { collection, query, where, onSnapshot, addDoc, serverTimestamp, collecti
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 import IsometricViewer from '../components/engineering/IsometricViewer';
+import jsPDF from 'jspdf';
+import { drawQualityHeader, drawPhotoEvidences, drawQualityFooter, cleanPdfText } from '../lib/pdfQualityUtils';
 
 export interface WeldJoint {
   id?: string;
@@ -34,6 +36,7 @@ export interface WeldJoint {
   defectSizeMm?: number;
   notes?: string;
   inspectorName?: string;
+  evidencePhotos?: string[];
   createdAt?: any;
 }
 
@@ -187,11 +190,100 @@ const initialWelderCerts: WelderCert[] = [
 ];
 
 export default function QaQcWelding() {
-  const { currentProject } = useProject();
+  const { currentProject, currentOrganization, brandKit } = useProject();
   const [activeTab, setActiveTab] = useState<'isometric' | 'joints' | 'wps' | 'welders' | 'ndt_reports' | 'diconde'>('isometric');
   const [jointsList, setJointsList] = useState<WeldJoint[]>([]);
   const [wpsList, setWpsList] = useState<WpsRecord[]>(initialWpsRecords);
   const [weldersList, setWeldersList] = useState<WelderCert[]>(initialWelderCerts);
+
+  // Export NDT Report PDF
+  const exportNdtReportPdf = (joint: WeldJoint) => {
+    const docPdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+
+    // Corporate Header with BrandKit
+    const yHeader = drawQualityHeader({
+      docPdf,
+      brandKit,
+      project: currentProject,
+      documentTitle: 'REPORTE DE ENSAYOS NO DESTRUCTIVOS (NDT / END)',
+      documentSubtitle: 'NORMA API 1104 §8/§9 & ASME SECCIÓN V - QA/QC TRAZABILIDAD',
+      reportCode: `REP-NDT-${cleanPdfText(joint.tag)}`,
+      normRef: 'API 1104 Sec. 8/9 / ASME V',
+      issueDate: joint.weldDate || new Date().toISOString().split('T')[0],
+      inspectorName: joint.inspectorName || 'Ing. Roberto Blanco (Level II ASNT)'
+    });
+
+    let y = yHeader + 2;
+
+    // Joint Specs Box
+    docPdf.setDrawColor(203, 213, 225);
+    docPdf.setFillColor(250, 250, 250);
+    docPdf.rect(12, y, 186, 32, 'FD');
+
+    docPdf.setTextColor(15, 23, 42);
+    docPdf.setFontSize(8.5);
+    docPdf.setFont('helvetica', 'bold');
+    docPdf.text(`JUNTA TAG: ${cleanPdfText(joint.tag)}`, 16, y + 6);
+    docPdf.text(`N° ISOMÉTRICO: ${cleanPdfText(joint.isometric)}`, 16, y + 12);
+    docPdf.text(`DIÁMETRO & ESPESOR: ${cleanPdfText(joint.pipeSize)} (${joint.wallThicknessMm.toFixed(1)}mm)`, 16, y + 18);
+    docPdf.text(`MATERIAL BASE: ${cleanPdfText(joint.material)}`, 16, y + 24);
+    docPdf.text(`COLADA / MTR: ${cleanPdfText(joint.heatNumber)}`, 16, y + 30);
+
+    docPdf.setFont('helvetica', 'normal');
+    docPdf.text(`WPS Aplicada: ${cleanPdfText(joint.wpsCode)}`, 110, y + 6);
+    docPdf.text(`Estampa Soldador: ${cleanPdfText(joint.welderStamp)}`, 110, y + 12);
+    docPdf.text(`Posición / Proceso: ${cleanPdfText(joint.position)} (${cleanPdfText(joint.process)})`, 110, y + 18);
+    docPdf.text(`Fitup / Visual: ${cleanPdfText(joint.fitupStatus)} / ${cleanPdfText(joint.vtStatus)}`, 110, y + 24);
+    docPdf.text(`Método NDT: ${cleanPdfText(joint.ndtMethod)}`, 110, y + 30);
+
+    y += 38;
+
+    // Inspection Verdict Box
+    const passed = joint.ndtStatus === 'Aprobado';
+    docPdf.setDrawColor(passed ? 16 : 220, passed ? 185 : 38, passed ? 129 : 38);
+    docPdf.setFillColor(passed ? 240 : 253, passed ? 253 : 242, passed ? 244 : 242);
+    docPdf.rect(12, y, 186, 18, 'FD');
+
+    docPdf.setFontSize(9);
+    docPdf.setFont('helvetica', 'bold');
+    docPdf.setTextColor(passed ? 16 : 220, passed ? 185 : 38, passed ? 129 : 38);
+    docPdf.text(`DICTAMEN DE EVALUACIÓN API 1104 §8: ${passed ? 'ACEPTADO / APROBADO' : 'RECHAZADO / REQUIERE REPARACIÓN'}`, 16, y + 7);
+
+    docPdf.setFont('helvetica', 'normal');
+    docPdf.setFontSize(8);
+    docPdf.setTextColor(15, 23, 42);
+    docPdf.text(`Defecto Identificado: ${cleanPdfText(joint.defectType || 'Ninguno')}${joint.defectSizeMm ? ` (${joint.defectSizeMm.toFixed(1)}mm)` : ''}`, 16, y + 13);
+
+    y += 24;
+
+    if (joint.notes) {
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(8);
+      docPdf.setTextColor(15, 23, 42);
+      docPdf.text('OBSERVACIONES DE CAMPO & TRAZABILIDAD:', 12, y);
+      y += 4;
+      docPdf.setFont('helvetica', 'italic');
+      docPdf.setFontSize(7.5);
+      docPdf.text(cleanPdfText(joint.notes), 12, y);
+      y += 6;
+    }
+
+    // Photo Evidences Section
+    const yAfterPhotos = drawPhotoEvidences(docPdf, joint.evidencePhotos || [], y);
+
+    // Footer & Dual Signatures
+    drawQualityFooter({
+      docPdf,
+      brandKit,
+      reportCode: `REP-NDT-${cleanPdfText(joint.tag)}`,
+      normRef: 'API 1104 Sec. 8/9 / ASME V',
+      issueDate: joint.weldDate || new Date().toISOString().split('T')[0],
+      inspectorName: joint.inspectorName || 'Ing. Roberto Blanco (Niv II ASNT)',
+      clientInspectorName: 'Ing. Inspector Fiscal PDVSA'
+    }, yAfterPhotos);
+
+    docPdf.save(`Reporte_NDT_${joint.tag.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
+  };
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -227,7 +319,6 @@ export default function QaQcWelding() {
   // Selected joint for NDT report preview
   const [selectedJointForReport, setSelectedJointForReport] = useState<WeldJoint | null>(null);
 
-  const { currentOrganization } = useProject();
   const orgId = currentOrganization?.id || 'semax_pino';
 
   useEffect(() => {
@@ -769,10 +860,16 @@ export default function QaQcWelding() {
               <p className="text-xs text-gray-500">Visualización de documento listo para firma e impresión.</p>
             </div>
             <button 
-              onClick={() => window.print()}
-              className="bg-[#0B2239] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer"
+              onClick={() => {
+                if (selectedJointForReport) {
+                  exportNdtReportPdf(selectedJointForReport);
+                } else {
+                  window.print();
+                }
+              }}
+              className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer transition-colors shadow-soft"
             >
-              <Printer size={14} /> Imprimir Reporte PDF
+              <Download size={14} /> Descargar Reporte PDF
             </button>
           </div>
 

@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Cpu, Activity, Sliders, CheckCircle2, AlertTriangle, Plus, Search, 
   Filter, FileText, Download, RefreshCw, Layers, ShieldCheck, Zap, Gauge, 
-  Settings, CheckSquare, XCircle, Wrench, ArrowRight
+  Settings, CheckSquare, XCircle, Wrench, ArrowRight, Camera
 } from 'lucide-react';
 import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 import { queueOfflineOperation } from '../lib/offlineSync';
 import jsPDF from 'jspdf';
+import { drawQualityHeader, drawPhotoEvidences, drawQualityFooter, cleanPdfText } from '../lib/pdfQualityUtils';
 
 export type InstrumentType = 'PT' | 'TT' | 'FT' | 'LT' | 'PSV' | 'CV'; // Presión, Temp, Flujo, Nivel, Válvula Alivio, Control
 
@@ -38,6 +39,7 @@ export interface InstrumentLoop {
   calibratedBy: string;
   status: 'Calibrado & Operativo' | 'Pendiente Calibración' | 'Fuera de Tolerancia';
   calibrationPoints?: CalibrationPoint[];
+  evidencePhotos?: string[];
   notes?: string;
 }
 
@@ -65,6 +67,9 @@ const SAMPLE_LOOPS: InstrumentLoop[] = [
       { inputPercent: 50, expectedVal: 600, measuredVal: 601.2, errorPercentFs: 0.1, passed: true },
       { inputPercent: 75, expectedVal: 900, measuredVal: 900.5, errorPercentFs: 0.041, passed: true },
       { inputPercent: 100, expectedVal: 1200, measuredVal: 1201.0, errorPercentFs: 0.083, passed: true },
+    ],
+    evidencePhotos: [
+      'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80'
     ],
     notes: 'Calibración ejecutada con calibrador de procesos Fluke 754 y bomba neumática de prueba.'
   },
@@ -285,76 +290,110 @@ export default function InstrumentationControl() {
   const exportCalibrationPdf = (loop: InstrumentLoop) => {
     const docPdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
-    // Header
-    docPdf.setFillColor(11, 34, 57);
-    docPdf.rect(0, 0, 210, 22, 'F');
+    // Header with BrandKit
+    const yHeader = drawQualityHeader({
+      docPdf,
+      brandKit,
+      project: currentProject,
+      documentTitle: 'CERTIFICADO DE CALIBRACIÓN DE INSTRUMENTACIÓN & LAZOS',
+      documentSubtitle: 'NORMA PDVSA K-301 & ISA 5.1 - PRUEBAS PRE-COMISIONAMIENTO',
+      reportCode: `CAL-${cleanPdfText(loop.tagNo)}`,
+      normRef: 'PDVSA K-301 / ISA 5.1',
+      issueDate: loop.calibrationDate,
+      inspectorName: loop.calibratedBy || 'Ing. Instrumentista QA/QC'
+    });
 
-    docPdf.setTextColor(255, 255, 255);
-    docPdf.setFontSize(14);
-    docPdf.setFont('helvetica', 'bold');
-    docPdf.text(brandKit?.companyName || 'CONTRATISTA OPERATIVA C.A.', 14, 11);
-
-    docPdf.setFontSize(9);
-    docPdf.setFont('helvetica', 'normal');
-    docPdf.text('CERTIFICADO DE CALIBRACIÓN DE INSTRUMENTACIÓN & LAZOS (PDVSA K-301 / ISA 5.1)', 14, 17);
+    let y = yHeader + 2;
 
     // Instrument Info Box
     docPdf.setDrawColor(203, 213, 225);
-    docPdf.rect(14, 28, 182, 32);
+    docPdf.setFillColor(250, 250, 250);
+    docPdf.rect(12, y, 186, 26, 'FD');
 
     docPdf.setTextColor(15, 23, 42);
-    docPdf.setFontSize(10);
+    docPdf.setFontSize(8.5);
     docPdf.setFont('helvetica', 'bold');
-    docPdf.text(`TAG INSTRUMENTO: ${loop.tagNo}`, 18, 35);
-    docPdf.text(`LAZO DE CONTROL: ${loop.loopTag}`, 18, 42);
-    docPdf.text(`PLANO P&ID: ${loop.pidNumber}`, 18, 49);
-    docPdf.text(`ESTADO: ${loop.status.toUpperCase()}`, 18, 56);
+    docPdf.text(`TAG INSTRUMENTO: ${cleanPdfText(loop.tagNo)}`, 16, y + 6);
+    docPdf.text(`LAZO DE CONTROL: ${cleanPdfText(loop.loopTag)}`, 16, y + 12);
+    docPdf.text(`PLANO P&ID: ${cleanPdfText(loop.pidNumber)}`, 16, y + 18);
+    docPdf.text(`ESTADO DICTAMEN: ${cleanPdfText(loop.status).toUpperCase()}`, 16, y + 24);
 
     docPdf.setFont('helvetica', 'normal');
-    docPdf.text(`Rango: ${loop.rangeMin} a ${loop.rangeMax} ${loop.unit}`, 120, 35);
-    docPdf.text(`Tolerancia: ±${loop.toleranceFsPercent}% FS`, 120, 42);
-    docPdf.text(`Señal: ${loop.signalType}`, 120, 49);
-    docPdf.text(`Fecha: ${loop.calibrationDate}`, 120, 56);
+    docPdf.text(`Rango: ${loop.rangeMin} a ${loop.rangeMax} ${cleanPdfText(loop.unit)}`, 110, y + 6);
+    docPdf.text(`Tolerancia: ±${loop.toleranceFsPercent.toFixed(2)}% FS`, 110, y + 12);
+    docPdf.text(`Señal: ${cleanPdfText(loop.signalType)}`, 110, y + 18);
+    docPdf.text(`Ubicación: ${cleanPdfText(loop.location)}`, 110, y + 24);
 
-    // Calibration Points Table
-    docPdf.setFillColor(241, 245, 249);
-    docPdf.rect(14, 68, 182, 8, 'F');
+    y += 32;
+
+    // Calibration Points Table Header
+    docPdf.setFillColor(11, 34, 57);
+    docPdf.rect(12, y, 186, 7, 'F');
+    docPdf.setTextColor(255, 255, 255);
     docPdf.setFont('helvetica', 'bold');
-    docPdf.setFontSize(9);
-    docPdf.text('PUNTO (%)', 18, 73.5);
-    docPdf.text('PATRÓN ESPERADO', 55, 73.5);
-    docPdf.text('MEDIDA CAMPO', 100, 73.5);
-    docPdf.text('ERROR % FS', 140, 73.5);
-    docPdf.text('DIAGNOSTICO', 172, 73.5);
+    docPdf.setFontSize(8);
+    docPdf.text('PUNTO (%)', 16, y + 5);
+    docPdf.text('PATRÓN ESPERADO', 50, y + 5);
+    docPdf.text('MEDIDA CAMPO', 95, y + 5);
+    docPdf.text('ERROR % FS', 135, y + 5);
+    docPdf.text('DIAGNOSTICO', 170, y + 5);
 
-    let y = 82;
+    y += 10;
     if (loop.calibrationPoints && loop.calibrationPoints.length > 0) {
-      loop.calibrationPoints.forEach(pt => {
+      loop.calibrationPoints.forEach((pt, idx) => {
+        docPdf.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 252 : 255);
+        docPdf.rect(12, y - 4, 186, 7, 'F');
+
         docPdf.setFont('helvetica', 'normal');
-        docPdf.text(`${pt.inputPercent}%`, 18, y);
-        docPdf.text(`${pt.expectedVal} ${loop.unit}`, 55, y);
-        docPdf.text(`${pt.measuredVal} ${loop.unit}`, 100, y);
-        docPdf.text(`${pt.errorPercentFs}%`, 140, y);
+        docPdf.setTextColor(15, 23, 42);
+        docPdf.setFontSize(8);
+        docPdf.text(`${pt.inputPercent}%`, 16, y);
+        docPdf.text(`${pt.expectedVal.toFixed(2)} ${cleanPdfText(loop.unit)}`, 50, y);
+        docPdf.text(`${pt.measuredVal.toFixed(2)} ${cleanPdfText(loop.unit)}`, 95, y);
+        docPdf.text(`${pt.errorPercentFs.toFixed(3)}%`, 135, y);
 
         docPdf.setFont('helvetica', 'bold');
         docPdf.setTextColor(pt.passed ? 16 : 220, pt.passed ? 185 : 38, pt.passed ? 129 : 38);
-        docPdf.text(pt.passed ? 'PASÓ (OK)' : 'FALLÓ', 172, y);
+        docPdf.text(pt.passed ? 'PASÓ (OK)' : 'FALLÓ', 170, y);
         docPdf.setTextColor(15, 23, 42);
-        y += 8;
+        y += 7;
       });
     } else {
-      docPdf.setFont('helvetica', 'normal');
-      docPdf.text('Sin lecturas de calibración registradas aún.', 18, y);
-      y += 10;
+      docPdf.setFont('helvetica', 'italic');
+      docPdf.setFontSize(8);
+      docPdf.setTextColor(100, 116, 139);
+      docPdf.text('Sin lecturas de calibración registradas aún en el sistema.', 16, y);
+      y += 8;
     }
 
-    // Notes & Signatures
-    docPdf.line(25, 220, 85, 220);
-    docPdf.line(125, 220, 185, 220);
+    if (loop.notes) {
+      y += 2;
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(8);
+      docPdf.setTextColor(15, 23, 42);
+      docPdf.text('OBSERVACIONES DE CALIBRACIÓN:', 12, y);
+      y += 4;
+      docPdf.setFont('helvetica', 'italic');
+      docPdf.setFontSize(7.5);
+      docPdf.text(cleanPdfText(loop.notes), 12, y);
+      y += 6;
+    } else {
+      y += 4;
+    }
 
-    docPdf.setFontSize(8);
-    docPdf.text('INGENIERO INSTRUMENTISTA / CALIBRADOR', 26, 225);
-    docPdf.text('INSPECTOR DE CALIDAD QA/QC PDVSA', 130, 225);
+    // Photo Evidences Section
+    const yAfterPhotos = drawPhotoEvidences(docPdf, loop.evidencePhotos || [], y);
+
+    // Footer & Dual Signatures
+    drawQualityFooter({
+      docPdf,
+      brandKit,
+      reportCode: `CAL-${cleanPdfText(loop.tagNo)}`,
+      normRef: 'PDVSA K-301 / ISA 5.1',
+      issueDate: loop.calibrationDate,
+      inspectorName: loop.calibratedBy || 'Ing. Instrumentista QA/QC',
+      clientInspectorName: 'Ing. Inspector Fiscal PDVSA'
+    }, yAfterPhotos);
 
     docPdf.save(`Calibracion_${loop.tagNo.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`);
   };

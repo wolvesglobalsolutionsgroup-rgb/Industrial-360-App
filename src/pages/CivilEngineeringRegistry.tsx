@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, HardHat, CheckCircle2, AlertTriangle, Plus, Search, 
   Filter, FileText, Download, RefreshCw, Scale, ShieldCheck, Layers, 
-  Ruler, Activity, XCircle, Droplets, Calendar
+  Ruler, Activity, XCircle, Droplets, Calendar, Camera, Image
 } from 'lucide-react';
 import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 import { queueOfflineOperation } from '../lib/offlineSync';
 import jsPDF from 'jspdf';
+import { drawQualityHeader, drawPhotoEvidences, drawQualityFooter, cleanPdfText } from '../lib/pdfQualityUtils';
 
 export type CivilTestType = 'Densidad_Campo_Cono_Arena' | 'Compresion_Probetas_Concreto';
 
@@ -46,6 +47,7 @@ export interface CivilTestRecord {
   status: 'Aprobado' | 'Rechazado' | 'En Proceso (7-14 días)';
   sandConeData?: SandConeTest;
   concreteData?: ConcreteCylinderTest;
+  evidencePhotos?: string[];
   notes?: string;
 }
 
@@ -70,6 +72,9 @@ const SAMPLE_CIVIL_RECORDS: CivilTestRecord[] = [
       requiredCompactionPercent: 95.0,
       passed: true
     },
+    evidencePhotos: [
+      'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80'
+    ],
     notes: 'Compacación aprobada para colocación de losa de soporte.'
   },
   {
@@ -91,6 +96,9 @@ const SAMPLE_CIVIL_RECORDS: CivilTestRecord[] = [
       attainedPercentOfFc: 72.14,
       passed: true
     },
+    evidencePhotos: [
+      'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=600&q=80'
+    ],
     notes: 'Resistencia a 7 días supera el 65% requerido de f`c.'
   },
   {
@@ -148,6 +156,21 @@ export default function CivilEngineeringRegistry() {
   const [inspectorName, setInspectorName] = useState('');
   const [laboratoryName, setLaboratoryName] = useState('');
   const [notes, setNotes] = useState('');
+  const [photo1, setPhoto1] = useState('');
+  const [photo2, setPhoto2] = useState('');
+
+  // Handle image upload to base64
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, photoNum: 1 | 2) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (photoNum === 1) setPhoto1(reader.result as string);
+        else setPhoto2(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Firestore Listen
   useEffect(() => {
@@ -213,6 +236,8 @@ export default function CivilEngineeringRegistry() {
       };
     }
 
+    const evidencePhotos = [photo1, photo2].filter(p => p.trim().length > 0);
+
     const newObj: Omit<CivilTestRecord, 'id'> = {
       testCode: `ENS-CIV-${Date.now().toString().slice(-4)}`,
       testType,
@@ -225,6 +250,7 @@ export default function CivilEngineeringRegistry() {
       status: recordStatus,
       sandConeData,
       concreteData,
+      evidencePhotos: evidencePhotos.length > 0 ? evidencePhotos : undefined,
       notes
     };
 
@@ -252,90 +278,156 @@ export default function CivilEngineeringRegistry() {
       setSelectedRecord(created);
     }
 
+    setPhoto1('');
+    setPhoto2('');
     setShowAddModal(false);
   };
 
-  // Export Protocol PDF
+  // Export Protocol PDF with BrandKit header, clean text, photos, and SHA-256 footer
   const exportProtocolPdf = (rec: CivilTestRecord) => {
     const docPdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
-    // Header
-    docPdf.setFillColor(11, 34, 57);
-    docPdf.rect(0, 0, 210, 22, 'F');
+    // Corporate Header
+    const yHeader = drawQualityHeader({
+      docPdf,
+      brandKit,
+      project: currentProject,
+      documentTitle: 'PROTOCOLO DE ENSAYO CIVIL & CALIDAD DE CAMPO',
+      documentSubtitle: rec.testType === 'Densidad_Campo_Cono_Arena' 
+        ? 'DENSIDAD DE CAMPO / COVENIN 2000-92 / ASTM D1556' 
+        : "RESISTENCIA DE CONCRETO / ACI 318 / COVENIN 1753",
+      reportCode: rec.testCode,
+      normRef: rec.normRef,
+      issueDate: rec.testDate,
+      inspectorName: rec.inspectorName
+    });
 
-    docPdf.setTextColor(255, 255, 255);
-    docPdf.setFontSize(14);
-    docPdf.setFont('helvetica', 'bold');
-    docPdf.text(brandKit?.companyName || 'CONTRATISTA DE OBRAS CIVILES', 14, 11);
-
-    docPdf.setFontSize(9);
-    docPdf.setFont('helvetica', 'normal');
-    docPdf.text(`PROTOCOLO DE ENSAYO CIVIL - NORMA: ${rec.normRef}`, 14, 17);
+    let y = yHeader + 2;
 
     // Box Summary
     docPdf.setDrawColor(203, 213, 225);
-    docPdf.rect(14, 28, 182, 35);
+    docPdf.setFillColor(250, 250, 250);
+    docPdf.rect(12, y, 186, 26, 'FD');
 
     docPdf.setTextColor(15, 23, 42);
-    docPdf.setFontSize(10);
+    docPdf.setFontSize(8.5);
     docPdf.setFont('helvetica', 'bold');
-    docPdf.text(`CÓDIGO PROTOCOLO: ${rec.testCode}`, 18, 35);
-    docPdf.text(`TIPO ENSAYO: ${rec.testType === 'Densidad_Campo_Cono_Arena' ? 'Densidad de Campo (Cono de Arena)' : 'Rotura Probetas de Concreto'}`, 18, 42);
-    docPdf.text(`FECHA ENSAYO: ${rec.testDate}`, 18, 49);
-    docPdf.text(`ESTADO: ${rec.status.toUpperCase()}`, 18, 56);
+    docPdf.text(`CÓDIGO PROTOCOLO: ${cleanPdfText(rec.testCode)}`, 16, y + 6);
+    docPdf.text(`TIPO DE ENSAYO: ${rec.testType === 'Densidad_Campo_Cono_Arena' ? 'Densidad de Campo (Cono de Arena)' : 'Rotura Probetas de Concreto'}`, 16, y + 12);
+    docPdf.text(`FECHA ENSAYO: ${cleanPdfText(rec.testDate)}`, 16, y + 18);
+    docPdf.text(`ESTADO DICTAMEN: ${cleanPdfText(rec.status).toUpperCase()}`, 16, y + 24);
 
     docPdf.setFont('helvetica', 'normal');
-    docPdf.text(`Laboratorio: ${rec.laboratoryName}`, 120, 35);
-    docPdf.text(`Inspector: ${rec.inspectorName}`, 120, 42);
-
-    // Specific Results Table
-    docPdf.setFillColor(241, 245, 249);
-    docPdf.rect(14, 70, 182, 8, 'F');
-    docPdf.setFont('helvetica', 'bold');
-    docPdf.setFontSize(9);
-
-    let y = 85;
-    if (rec.testType === 'Densidad_Campo_Cono_Arena' && rec.sandConeData) {
-      const sc = rec.sandConeData;
-      docPdf.text('PARAMETRO DE COMPACTACIÓN DE SUELO', 18, 75.5);
-      docPdf.text('VALOR MEDIDO', 140, 75.5);
-
-      docPdf.setFont('helvetica', 'normal');
-      docPdf.text('Ubicación del Ensayo / Capa:', 18, y); docPdf.text(sc.location, 140, y); y += 8;
-      docPdf.text('Humedad de Campo (%):', 18, y); docPdf.text(`${sc.moisturePercent}%`, 140, y); y += 8;
-      docPdf.text('Densidad Seca Obtenida (g/cm³):', 18, y); docPdf.text(`${sc.dryDensityGcm3} g/cm³`, 140, y); y += 8;
-      docPdf.text('Máxima Densidad Seca Proctor (g/cm³):', 18, y); docPdf.text(`${sc.proctorMaxDryDensityGcm3} g/cm³`, 140, y); y += 8;
-      docPdf.text('Grado de Compactación Logrado (%):', 18, y); 
-      
-      docPdf.setFont('helvetica', 'bold');
-      docPdf.setTextColor(sc.passed ? 16 : 220, sc.passed ? 185 : 38, sc.passed ? 129 : 38);
-      docPdf.text(`${sc.compactionPercent}% (Requerido: ≥${sc.requiredCompactionPercent}%)`, 140, y);
-      docPdf.setTextColor(15, 23, 42);
-    } else if (rec.concreteData) {
-      const cd = rec.concreteData;
-      docPdf.text('PARAMETRO DE RESISTENCIA DE CONCRETO (f`c)', 18, 75.5);
-      docPdf.text('VALOR MEDIDO', 140, 75.5);
-
-      docPdf.setFont('helvetica', 'normal');
-      docPdf.text('Estructura Vaciada:', 18, y); docPdf.text(cd.structureName, 140, y); y += 8;
-      docPdf.text('Lote de Mezcla / Batch:', 18, y); docPdf.text(cd.batchNumber, 140, y); y += 8;
-      docPdf.text('Resistencia Diseño f`c (kg/cm²):', 18, y); docPdf.text(`${cd.fcDesignKgcm2} kg/cm²`, 140, y); y += 8;
-      docPdf.text('Edad del Ensayo de Rotura (Días):', 18, y); docPdf.text(`${cd.ageDays} Días`, 140, y); y += 8;
-      docPdf.text('Resistencia Medida a la Rotura (kg/cm²):', 18, y); 
-      
-      docPdf.setFont('helvetica', 'bold');
-      docPdf.setTextColor(cd.passed ? 16 : 220, cd.passed ? 185 : 38, cd.passed ? 129 : 38);
-      docPdf.text(`${cd.measuredStrengthKgcm2} kg/cm² (${cd.attainedPercentOfFc}% de f\`c)`, 140, y);
-      docPdf.setTextColor(15, 23, 42);
+    docPdf.text(`Laboratorio: ${cleanPdfText(rec.laboratoryName)}`, 110, y + 6);
+    docPdf.text(`Inspector Campo: ${cleanPdfText(rec.inspectorName)}`, 110, y + 12);
+    if (currentProject?.name) {
+      const projStr = cleanPdfText(currentProject.name);
+      docPdf.text(`Proyecto: ${projStr.length > 30 ? projStr.substring(0, 28) + '...' : projStr}`, 110, y + 18);
     }
 
-    // Signatures
-    docPdf.line(25, 220, 85, 220);
-    docPdf.line(125, 220, 185, 220);
+    y += 32;
 
+    // Table Header
+    docPdf.setFillColor(11, 34, 57);
+    docPdf.rect(12, y, 186, 7, 'F');
+    docPdf.setTextColor(255, 255, 255);
+    docPdf.setFont('helvetica', 'bold');
     docPdf.setFontSize(8);
-    docPdf.text('LABORATORISTA / INSPECTOR GEOTECNICO', 26, 225);
-    docPdf.text('INSPECTOR DE OBRAS CIVILES PDVSA', 130, 225);
+
+    if (rec.testType === 'Densidad_Campo_Cono_Arena' && rec.sandConeData) {
+      const sc = rec.sandConeData;
+      docPdf.text('PARÁMETRO DE COMPACTACIÓN DE SUELOS', 16, y + 5);
+      docPdf.text('VALOR MEDIDO / RESULTADO', 135, y + 5);
+
+      y += 10;
+      docPdf.setTextColor(15, 23, 42);
+      docPdf.setFontSize(8);
+
+      const rows = [
+        ['Ubicación del Ensayo / Capa:', cleanPdfText(sc.location)],
+        ['Profundidad de Capa (cm):', `${sc.layerDepthCm} cm`],
+        ['Humedad de Campo (%):', `${sc.moisturePercent.toFixed(2)}%`],
+        ['Densidad Seca Obtenida (g/cm³):', `${sc.dryDensityGcm3.toFixed(3)} g/cm³`],
+        ['Máxima Densidad Seca Proctor (g/cm³):', `${sc.proctorMaxDryDensityGcm3.toFixed(3)} g/cm³`],
+        ['Grado de Compactación Logrado (%):', `${sc.compactionPercent.toFixed(2)}% (Requerido: >=${sc.requiredCompactionPercent.toFixed(1)}%)`]
+      ];
+
+      rows.forEach(([label, val], idx) => {
+        docPdf.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 252 : 255);
+        docPdf.rect(12, y - 4, 186, 7, 'F');
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.text(label, 16, y);
+        docPdf.setFont('helvetica', 'bold');
+        if (idx === 5) {
+          docPdf.setTextColor(sc.passed ? 16 : 220, sc.passed ? 185 : 38, sc.passed ? 129 : 38);
+        } else {
+          docPdf.setTextColor(15, 23, 42);
+        }
+        docPdf.text(val, 135, y);
+        y += 7;
+      });
+    } else if (rec.concreteData) {
+      const cd = rec.concreteData;
+      docPdf.text("PARÁMETRO DE RESISTENCIA DE CONCRETO (f'c)", 16, y + 5);
+      docPdf.text('VALOR MEDIDO / RESULTADO', 135, y + 5);
+
+      y += 10;
+      docPdf.setTextColor(15, 23, 42);
+      docPdf.setFontSize(8);
+
+      const rows = [
+        ['Estructura Vaciada:', cleanPdfText(cd.structureName)],
+        ['Lote de Mezcla / Batch:', cleanPdfText(cd.batchNumber)],
+        ["Resistencia Diseño f'c (kg/cm²):", `${cd.fcDesignKgcm2.toFixed(1)} kg/cm²`],
+        ['Edad del Ensayo de Rotura (Días):', `${cd.ageDays} Días`],
+        ['Resistencia Medida a la Rotura (kg/cm²):', `${cd.measuredStrengthKgcm2.toFixed(1)} kg/cm²`],
+        ["Porcentaje Alcanzado de f'c (%):", `${cd.attainedPercentOfFc.toFixed(2)}% (Esperado a ${cd.ageDays}d: >=${cd.expectedPercentAtAge}%)`]
+      ];
+
+      rows.forEach(([label, val], idx) => {
+        docPdf.setFillColor(idx % 2 === 0 ? 248 : 255, idx % 2 === 0 ? 250 : 255, idx % 2 === 0 ? 252 : 255);
+        docPdf.rect(12, y - 4, 186, 7, 'F');
+        docPdf.setFont('helvetica', 'normal');
+        docPdf.text(label, 16, y);
+        docPdf.setFont('helvetica', 'bold');
+        if (idx === 5) {
+          docPdf.setTextColor(cd.passed ? 16 : 220, cd.passed ? 185 : 38, cd.passed ? 129 : 38);
+        } else {
+          docPdf.setTextColor(15, 23, 42);
+        }
+        docPdf.text(val, 135, y);
+        y += 7;
+      });
+    }
+
+    if (rec.notes) {
+      y += 2;
+      docPdf.setFont('helvetica', 'bold');
+      docPdf.setFontSize(8);
+      docPdf.setTextColor(15, 23, 42);
+      docPdf.text('OBSERVACIONES DE CAMPO:', 12, y);
+      y += 4;
+      docPdf.setFont('helvetica', 'italic');
+      docPdf.setFontSize(7.5);
+      docPdf.text(cleanPdfText(rec.notes), 12, y);
+      y += 6;
+    } else {
+      y += 4;
+    }
+
+    // Photo Evidences Section
+    const yAfterPhotos = drawPhotoEvidences(docPdf, rec.evidencePhotos || [], y);
+
+    // Footer & Dual Signatures
+    drawQualityFooter({
+      docPdf,
+      brandKit,
+      reportCode: rec.testCode,
+      normRef: rec.normRef,
+      issueDate: rec.testDate,
+      inspectorName: rec.inspectorName,
+      clientInspectorName: 'Ing. Inspector Fiscal PDVSA'
+    }, yAfterPhotos);
 
     docPdf.save(`Protocolo_Civil_${rec.testCode}.pdf`);
   };
@@ -837,6 +929,38 @@ export default function CivilEngineeringRegistry() {
                   onChange={(e) => setNotes(e.target.value)}
                   className="w-full p-2.5 rounded-lg bg-surface-2 border border-line text-ink focus:outline-none focus-ring"
                 />
+              </div>
+
+              {/* Photo Evidence Attachments */}
+              <div className="space-y-2 border-t border-line pt-3">
+                <label className="block text-xs font-bold uppercase text-muted flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-brand-500" />
+                  Evidencia Fotográfica de Campo (Máx 2 Fotos)
+                </label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-2.5 rounded-lg bg-surface-2 border border-line text-xs">
+                    <span className="block font-semibold mb-1 text-ink">Foto 1 (En sitio / Zanja / Probeta)</span>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => handlePhotoUpload(e, 1)}
+                      className="w-full text-xs text-muted file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-500 file:text-white hover:file:bg-brand-600 cursor-pointer"
+                    />
+                    {photo1 && <span className="text-[10px] text-emerald-500 mt-1 block">✓ Foto 1 Adjuntada</span>}
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-surface-2 border border-line text-xs">
+                    <span className="block font-semibold mb-1 text-ink">Foto 2 (Equipo / Calibración)</span>
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      onChange={(e) => handlePhotoUpload(e, 2)}
+                      className="w-full text-xs text-muted file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-brand-500 file:text-white hover:file:bg-brand-600 cursor-pointer"
+                    />
+                    {photo2 && <span className="text-[10px] text-emerald-500 mt-1 block">✓ Foto 2 Adjuntada</span>}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
