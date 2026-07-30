@@ -163,7 +163,12 @@ export default function Valuations() {
     if (!currentProject) return;
     setIsCalculating(true);
     try {
-      const q = query(collection(db, 'tasks'), where('projectId', '==', currentProject.id));
+      const taskPath = currentProject.id !== 'all'
+        ? `organizations/${orgId}/projects/${currentProject.id}/tasks`
+        : null;
+      const q = taskPath
+        ? query(collection(db, taskPath))
+        : query(collectionGroup(db, 'tasks'), where('orgId', '==', orgId));
       const snap = await getDocs(q);
       let calculatedGross = 0;
       let countPartidas = 0;
