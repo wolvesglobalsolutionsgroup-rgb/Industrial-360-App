@@ -1,7 +1,26 @@
 import Dexie, { Table } from 'dexie';
 
+export interface OutboxItem {
+  id?: number;
+  operationId: string; // UUID v4
+  collectionName: string; // Target Firestore collection
+  operationType: 'create' | 'update' | 'delete';
+  docId?: string;
+  payload: Record<string, any>;
+  orgId: string;
+  projectId: string;
+  category: 'report' | 'valuation' | 'ptw' | 'qa_qc' | 'evidence' | 'route' | 'general';
+  conflictStrategy: 'APPEND_ONLY' | 'FIELD_VISIBLE' | 'BLOCKING';
+  timestamp: number;
+  retries: number;
+  syncStatus: 'pending' | 'syncing' | 'failed' | 'conflict_blocked';
+  errorMessage?: string;
+  conflictDetails?: string;
+}
+
 export interface PendingReport {
   id?: number;
+  operationId: string;
   tempId: string;
   projectId: string;
   date: string;
@@ -19,12 +38,13 @@ export interface PendingReport {
   correlatedTaskName?: string;
   inspectorName?: string;
   createdAt: string;
-  syncStatus: 'pending' | 'syncing' | 'failed';
+  syncStatus: 'pending' | 'syncing' | 'failed' | 'conflict_blocked';
   errorMessage?: string;
 }
 
 export interface PendingValuation {
   id?: number;
+  operationId: string;
   tempId: string;
   projectId: string;
   number: number;
@@ -41,12 +61,13 @@ export interface PendingValuation {
   photos: string[];
   ownerId: string;
   createdAt: string;
-  syncStatus: 'pending' | 'syncing' | 'failed';
+  syncStatus: 'pending' | 'syncing' | 'failed' | 'conflict_blocked';
   errorMessage?: string;
 }
 
 export interface PendingRoute {
   id?: number;
+  operationId: string;
   tempId: string;
   projectId?: string;
   name: string;
@@ -55,33 +76,46 @@ export interface PendingRoute {
   startTime: number;
   endTime: number;
   createdAt: string;
-  syncStatus: 'pending' | 'syncing' | 'failed';
+  syncStatus: 'pending' | 'syncing' | 'failed' | 'conflict_blocked';
   errorMessage?: string;
 }
 
 export interface SyncLogItem {
   id?: number;
+  operationId: string;
   action: 'create' | 'update' | 'delete';
   collectionName: string;
   recordId: string;
   timestamp: string;
-  status: 'success' | 'failed';
+  status: 'success' | 'failed' | 'idempotent_duplicate' | 'conflict_blocked';
   details?: string;
 }
 
+export interface LocalDraft {
+  id: string;
+  category: 'ptw' | 'ast' | 'takeoff' | 'isometric' | 'hht_attendance' | 'general';
+  title: string;
+  data: Record<string, any>;
+  updatedAt: string;
+}
+
 export class IndustrialControl360DB extends Dexie {
+  outbox!: Table<OutboxItem>;
   pendingReports!: Table<PendingReport>;
   pendingValuations!: Table<PendingValuation>;
   pendingRoutes!: Table<PendingRoute>;
   syncLog!: Table<SyncLogItem>;
+  localDrafts!: Table<LocalDraft>;
 
   constructor() {
     super('IndustrialControl360_OfflineDB');
-    this.version(1).stores({
-      pendingReports: '++id, tempId, projectId, date, syncStatus, createdAt',
-      pendingValuations: '++id, tempId, projectId, number, syncStatus, createdAt',
-      pendingRoutes: '++id, tempId, projectId, syncStatus, createdAt',
-      syncLog: '++id, collectionName, recordId, timestamp, status'
+    this.version(2).stores({
+      outbox: '++id, operationId, collectionName, category, syncStatus, timestamp, orgId, projectId',
+      pendingReports: '++id, operationId, tempId, projectId, date, syncStatus, createdAt',
+      pendingValuations: '++id, operationId, tempId, projectId, number, syncStatus, createdAt',
+      pendingRoutes: '++id, operationId, tempId, projectId, syncStatus, createdAt',
+      syncLog: '++id, operationId, collectionName, recordId, timestamp, status',
+      localDrafts: 'id, category, updatedAt'
     });
   }
 }

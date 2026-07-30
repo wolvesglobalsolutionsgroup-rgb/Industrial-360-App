@@ -48,6 +48,8 @@ export default function LogisticsMap() {
     pendingReportsCount: 0,
     pendingValuationsCount: 0,
     pendingRoutesCount: 0,
+    outboxPendingCount: 0,
+    blockedCount: 0,
     totalPending: 0,
     isSyncing: false
   });
@@ -202,7 +204,7 @@ export default function LogisticsMap() {
     setSyncMessage(null);
     try {
       const res = await syncPendingRecords();
-      setSyncMessage(`Sincronización completada: ${res.successCount} registros subidos.`);
+      setSyncMessage(`Sincronización completada: ${res.synced} registros subidos.`);
       setTimeout(() => setSyncMessage(null), 4000);
     } catch (err: any) {
       setSyncMessage(`Error de sincronización: ${err?.message || 'Error de red'}`);

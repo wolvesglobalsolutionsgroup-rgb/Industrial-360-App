@@ -9,7 +9,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 import { generateRegulatoryCode } from '../lib/regulatoryIdsClient';
 
-import { queueOfflineOperation } from '../lib/offlineSync';
+import { queueOfflineOperation } from '../lib/offline/syncEngine';
 import jsPDF from 'jspdf';
 
 export interface EnvironmentalAspect {

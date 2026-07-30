@@ -8,7 +8,7 @@ import {
 import { collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
-import { queueOfflineOperation } from '../lib/offlineSync';
+import { queueOfflineOperation } from '../lib/offline/syncEngine';
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 

@@ -2,7 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { initOfflineAutoSync } from './lib/offlineSync.ts';
+import { initOfflineAutoSync } from './lib/offline/syncEngine';
 
 // Initialize offline background sync handlers
 initOfflineAutoSync();

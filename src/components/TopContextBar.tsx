@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { useProject, CORPORATE_PORTFOLIO_PROJECT, UserRole } from '../ProjectContext';
 import { ROLE_LABELS } from './ProtectedRoute';
-import { getPendingOfflineOperations, flushOfflineQueue } from '../lib/offlineSync';
+import { getPendingOfflineOperations, flushOfflineQueue } from '../lib/offline/syncEngine';
 import { useTheme } from '../theme/ThemeContext';
 import { THEME_PRESETS, ThemePresetId } from '../theme/themePresets';
 

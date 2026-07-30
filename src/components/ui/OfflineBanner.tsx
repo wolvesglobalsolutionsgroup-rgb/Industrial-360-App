@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WifiOff, RefreshCw, CheckCircle2, Database, X } from 'lucide-react';
-import { useOfflineStatus } from '../../lib/offlineStore';
+import { useOfflineStatus } from '../../lib/offline/syncEngine';
 
 export const OfflineBanner: React.FC = () => {
   const { isOnline, pendingCount, isSyncing, lastSyncResult, triggerSync } = useOfflineStatus();

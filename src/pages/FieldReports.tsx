@@ -10,7 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType, getAuthUser } from '../firebase';
 import { useProject } from '../ProjectContext';
-import { queueOfflineOperation } from '../lib/offlineSync';
+import { queueOfflineOperation } from '../lib/offline/syncEngine';
 import { motion } from 'motion/react';
 import jsPDF from 'jspdf';
 import { 
