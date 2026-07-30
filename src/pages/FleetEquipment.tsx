@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Truck, Gauge, ShieldCheck, Camera, Wrench, AlertTriangle, 
   Plus, Search, Calendar, FileText, CheckCircle2, Clock, Fuel, 
-  ChevronRight, Download, Activity, Cpu, Sparkles
+  ChevronRight, Download, Activity, Cpu, Sparkles, Upload
 } from 'lucide-react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase';
 import { useProject } from '../ProjectContext';
 
 interface Equipment {
@@ -32,8 +34,9 @@ export default function FleetEquipment() {
 
   // Horometer Update Form
   const [newHorometer, setNewHorometer] = useState<number>(0);
-  const [isSimulatingOCR, setIsSimulatingOCR] = useState(false);
-  const [ocrSuccessMsg, setOcrSuccessMsg] = useState('');
+  const [isUploadingOCR, setIsUploadingOCR] = useState(false);
+  const [ocrStatusMsg, setOcrStatusMsg] = useState('');
+  const [ocrImageUrl, setOcrImageUrl] = useState<string | null>(null);
 
   // Pre-op Checklist State
   const [preOpDate, setPreOpDate] = useState(new Date().toISOString().split('T')[0]);
@@ -113,17 +116,24 @@ export default function FleetEquipment() {
     setNewHorometer(defaultEquipment[0].currentHorometer + 8);
   }, []);
 
-  const handleSimulateOCRScan = () => {
-    setIsSimulatingOCR(true);
-    setOcrSuccessMsg('');
-    setTimeout(() => {
-      setIsSimulatingOCR(false);
-      if (selectedEquip) {
-        const scannedValue = selectedEquip.currentHorometer + 10;
-        setNewHorometer(scannedValue);
-        setOcrSuccessMsg(`✅ OCR Escaneado con Éxito: ${scannedValue} hrs detectadas en foto del horómetro digital.`);
-      }
-    }, 1200);
+  const handleUploadOCRImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedEquip) return;
+
+    setIsUploadingOCR(true);
+    setOcrStatusMsg('');
+    try {
+      const storageRef = ref(storage, `fleet_ocr/${selectedEquip.id}_${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+      setOcrImageUrl(downloadUrl);
+      setOcrStatusMsg('📄 Imagen subida a Firebase Storage con éxito. Estado: OCR pendiente de procesamiento por motor de visión.');
+    } catch (err) {
+      console.error("Error uploading OCR image to Storage:", err);
+      setOcrStatusMsg('❌ Error al subir la imagen del horómetro a Storage.');
+    } finally {
+      setIsUploadingOCR(false);
+    }
   };
 
   const handleSaveHorometer = () => {
@@ -239,7 +249,8 @@ export default function FleetEquipment() {
                     onClick={() => {
                       setSelectedEquip(item);
                       setNewHorometer(item.currentHorometer + 8);
-                      setOcrSuccessMsg('');
+                      setOcrStatusMsg('');
+                      setOcrImageUrl(null);
                     }}
                     className={`p-3 rounded-xl border cursor-pointer transition-all ${
                       isSelected
@@ -324,27 +335,40 @@ export default function FleetEquipment() {
                     </div>
 
                     <div className="space-y-3">
-                      <button
-                        onClick={handleSimulateOCRScan}
-                        disabled={isSimulatingOCR}
-                        className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition-all shadow"
-                      >
-                        <Sparkles size={16} />
-                        {isSimulatingOCR ? 'Analizando Foto de Panel...' : 'Simular Captura OCR con Cámara'}
-                      </button>
+                      <label className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition-all shadow cursor-pointer">
+                        <Upload size={16} />
+                        {isUploadingOCR ? 'Subiendo Imagen a Storage...' : 'Subir Foto de Horómetro (Storage)'}
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={handleUploadOCRImage} 
+                          disabled={isUploadingOCR} 
+                          className="hidden" 
+                        />
+                      </label>
 
                       <button
                         onClick={handleSaveHorometer}
-                        className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs border border-slate-700 transition-all"
+                        className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-2.5 rounded-xl text-xs border border-slate-700 transition-all cursor-pointer"
                       >
                         Confirmar y Actualizar Horómetro
                       </button>
                     </div>
                   </div>
 
-                  {ocrSuccessMsg && (
-                    <div className="p-3 bg-emerald-950/80 border border-emerald-800 rounded-xl text-emerald-200 text-xs font-mono">
-                      {ocrSuccessMsg}
+                  {ocrStatusMsg && (
+                    <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-emerald-300 text-xs font-mono space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded text-[10px] font-bold uppercase">
+                          OCR Pendiente
+                        </span>
+                        <span>{ocrStatusMsg}</span>
+                      </div>
+                      {ocrImageUrl && (
+                        <a href={ocrImageUrl} target="_blank" rel="noreferrer" className="text-emerald-400 underline text-[11px] block pt-1">
+                          Ver foto subida en Storage ↗
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>

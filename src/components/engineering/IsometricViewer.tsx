@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { 
   ZoomIn, ZoomOut, RotateCcw, Maximize2, Minimize2, Layers, ShieldCheck, 
   CheckCircle2, XCircle, AlertTriangle, Download, Upload, Info, X, 
@@ -832,7 +833,13 @@ export default function IsometricViewer({ onJointSelect, selectedJointId, classN
             /* Render Uploaded Custom SVG */
             <div 
               className="w-[850px] h-[500px] flex items-center justify-center text-white"
-              dangerouslySetInnerHTML={{ __html: customSvgContent }} 
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(customSvgContent, { 
+                  USE_PROFILES: { svg: true },
+                  FORBID_TAGS: ['script', 'foreignObject', 'filter', 'feComponentTransfer', 'feTurbulence'],
+                  FORBID_ATTR: ['on*', 'href', 'xlink:href', 'javascript:*']
+                }) 
+              }} 
             />
           ) : (
             /* Render Native Isometric SVG Drawing */

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { 
   FileArchive, Download, CheckCircle2, 
   Sparkles, Clock, AlertCircle, Eye, Layers, ShieldCheck, FileText, CheckSquare
@@ -328,13 +329,13 @@ export default function DossierCompiler() {
             <div 
               className="bg-white p-4 rounded-2xl border border-slate-300 shadow-inner overflow-x-auto"
               dangerouslySetInnerHTML={{ 
-                __html: generatePdvsaCoverHtml({
+                __html: DOMPurify.sanitize(generatePdvsaCoverHtml({
                   documento: selectedDocForCover,
                   nombreProyecto: projName,
                   contratoNo: dossierState?.contratoNo || 'N° CTR-2026-PDVSA-001',
                   contratistaNombre: 'PROINTECA C.A.',
                   clienteNombre: 'PDVSA GAS C.A.'
-                }) 
+                }))
               }} 
             />
 

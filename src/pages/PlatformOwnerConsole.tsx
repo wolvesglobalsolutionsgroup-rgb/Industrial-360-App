@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 import { 
   Crown, ShieldCheck, Server, Database, Activity, ToggleLeft, ToggleRight, 
   Users, Building2, HardDrive, DollarSign, Key, AlertTriangle, Search, 
@@ -132,6 +134,36 @@ export default function PlatformOwnerConsole() {
   const [auditLogs, setAuditLogs] = useState<SecurityAuditLog[]>(INITIAL_AUDIT_LOGS);
   const [activeTab, setActiveTab] = useState<'tenants' | 'quotas' | 'flags' | 'security'>('tenants');
 
+  useEffect(() => {
+    async function fetchRealOrganizations() {
+      try {
+        const snap = await getDocs(collection(db, 'organizations'));
+        if (!snap.empty) {
+          const loadedTenants: TenantSummary[] = snap.docs.map(docSnap => {
+            const data = docSnap.data();
+            return {
+              id: docSnap.id,
+              name: data.name || data.razonSocial || data.nombre || docSnap.id,
+              taxId: data.taxId || data.rif || 'J-30492810-9',
+              plan: data.plan || 'Enterprise O&G',
+              activeProjectsCount: data.activeProjectsCount || 2,
+              totalUsersCount: data.totalUsersCount || 10,
+              monthlyMrrUsd: data.monthlyMrrUsd || 3000,
+              firestoreReadsToday: data.firestoreReadsToday || 12000,
+              firestoreWritesToday: data.firestoreWritesToday || 1500,
+              storageMbUsed: data.storageMbUsed || 3500,
+              status: data.status || 'Activo'
+            };
+          });
+          setTenants(loadedTenants);
+        }
+      } catch (err) {
+        console.warn("Falling back to default tenant list:", err);
+      }
+    }
+    fetchRealOrganizations();
+  }, []);
+
   const [featureFlags, setFeatureFlags] = useState<FeatureFlagsState>(() => {
     const saved = localStorage.getItem('ic360_global_flags');
     if (saved) {
@@ -198,12 +230,18 @@ export default function PlatformOwnerConsole() {
         {/* Global SaaS Financial & Usage High Level KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-4 border-t border-slate-800 text-xs">
           <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
-            <span className="text-slate-400 block mb-0.5">Ingresos MRR</span>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-slate-400">Ingresos MRR</span>
+              <span className="px-1.5 py-0.5 text-[9px] font-extrabold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">DEMO</span>
+            </div>
             <span className="text-lg font-bold text-emerald-400 tabular">${totalMrr.toLocaleString()} USD</span>
           </div>
 
           <div className="p-3 rounded-xl bg-slate-800/80 border border-slate-700">
-            <span className="text-slate-400 block mb-0.5">Ingresos Proyectados ARR</span>
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-slate-400">Ingresos ARR</span>
+              <span className="px-1.5 py-0.5 text-[9px] font-extrabold bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded">DEMO</span>
+            </div>
             <span className="text-lg font-bold text-emerald-400 tabular">${totalArr.toLocaleString()} USD</span>
           </div>
 
@@ -303,12 +341,18 @@ export default function PlatformOwnerConsole() {
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-surface-2">
-                    <span className="text-muted block">MRR Mensual:</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted">MRR Mensual:</span>
+                      <span className="px-1 text-[8px] font-bold bg-amber-500/20 text-amber-500 rounded">DEMO</span>
+                    </div>
                     <span className="text-emerald-500 font-bold tabular">${tenant.monthlyMrrUsd} USD</span>
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-surface-2">
-                    <span className="text-muted block">Almacenamiento:</span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted">Almacenamiento:</span>
+                      <span className="px-1 text-[8px] font-bold bg-amber-500/20 text-amber-500 rounded">DEMO</span>
+                    </div>
                     <span className="text-ink font-bold tabular">{(tenant.storageMbUsed / 1024).toFixed(2)} GB</span>
                   </div>
                 </div>

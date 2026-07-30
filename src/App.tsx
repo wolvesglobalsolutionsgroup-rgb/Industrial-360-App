@@ -12,6 +12,7 @@ import { PageSkeleton } from './components/ui/PageSkeleton';
 import { CommandPalette } from './components/CommandPalette';
 import { ProjectProvider } from './ProjectContext';
 import { ThemeProvider } from './theme/ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy loaded page components
 const Landing = lazy(() => import('./pages/Landing'));
@@ -68,23 +69,26 @@ function AppContent() {
 
   if (!user) {
     return (
-      <Suspense fallback={<PageSkeleton />}>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/landing" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/portal/:portalId" element={<ClientPortalView />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+      <ErrorBoundary>
+        <Suspense fallback={<PageSkeleton />}>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/landing" element={<Landing />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/portal/:portalId" element={<ClientPortalView />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </ErrorBoundary>
     );
   }
 
   return (
     <ProjectProvider>
       <CommandPalette />
-      <Suspense fallback={<PageSkeleton />}>
-        <Routes>
+      <ErrorBoundary>
+        <Suspense fallback={<PageSkeleton />}>
+          <Routes>
           <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/portal/:portalId" element={<ClientPortalView />} />
@@ -217,6 +221,7 @@ function AppContent() {
           </Route>
         </Routes>
       </Suspense>
+      </ErrorBoundary>
     </ProjectProvider>
   );
 }
