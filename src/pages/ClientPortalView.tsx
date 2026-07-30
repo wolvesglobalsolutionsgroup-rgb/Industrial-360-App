@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { 
   Building, 
@@ -17,7 +17,8 @@ import {
   Clock, 
   AlertTriangle,
   FolderCheck,
-  Check
+  Check,
+  Lock
 } from 'lucide-react';
 import { doc, onSnapshot, collection, query, where, addDoc, collectionGroup } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -27,6 +28,9 @@ import { tasksRepo, valuationsRepo, sihoPtwRepo, weldJointsRepo, fieldReportsRep
 
 export default function ClientPortalView() {
   const { portalId } = useParams<{ portalId: string }>();
+  const [searchParams] = useSearchParams();
+  const tokenFromUrl = searchParams.get('token');
+
   const [portal, setPortal] = useState<ClientPortalConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -39,7 +43,7 @@ export default function ClientPortalView() {
   const [fieldReports, setFieldReports] = useState<any[]>([]);
   const [dossiers, setDossiers] = useState<any[]>([]);
 
-  // 1. Fetch Portal Configuration & Validate Token/Revocation
+  // 1. Fetch Portal Configuration via Secure Server HTTPS Endpoint /api/get-client-portal
   useEffect(() => {
     if (!portalId) {
       setErrorMsg('ID de portal no provisto');
@@ -47,54 +51,36 @@ export default function ClientPortalView() {
       return;
     }
 
-    const unsub = onSnapshot(doc(db, 'client_portals', portalId), async (snap) => {
-      if (snap.exists()) {
-        const portalData = { id: snap.id, ...snap.data() } as ClientPortalConfig;
+    async function fetchPortalSecure() {
+      setLoading(true);
+      setErrorMsg(null);
 
-        if (portalData.isRevoked) {
-          setErrorMsg('El acceso a este portal cliente ha sido revocado por la empresa contratista.');
+      try {
+        const queryParams = new URLSearchParams({
+          portalId,
+          ...(tokenFromUrl ? { token: tokenFromUrl } : {})
+        });
+
+        const res = await fetch(`/api/get-client-portal?${queryParams.toString()}`);
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          setPortal(data.portal);
+        } else {
+          setErrorMsg(data.error || 'Acceso Denegado: Token inválido, expirado o portal no encontrado.');
           setPortal(null);
-          setLoading(false);
-          return;
         }
-
-        if (portalData.expiresAt && new Date(portalData.expiresAt).getTime() < Date.now()) {
-          setErrorMsg(`El acceso a este portal caducó el ${new Date(portalData.expiresAt).toLocaleDateString()}.`);
-          setPortal(null);
-          setLoading(false);
-          return;
-        }
-
-        setPortal(portalData);
-        setErrorMsg(null);
-
-        const portalOrgId = portalData.orgId || 'semax_pino';
-
-        // Record Access Log in Firestore (client_portal_access_logs under organization)
-        try {
-          await addDoc(collection(db, 'organizations', portalOrgId, 'client_portal_access_logs'), {
-            portalId,
-            orgId: portalOrgId,
-            accessedAt: new Date().toISOString(),
-            userAgent: navigator.userAgent,
-            referrer: document.referrer || 'direct'
-          });
-        } catch (logErr) {
-          console.warn('Could not record access log:', logErr);
-        }
-
-      } else {
-        setErrorMsg('Portal de cliente no encontrado o desactivado.');
+      } catch (err) {
+        console.error('Error fetching portal via HTTPS API:', err);
+        setErrorMsg('Error de conexión al servidor de portales.');
+        setPortal(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, (err) => {
-      console.error('Error fetching portal view:', err);
-      setErrorMsg('No se pudo cargar la configuración del portal.');
-      setLoading(false);
-    });
+    }
 
-    return () => unsub();
-  }, [portalId]);
+    fetchPortalSecure();
+  }, [portalId, tokenFromUrl]);
 
   // 2. Fetch Linked Project Data when portal is loaded
   useEffect(() => {
@@ -154,7 +140,7 @@ export default function ClientPortalView() {
       <div className="min-h-screen bg-[#F2F1ED] flex items-center justify-center p-4">
         <div className="text-center space-y-3">
           <div className="w-12 h-12 border-4 border-[#0B2239] border-t-amber-400 rounded-full animate-spin mx-auto"></div>
-          <p className="text-sm font-bold text-[#0B2239]">Cargando Portal de Inspección Cliente...</p>
+          <p className="text-sm font-bold text-[#0B2239]">Verificando Credenciales SHA-256 del Portal...</p>
         </div>
       </div>
     );
@@ -164,14 +150,16 @@ export default function ClientPortalView() {
     return (
       <div className="min-h-screen bg-[#F2F1ED] flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl p-8 max-w-md w-full border border-gray-200 text-center space-y-4 shadow-xl">
-          <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto">
-            <AlertTriangle size={28} />
+          <div className="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
+            <Lock size={28} />
           </div>
-          <h2 className="text-xl font-bold text-gray-900">Portal No Disponible</h2>
-          <p className="text-xs text-gray-500">{errorMsg || 'El enlace provisto no existe o fue retirado por el administrador.'}</p>
-          <Link to="/" className="inline-block px-5 py-2.5 bg-[#0B2239] text-white rounded-xl font-bold text-xs">
-            Regresar al Inicio
-          </Link>
+          <h2 className="text-xl font-bold text-gray-900">Acceso No Autorizado</h2>
+          <p className="text-xs text-gray-600 font-medium leading-relaxed">{errorMsg || 'Se requiere un token de acceso seguro válido.'}</p>
+          <div className="pt-2">
+            <Link to="/" className="inline-block px-5 py-2.5 bg-[#0B2239] text-white rounded-xl font-bold text-xs">
+              Regresar al Inicio
+            </Link>
+          </div>
         </div>
       </div>
     );

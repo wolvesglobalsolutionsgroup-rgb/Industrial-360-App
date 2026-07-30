@@ -23,18 +23,14 @@ import {
   Calendar,
   Lock,
   Send,
-  DollarSign
+  DollarSign,
+  AlertTriangle
 } from 'lucide-react';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { collection, doc, deleteDoc, onSnapshot, query } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, functionsInstance, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
 import { sendNotificationEmail, buildPortalInviteHtml } from '../lib/emailService';
-
-function generate64CharToken(): string {
-  const array = new Uint8Array(32);
-  window.crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
-}
 
 export interface ClientPortalConfig {
   id: string;
@@ -42,7 +38,7 @@ export interface ClientPortalConfig {
   clientName: string;
   orgId: string;
   linkedProjectIds: string[];
-  accessToken?: string;
+  tokenHash?: string;
   expiresAt?: string | null;
   isRevoked?: boolean;
   branding: {
@@ -83,8 +79,8 @@ export default function ClientPortalBuilder() {
   const [accentColor, setAccentColor] = useState('#0B2239');
   const [themePreset, setThemePreset] = useState<'mineral' | 'petroleum' | 'corporate_clean' | 'high_contrast'>('mineral');
   
-  // Security Token & Expiration State
-  const [accessToken, setAccessToken] = useState<string>(generate64CharToken());
+  // Security Token (Server-Generated & Plaintext Once View)
+  const [createdRawToken, setCreatedRawToken] = useState<string | null>(null);
   const [expiresAtOption, setExpiresAtOption] = useState<'permanent' | '30days' | '90days'>('90days');
   const [isRevoked, setIsRevoked] = useState<boolean>(false);
 
@@ -142,8 +138,8 @@ export default function ClientPortalBuilder() {
     setCustomLogoUrl(portal.branding?.logoUrl || '');
     setAccentColor(portal.branding?.accentColor || '#0B2239');
     setThemePreset(portal.branding?.themePreset || 'mineral');
-    setAccessToken(portal.accessToken || generate64CharToken());
     setIsRevoked(!!portal.isRevoked);
+    setCreatedRawToken(null);
     if (portal.visibilityMatrix) {
       setVisibilityMatrix({
         ...portal.visibilityMatrix,
@@ -160,7 +156,7 @@ export default function ClientPortalBuilder() {
     setCustomLogoUrl(brandKit?.logoUrl || '');
     setAccentColor('#0B2239');
     setThemePreset('mineral');
-    setAccessToken(generate64CharToken());
+    setCreatedRawToken(null);
     setExpiresAtOption('90days');
     setIsRevoked(false);
     setVisibilityMatrix({
@@ -184,7 +180,8 @@ export default function ClientPortalBuilder() {
     setEmailStatusMsg(null);
 
     const portalId = selectedPortalId || `portal_${Date.now()}`;
-    const portalUrl = `${window.location.origin}/portal/${portalId}?token=${accessToken}`;
+    const token = createdRawToken || 'TOKEN_DE_EJEMPLO';
+    const portalUrl = `${window.location.origin}/portal/${portalId}?token=${token}`;
     const htmlContent = buildPortalInviteHtml(portalName, clientName, portalUrl);
 
     const res = await sendNotificationEmail({
@@ -217,50 +214,40 @@ export default function ClientPortalBuilder() {
     setIsSaving(true);
     setStatusMessage(null);
 
-    let calculatedExpiresAt: string | null = null;
-    if (expiresAtOption === '30days') {
-      const d = new Date();
-      d.setDate(d.getDate() + 30);
-      calculatedExpiresAt = d.toISOString();
-    } else if (expiresAtOption === '90days') {
-      const d = new Date();
-      d.setDate(d.getDate() + 90);
-      calculatedExpiresAt = d.toISOString();
-    }
-
-    const portalId = selectedPortalId || `portal_${Date.now()}`;
-    const tokenToSave = accessToken || generate64CharToken();
-
-    const payload: ClientPortalConfig = {
-      id: portalId,
-      name: portalName,
-      clientName,
-      orgId,
-      linkedProjectIds,
-      accessToken: tokenToSave,
-      expiresAt: calculatedExpiresAt,
-      isRevoked,
-      branding: {
-        logoUrl: customLogoUrl,
-        accentColor,
-        themePreset,
-      },
-      visibilityMatrix,
-      createdAt: selectedPortalId ? (portals.find(p => p.id === selectedPortalId)?.createdAt || new Date().toISOString()) : new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
     try {
-      // Guardar en jerarquía de la organización
-      await setDoc(doc(db, 'organizations', orgId, 'client_portals', portalId), payload, { merge: true });
-      // Guardar en colección superior para consulta directa pública (/portal/:portalId)
-      await setDoc(doc(db, 'client_portals', portalId), payload, { merge: true });
+      // Sprint 9: Invocar Cloud Function Callable createClientPortal
+      const createFn = httpsCallable<any, { success: boolean; portalId: string; rawToken: string; expiresAt: string }>(
+        functionsInstance, 
+        'createClientPortal'
+      );
 
-      setSelectedPortalId(portalId);
-      setStatusMessage('¡Portal configurado y guardado exitosamente en Firestore!');
-    } catch (err) {
-      console.error('Error guardando portal cliente:', err);
-      setStatusMessage('Error al guardar en Firestore. Verifica permisos de usuario.');
+      const result = await createFn({
+        id: selectedPortalId || undefined,
+        name: portalName,
+        clientName,
+        orgId,
+        linkedProjectIds,
+        branding: {
+          logoUrl: customLogoUrl,
+          accentColor,
+          themePreset,
+        },
+        visibilityMatrix,
+        expiresAtOption,
+        isRevoked
+      });
+
+      if (result.data?.success) {
+        const { portalId, rawToken } = result.data;
+        setSelectedPortalId(portalId);
+        setCreatedRawToken(rawToken);
+        setStatusMessage('¡Portal configurado exitosamente! Se guardó únicamente el hash SHA-256 en Firestore.');
+      } else {
+        throw new Error('Respuesta no válida del servidor.');
+      }
+    } catch (err: any) {
+      console.warn('Fallback o error invocando Cloud Function createClientPortal:', err?.message || err);
+      setStatusMessage(`Error al guardar en servidor: ${err?.message || 'Contacte al administrador'}`);
     } finally {
       setIsSaving(false);
     }
@@ -280,10 +267,11 @@ export default function ClientPortalBuilder() {
     }
   };
 
-  const copyShareLink = (id: string) => {
-    const shareUrl = `${window.location.origin}/portal/${id}`;
+  const copyFullShareLink = () => {
+    if (!selectedPortalId || !createdRawToken) return;
+    const shareUrl = `${window.location.origin}/portal/${selectedPortalId}?token=${createdRawToken}`;
     navigator.clipboard.writeText(shareUrl);
-    setCopiedId(id);
+    setCopiedId(selectedPortalId);
     setTimeout(() => setCopiedId(null), 2500);
   };
 
@@ -294,13 +282,13 @@ export default function ClientPortalBuilder() {
         <div className="relative z-10 space-y-3">
           <div className="flex items-center gap-2 text-brand-500 dark:text-brand-accent font-mono text-xs uppercase tracking-wider font-bold">
             <Globe size={16} />
-            <span>Client Portal Builder • B2B Executive Sharing</span>
+            <span>Client Portal Builder • Secure Token Architecture (SHA-256)</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-ink tracking-tight">
             Constructor de Portales Cliente
           </h1>
           <p className="text-ink-soft text-sm max-w-2xl leading-relaxed font-medium">
-            Configura un portal seguro, branded e interactivo para compartir avances de obra, curvas S, dossier de calidad y permisos SIHO con auditores e inspectores externos.
+            Configura un portal seguro y branded. Los tokens de acceso de 32 bytes crypto se guardan en Firestore únicamente como hash SHA-256 y se entregan en texto plano una sola vez.
           </p>
         </div>
       </div>
@@ -444,29 +432,10 @@ export default function ClientPortalBuilder() {
           <div className="bg-surface rounded-2xl border border-line p-6 shadow-2xs space-y-4">
             <h2 className="text-lg font-bold text-ink flex items-center gap-2 border-b border-line pb-3">
               <ShieldCheck size={20} className="text-brand-500" />
-              <span>3. Seguridad, Token de 64 Caracteres y Expiración</span>
+              <span>3. Generación de Token Criptográfico (Server-Side)</span>
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Token Cifrado de Acceso (64 Hex)</label>
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value={accessToken} 
-                    className="w-full px-3 py-2 bg-surface-2 border border-line rounded-xl font-mono text-[11px] text-ink"
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setAccessToken(generate64CharToken())}
-                    className="px-3 py-2 bg-brand-500 text-white rounded-xl text-xs font-bold hover:bg-brand-600 whitespace-nowrap cursor-pointer"
-                  >
-                    Regenerar Token
-                  </button>
-                </div>
-              </div>
-
               <div>
                 <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Caducidad del Enlace</label>
                 <select 
@@ -479,7 +448,46 @@ export default function ClientPortalBuilder() {
                   <option value="permanent">Sin Expiración (Permanente)</option>
                 </select>
               </div>
+
+              <div className="flex items-end">
+                <div className="w-full p-2.5 bg-surface-2 rounded-xl border border-line text-xs text-ink-soft">
+                  <span className="font-bold text-ink">Seguridad Hash SHA-256:</span> Los tokens nunca se persisten en texto plano en la base de datos.
+                </div>
+              </div>
             </div>
+
+            {/* Banner del Token Plaintext generado una sola vez */}
+            {createdRawToken && (
+              <motion.div 
+                initial={{ opacity: 0, y: 8 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-2"
+              >
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-xs uppercase">
+                  <AlertTriangle size={16} />
+                  <span>Token Criptográfico Generado (Mostrado una sola vez)</span>
+                </div>
+                <p className="text-xs text-ink-soft">
+                  Copia el siguiente token o la URL completa con el token de 64 caracteres hex. No se volverá a mostrar.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <input 
+                    type="text" 
+                    readOnly 
+                    value={createdRawToken} 
+                    className="flex-1 px-3 py-2 bg-surface border border-line rounded-xl font-mono text-xs text-emerald-600 dark:text-emerald-400 font-bold select-all"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={copyFullShareLink}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {copiedId === selectedPortalId ? <Check size={14} /> : <Copy size={14} />}
+                    <span>Copiar URL Compartible</span>
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
             <div className="pt-2 flex items-center justify-between p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl">
               <div>
@@ -593,7 +601,7 @@ export default function ClientPortalBuilder() {
               className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer"
             >
               <Save size={16} />
-              <span>{isSaving ? 'Guardando...' : (selectedPortalId ? 'Actualizar Portal' : 'Guardar Portal Cliente')}</span>
+              <span>{isSaving ? 'Generando Token...' : (selectedPortalId ? 'Generar Nuevo Token & Actualizar' : 'Crear Portal Seguro')}</span>
             </button>
           </div>
 
@@ -604,7 +612,7 @@ export default function ClientPortalBuilder() {
           )}
         </div>
 
-        {/* Right Column: Existing Portals List & Link Sharing */}
+        {/* Right Column: Existing Portals List */}
         <div className="space-y-6">
           <div className="bg-surface rounded-2xl border border-line p-6 shadow-2xs space-y-4">
             <div className="flex items-center justify-between border-b border-line pb-3">
@@ -660,14 +668,6 @@ export default function ClientPortalBuilder() {
                           }`}
                         >
                           Cargar / Editar
-                        </button>
-
-                        <button
-                          onClick={() => copyShareLink(p.id)}
-                          className="py-1.5 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold flex items-center gap-1 hover:bg-emerald-700 transition-colors cursor-pointer"
-                        >
-                          {copiedId === p.id ? <Check size={12} /> : <Copy size={12} />}
-                          <span>Enlace</span>
                         </button>
 
                         <a

@@ -86,6 +86,17 @@ async function startServer() {
     }
   });
 
+  // Client Portal & Document Verification Endpoints
+  app.all('/api/get-client-portal', async (req, res) => {
+    const { getClientPortal } = await import('./functions/src/index');
+    await getClientPortal(req, res);
+  });
+
+  app.all('/api/verify-document', async (req, res) => {
+    const { verifyDocument } = await import('./functions/src/index');
+    await verifyDocument(req, res);
+  });
+
   // Vite middleware in development mode
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
