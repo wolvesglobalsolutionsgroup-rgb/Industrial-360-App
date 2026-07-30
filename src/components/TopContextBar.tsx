@@ -23,7 +23,8 @@ export default function TopContextBar({
     currentProject, 
     setCurrentProject, 
     currentOrganization, 
-    userRole 
+    userRole, 
+    setUserRole 
   } = useProject();
 
   const { 
@@ -176,15 +177,43 @@ export default function TopContextBar({
         </div>
 
         {/* User Simulation Role Badge */}
-        {/* Verified Role Badge */}
         <div className="relative hidden xl:block">
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-300 rounded-xl text-xs font-semibold"
-            title="Rol de usuario verificado mediante token JWT"
+          <button
+            onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40 rounded-xl text-xs font-semibold transition-colors"
+            title="Simular rol de usuario en plataforma"
           >
             <UserCheck size={14} className="text-amber-600 dark:text-amber-400" />
-            <span>Rol JWT: {ROLE_LABELS[userRole] || userRole}</span>
-          </div>
+            <span>Rol: {ROLE_LABELS[userRole] || userRole}</span>
+            <ChevronDown size={13} className="text-amber-600 dark:text-amber-400" />
+          </button>
+
+          {isRoleMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={() => setIsRoleMenuOpen(false)}></div>
+              <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-xl z-30 py-2">
+                <div className="px-3.5 py-1.5 text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                  Simular Rol de Usuario
+                </div>
+                {(Object.keys(ROLE_LABELS) as UserRole[]).map((roleKey) => (
+                  <button
+                    key={roleKey}
+                    onClick={() => {
+                      setUserRole(roleKey);
+                      setIsRoleMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-2 text-xs transition-colors ${
+                      userRole === roleKey 
+                        ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300 font-bold' 
+                        : 'text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {ROLE_LABELS[roleKey]}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
 

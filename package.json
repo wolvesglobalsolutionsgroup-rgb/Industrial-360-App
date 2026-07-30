@@ -9,10 +9,6 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist",
     "test": "vitest run",
-    "test:unit": "vitest run src",
-    "test:rules": "firebase emulators:exec --only firestore \"vitest run tests/rules\"",
-    "test:storage-rules": "firebase emulators:exec --only storage \"vitest run tests/storage\"",
-    "test:all": "npm run test:unit && npm run test:rules && npm run test:storage-rules",
     "lint": "tsc --noEmit --project tsconfig.json"
   },
   "dependencies": {

@@ -6,35 +6,15 @@ import {
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useEffect, useState } from 'react';
 import firebaseConfig from '../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const storage = getStorage(app);
-export const functionsInstance = getFunctions(app);
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
-
-/**
- * Invoca la Cloud Function 'ensureOwnClaims' para sincronizar Custom Claims
- * a partir de /users/{uid} y refresca el ID Token.
- */
-export async function ensureUserClaimsAndRefreshToken(user: any) {
-  if (!user || user.isAnonymous) return;
-  try {
-    const ensureFn = httpsCallable(functionsInstance, 'ensureOwnClaims');
-    await ensureFn();
-    await user.getIdTokenResult(true);
-  } catch (err: any) {
-    console.warn('Sincronización de Custom Claims (ensureOwnClaims):', err?.message || err);
-    try {
-      await user.getIdTokenResult(true);
-    } catch {}
-  }
-}
 
 const DEMO_USER_DEFAULT = {
   uid: 'demo-operator-360',
@@ -66,16 +46,10 @@ export function getAuthUser() {
 
 export async function loginWithEmail(email: string, password: string) {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    if (userCredential.user) {
-      await ensureUserClaimsAndRefreshToken(userCredential.user);
-    }
+    await signInWithEmailAndPassword(auth, email, password);
   } catch (error: any) {
     if (error.code === 'auth/user-not-found') {
-      const newUserCredential = await createUserWithEmailAndPassword(auth, email, password);
-      if (newUserCredential.user) {
-        await ensureUserClaimsAndRefreshToken(newUserCredential.user);
-      }
+      await createUserWithEmailAndPassword(auth, email, password);
       return;
     }
     if (
@@ -114,16 +88,12 @@ export async function loginAnonymously() {
 
 export const loginWithGoogle = async () => {
   try {
-    const userCredential = await signInWithPopup(auth, googleProvider);
-    if (userCredential.user) {
-      await ensureUserClaimsAndRefreshToken(userCredential.user);
-    }
+    await signInWithPopup(auth, googleProvider);
   } catch (error: any) {
     console.warn("Error signing in with Google, falling back to local demo", error);
     setLocalUser(DEMO_USER_DEFAULT);
   }
 };
-
 
 export const logout = async () => {
   try {
