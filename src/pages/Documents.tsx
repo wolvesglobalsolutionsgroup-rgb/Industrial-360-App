@@ -5,6 +5,8 @@ import { db, storage, auth, handleFirestoreError, OperationType } from '../fireb
 import { FolderOpen, Upload, FileText, File, Image as ImageIcon, Trash2, Search, Filter, Loader2, Download as DownloadIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useProject } from '../ProjectContext';
+import { documentsRepo } from '../lib/repositories';
+
 
 export default function Documents() {
   const { currentProject, currentOrganization } = useProject();
@@ -21,17 +23,8 @@ export default function Documents() {
       return;
     }
 
-    const isSingle = currentProject.id !== 'all';
     const orgId = currentOrganization?.id || 'semax_pino';
-    const docPath = isSingle
-      ? `organizations/${orgId}/projects/${currentProject.id}/documents`
-      : null;
-    const q = docPath
-      ? query(collection(db, docPath))
-      : query(collectionGroup(db, 'documents'), where('orgId', '==', orgId));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsubscribe = documentsRepo.subscribe(orgId, currentProject.id, (docs) => {
       setDocuments(docs);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'documents');
@@ -76,9 +69,8 @@ export default function Documents() {
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-          await addDoc(collection(db, 'documents'), {
-            projectId: currentProject.id,
-            orgId: currentOrganization?.id || 'org-default',
+          await documentsRepo.create(currentOrganization?.id || 'semax_pino', currentProject.id, {
+            title: file.name,
             name: file.name,
             size: file.size,
             type: file.type || 'application/octet-stream',
@@ -105,7 +97,9 @@ export default function Documents() {
   const handleDelete = async (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar este documento del repositorio?')) {
       try {
-        await deleteDoc(doc(db, 'documents', id));
+        const orgId = currentOrganization?.id || 'semax_pino';
+        const projId = currentProject?.id || 'PROJ-DEFAULT';
+        await documentsRepo.delete(orgId, projId, id);
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `documents/${id}`);
       }

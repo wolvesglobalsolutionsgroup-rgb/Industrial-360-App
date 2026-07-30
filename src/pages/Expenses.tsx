@@ -4,6 +4,8 @@ import {
 } from 'firebase/firestore';
 import { db, getAuthUser, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { expensesRepo } from '../lib/repositories';
+
 import { 
   Plus, Search, DollarSign, TrendingUp, Camera, Upload, Download, Edit2, Trash2, 
   FileText, Loader2, Calendar, Package, Users, Wrench, Building2, Car, Truck, 
@@ -89,19 +91,8 @@ export default function Expenses() {
   // Subscribe to Firestore expenses
   useEffect(() => {
     setIsLoading(true);
-    const isSingle = currentProject && currentProject.id !== 'all';
-    const expPath = isSingle
-      ? `organizations/${orgId}/projects/${currentProject.id}/expenses`
-      : null;
-    const q = expPath
-      ? query(collection(db, expPath))
-      : query(collectionGroup(db, 'expenses'), where('orgId', '==', orgId));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const exps = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      })) as ExpenseItem[];
+    const projId = currentProject?.id || 'all';
+    const unsubscribe = expensesRepo.subscribe(orgId, projId, (exps: any) => {
       setExpenses(exps);
       setIsLoading(false);
     }, (error) => {
@@ -194,18 +185,11 @@ export default function Expenses() {
     };
 
     try {
-      const expCol = collection(db, `organizations/${orgId}/projects/${targetProjectId}/expenses`);
       if (editingExpense) {
-        await updateDoc(doc(db, `organizations/${orgId}/projects/${targetProjectId}/expenses`, editingExpense.id), {
-          ...expenseData,
-          orgId,
-          projectId: targetProjectId,
-        });
+        await expensesRepo.update(orgId, targetProjectId, editingExpense.id, expenseData);
       } else {
-        await addDoc(expCol, {
+        await expensesRepo.create(orgId, targetProjectId, {
           ...expenseData,
-          orgId,
-          projectId: targetProjectId,
           ownerId: user?.uid || 'anonymous',
           createdAt: new Date().toISOString()
         });
@@ -224,7 +208,7 @@ export default function Expenses() {
   const handleDeleteExpense = async (id: string, vendor: string) => {
     if (window.confirm(`¿Estás seguro de eliminar el registro de gasto de "${vendor}"?`)) {
       try {
-        await deleteDoc(doc(db, `organizations/${orgId}/projects/${targetProjectId}/expenses`, id));
+        await expensesRepo.delete(orgId, targetProjectId, id);
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `expenses/${id}`);
       }

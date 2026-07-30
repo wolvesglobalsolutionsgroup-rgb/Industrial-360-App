@@ -46,7 +46,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       setPtwRequired(initialData.ptwRequired ?? true);
       setRestrictionNotes(initialData.restrictionNotes || '');
     } else {
-      setWbsCode(`WBS-${Math.floor(10 + Math.random() * 90)}.${Math.floor(1 + Math.random() * 9)}`);
+      setWbsCode(`WBS-1.1.${Date.now().toString().slice(-3)}`);
       setTitle('');
       setSpecialty('Mecánica');
       setUnit('m');

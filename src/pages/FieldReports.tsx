@@ -20,6 +20,8 @@ import {
 } from '../components/ui';
 import StatCard from '../components/common/StatCard';
 import PageHeader from '../components/common/PageHeader';
+import { fieldReportsRepo, tasksRepo } from '../lib/repositories';
+
 import { GPSPicker, FieldMap } from '../components/field';
 
 export interface FieldReportItem {
@@ -98,30 +100,14 @@ export default function FieldReports() {
     const isSingle = currentProject.id !== 'all';
     const orgId = currentOrganization?.id || 'semax_pino';
     
-    // Fetch WBS tasks for AI correlation
-    const tasksPath = isSingle
-      ? `organizations/${orgId}/projects/${currentProject.id}/tasks`
-      : null;
-    const qTasks = tasksPath
-      ? query(collection(db, tasksPath))
-      : query(collectionGroup(db, 'tasks'), where('orgId', '==', orgId));
-
-    const unsubTasks = onSnapshot(qTasks, (snapshot) => {
-      setTasks(snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'tasks');
+    // Fetch WBS tasks for AI correlation via Repo
+    const unsubTasks = tasksRepo.subscribe(orgId, currentProject.id, (taskList) => {
+      setTasks(taskList);
     });
 
-    // Fetch field reports history
-    const repPath = isSingle
-      ? `organizations/${orgId}/projects/${currentProject.id}/field_reports`
-      : null;
-    const qReports = repPath
-      ? query(collection(db, repPath))
-      : query(collectionGroup(db, 'field_reports'), where('orgId', '==', orgId));
-
-    const unsubReports = onSnapshot(qReports, (snapshot) => {
-      const docs = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })) as FieldReportItem[];
+    // Fetch field reports history via Repo
+    const unsubReports = fieldReportsRepo.subscribe(orgId, currentProject.id, (reportList) => {
+      const docs = reportList as unknown as FieldReportItem[];
       setReports(docs.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()));
       setIsLoadingReports(false);
     }, (error) => {
@@ -298,16 +284,13 @@ Responde de forma ejecutiva, concisa y profesional.`;
     };
 
     try {
+      const targetOrgId = currentOrganization?.id || 'semax_pino';
       if (!navigator.onLine) {
         await queueOfflineOperation('field_reports', 'create', reportData);
         alert("Guardado Offline: El reporte se sincronizará automáticamente al conectarse a la red.");
       } else {
         try {
-          await addDoc(collection(db, 'field_reports'), {
-            ...reportData,
-            createdAt: new Date().toISOString(),
-            timestamp: serverTimestamp()
-          });
+          await fieldReportsRepo.create(targetOrgId, currentProject?.id || 'PROJ-DEFAULT', reportData);
         } catch (err) {
           console.warn("Fallo envio online, guardando en cola offline:", err);
           await queueOfflineOperation('field_reports', 'create', reportData);

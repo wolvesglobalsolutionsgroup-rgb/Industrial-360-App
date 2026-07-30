@@ -23,6 +23,7 @@ import { doc, onSnapshot, collection, query, where, addDoc, collectionGroup } fr
 import { db } from '../firebase';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ClientPortalConfig } from './ClientPortalBuilder';
+import { tasksRepo, valuationsRepo, sihoPtwRepo, weldJointsRepo, fieldReportsRepo } from '../lib/repositories';
 
 export default function ClientPortalView() {
   const { portalId } = useParams<{ portalId: string }>();
@@ -102,45 +103,34 @@ export default function ClientPortalView() {
     const projIds = portal.linkedProjectIds;
     const portalOrgId = portal.orgId || 'semax_pino';
 
-    // Tasks Query
-    const tasksQ = query(collectionGroup(db, 'tasks'), where('orgId', '==', portalOrgId));
-    const unsubTasks = onSnapshot(tasksQ, (snap) => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Tasks Subscription via Repo
+    const unsubTasks = tasksRepo.subscribe(portalOrgId, 'all', (all) => {
       setTasks(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
-    }, err => console.warn('Tasks query error:', err));
+    });
 
-    // Valuations Query - Filtered for Aprobado status only
-    const valsQ = query(collectionGroup(db, 'valuations'), where('orgId', '==', portalOrgId));
-    const unsubVals = onSnapshot(valsQ, (snap) => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Valuations Subscription via Repo - Filtered for Aprobado status only
+    const unsubVals = valuationsRepo.subscribe(portalOrgId, 'all', (all) => {
       const projectVals = all.filter((item: any) => !item.projectId || projIds.includes(item.projectId));
-      // Only show released & approved valuations to the client
       setValuations(projectVals.filter((v: any) => !v.status || v.status === 'Aprobado' || v.status === 'Aprobado ROE' || v.status === 'Firmado Final'));
-    }, err => console.warn('Valuations query error:', err));
+    });
 
-    // PTW SIHO Query - Filtered for active, approved, or closed permits
-    const ptwQ = query(collectionGroup(db, 'siho_ptw'), where('orgId', '==', portalOrgId));
-    const unsubPtw = onSnapshot(ptwQ, (snap) => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // PTW SIHO Subscription via Repo - Filtered for active, approved, or closed permits
+    const unsubPtw = sihoPtwRepo.subscribe(portalOrgId, 'all', (all) => {
       const projectPtw = all.filter((item: any) => !item.projectId || projIds.includes(item.projectId));
       setPtwList(projectPtw.filter((p: any) => !p.status || p.status === 'activo' || p.status === 'aprobado' || p.status === 'cerrado' || p.status === 'Cerrado'));
-    }, err => console.warn('PTW query error:', err));
+    });
 
-    // Weld Joints NDT Query - Filtered for accepted/inspected joints
-    const weldsQ = query(collectionGroup(db, 'weld_joints'), where('orgId', '==', portalOrgId));
-    const unsubWelds = onSnapshot(weldsQ, (snap) => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Weld Joints NDT Subscription via Repo - Filtered for accepted/inspected joints
+    const unsubWelds = weldJointsRepo.subscribe(portalOrgId, 'all', (all) => {
       const projectWelds = all.filter((item: any) => !item.projectId || projIds.includes(item.projectId));
-      // Exclude rejected or incomplete drafts from client portal unless accepted
       setWeldJoints(projectWelds.filter((w: any) => !w.status || w.status === 'Aprobado' || w.ndtStatus === 'Aprobado' || w.ndtStatus === 'Aprobada' || w.vtStatus === 'Aprobado'));
-    }, err => console.warn('Welds query error:', err));
+    });
 
-    // Field Reports Query
-    const reportsQ = query(collectionGroup(db, 'field_reports'), where('orgId', '==', portalOrgId));
-    const unsubReports = onSnapshot(reportsQ, (snap) => {
-      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Field Reports Subscription via Repo
+    const unsubReports = fieldReportsRepo.subscribe(portalOrgId, 'all', (all) => {
       setFieldReports(all.filter((item: any) => !item.projectId || projIds.includes(item.projectId)));
-    }, err => console.warn('Reports query error:', err));
+    });
+
 
     // Dossiers Query
     const dossiersQ = query(collectionGroup(db, 'dossier_compilations'), where('orgId', '==', portalOrgId));

@@ -7,6 +7,8 @@ import {
 import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { generateRegulatoryCode } from '../lib/regulatoryIdsClient';
+
 import { queueOfflineOperation } from '../lib/offlineSync';
 import jsPDF from 'jspdf';
 
@@ -167,7 +169,8 @@ export default function EnvironmentalManagement() {
   const [newMitigation, setNewMitigation] = useState('');
 
   // Form States - Manifest
-  const [newManifestNo, setNewManifestNo] = useState(`RASDA-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`);
+  const [newManifestNo, setNewManifestNo] = useState(`RASDA-${new Date().getFullYear()}-${Date.now().toString().slice(-5)}`);
+
   const [newWasteType, setNewWasteType] = useState<RasdaManifest['wasteType']>('Aceite Usado');
   const [newVolume, setNewVolume] = useState<number>(208);
   const [newUnit, setNewUnit] = useState<RasdaManifest['unit']>('Litros');
@@ -271,7 +274,7 @@ export default function EnvironmentalManagement() {
       transporterName: newTransporter,
       rasdaTransporter: newRasdaTransporter,
       disposalSite: 'Planta de Tratamiento & Disposición Autorizada PDVSA',
-      disposalCertificateNo: `CERT-RASDA-${Math.floor(10000 + Math.random() * 90000)}`,
+      disposalCertificateNo: `CERT-RASDA-${Date.now().toString().slice(-5)}`,
       dispatchDate: new Date().toISOString().split('T')[0],
       status: 'En Tránsito'
     };

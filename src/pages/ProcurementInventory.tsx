@@ -341,7 +341,7 @@ export default function ProcurementInventory() {
   });
 
   const [newReceipt, setNewReceipt] = useState({
-    itemCode: `MAT-${Math.floor(100 + Math.random() * 900)}`,
+    itemCode: `MAT-${Date.now().toString().slice(-4)}`,
     poId: '',
     description: '',
     category: 'Tubería' as const,
@@ -493,7 +493,7 @@ export default function ProcurementInventory() {
 
     setIsReceiptModalOpen(false);
     setNewReceipt({
-      itemCode: `MAT-${Math.floor(100 + Math.random() * 900)}`,
+      itemCode: `MAT-${Date.now().toString().slice(-4)}`,
       poId: '',
       description: '',
       category: 'Tubería',
@@ -931,7 +931,7 @@ export default function ProcurementInventory() {
                       <button
                         onClick={() => {
                           setNewReceipt({
-                            itemCode: `MAT-${Math.floor(100 + Math.random() * 900)}`,
+                            itemCode: `MAT-${Date.now().toString().slice(-4)}`,
                             poId: po.poCode,
                             description: po.itemDescription,
                             category: 'Tubería',

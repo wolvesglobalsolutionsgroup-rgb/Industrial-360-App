@@ -8,6 +8,8 @@ import { callGeminiProxy } from '../lib/geminiProxy';
 import { collection, query, onSnapshot, where, addDoc, serverTimestamp, orderBy, collectionGroup } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { fieldReportsRepo, routesRepo } from '../lib/repositories';
+
 import { Card, CardHeader, CardContent, Button, StatusBadge, Input } from '../components/ui';
 import PageHeader from '../components/common/PageHeader';
 import StatCard from '../components/common/StatCard';
@@ -76,16 +78,8 @@ export default function LogisticsMap() {
     const projId = currentProject?.id || 'all';
     const orgId = currentOrganization?.id || 'semax_pino';
 
-    // Query field reports
-    const repPath = projId !== 'all'
-      ? `organizations/${orgId}/projects/${projId}/field_reports`
-      : null;
-    const qReports = repPath
-      ? query(collection(db, repPath))
-      : query(collectionGroup(db, 'field_reports'), where('orgId', '==', orgId));
-
-    const unsubReports = onSnapshot(qReports, (snapshot) => {
-      const reportsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Query field reports via Repo
+    const unsubReports = fieldReportsRepo.subscribe(orgId, projId, (reportsData) => {
       setFieldReports(reportsData);
       setIsLoadingData(false);
     }, (err) => {
@@ -93,25 +87,15 @@ export default function LogisticsMap() {
       setIsLoadingData(false);
     });
 
-    // Query saved routes
-    const routesPath = projId !== 'all'
-      ? `organizations/${orgId}/projects/${projId}/routes`
-      : null;
-    const qRoutes = routesPath
-      ? query(collection(db, routesPath))
-      : query(collectionGroup(db, 'routes'), where('orgId', '==', orgId));
-
-    const unsubRoutes = onSnapshot(qRoutes, (snapshot) => {
-      const routesData = snapshot.docs.map(doc => {
-        const d = doc.data();
-        return {
-          id: doc.id,
-          name: d.name || 'Ruta Registrada',
-          color: '#ff6b00',
-          path: d.path || [],
-          distanceKm: d.distanceKm || 0
-        } as MapRouteData;
-      });
+    // Query saved routes via Repo
+    const unsubRoutes = routesRepo.subscribe(orgId, projId, (routesDocs) => {
+      const routesData = routesDocs.map(d => ({
+        id: d.id,
+        name: d.name || 'Ruta Registrada',
+        color: '#ff6b00',
+        path: d.path || [],
+        distanceKm: d.distanceKm || 0
+      } as MapRouteData));
       setSavedRoutes(routesData);
     }, (err) => {
       console.warn("Error fetching routes for map:", err);
@@ -161,14 +145,14 @@ export default function LogisticsMap() {
       if (livePath.length >= 2) {
         // Automatically save live route
         const autoName = `Recorrido GPS - ${new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`;
-        addDoc(collection(db, 'routes'), {
+        const targetOrgId = currentOrganization?.id || 'semax_pino';
+        const targetProjId = currentProject?.id || 'PROJ-DEFAULT';
+        routesRepo.create(targetOrgId, targetProjId, {
           name: autoName,
-          projectId: currentProject?.id || 'all',
           distanceKm: Number(liveDistance.toFixed(3)),
           path: livePath,
           startTime: livePath[0]?.timestamp || Date.now(),
           endTime: Date.now(),
-          createdAt: new Date().toISOString()
         }).catch(err => console.error("Error saving live route:", err));
       }
     } else {

@@ -258,3 +258,6 @@ export const ensureOwnClaims = functions.https.onCall(async (_data: any, context
     message: `Claims asegurados exitosamente para ${uid}: orgId=${orgId}, role=${role}`,
   };
 });
+
+export { issueRegulatoryCode } from './regulatoryIds';
+

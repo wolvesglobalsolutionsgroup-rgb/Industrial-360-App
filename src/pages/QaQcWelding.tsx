@@ -9,6 +9,8 @@ import {
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, collectionGroup } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { weldJointsRepo } from '../lib/repositories';
+
 import IsometricViewer from '../components/engineering/IsometricViewer';
 import jsPDF from 'jspdf';
 import { drawQualityHeader, drawPhotoEvidences, drawQualityFooter, cleanPdfText } from '../lib/pdfQualityUtils';
@@ -324,16 +326,7 @@ export default function QaQcWelding() {
   useEffect(() => {
     if (!currentProject) return;
 
-    const isSingle = currentProject.id !== 'all';
-    const weldsPath = isSingle
-      ? `organizations/${orgId}/projects/${currentProject.id}/weld_joints`
-      : null;
-    const q = weldsPath
-      ? query(collection(db, weldsPath))
-      : query(collectionGroup(db, 'weld_joints'), where('orgId', '==', orgId));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WeldJoint));
+    const unsubscribe = weldJointsRepo.subscribe(orgId, currentProject.id, (items: any) => {
       setJointsList(items);
       if (items.length > 0 && !selectedJointForReport) {
         setSelectedJointForReport(items[0]);
@@ -382,7 +375,7 @@ export default function QaQcWelding() {
         createdAt: serverTimestamp()
       };
 
-      await addDoc(collection(db, 'weld_joints'), jointData);
+      await weldJointsRepo.create(orgId, currentProject.id, jointData);
       setIsAddJointModal(false);
       resetJointForm();
     } catch (error) {

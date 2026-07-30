@@ -185,8 +185,8 @@ export default function InstrumentationControl() {
     const nextYear = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
     const newObj: Omit<InstrumentLoop, 'id'> = {
-      tagNo: tagNo || `${instrumentType}-10${Math.floor(Math.random() * 90)}`,
-      loopTag: loopTag || `LOOP-10${Math.floor(Math.random() * 90)} (${description || 'Lazo de Control'})`,
+      tagNo: tagNo || `${instrumentType}-10${Date.now().toString().slice(-2)}`,
+      loopTag: loopTag || `LOOP-10${Date.now().toString().slice(-2)} (${description || 'Lazo de Control'})`,
       pidNumber: pidNumber || 'P&ID-SJ-101-REV1',
       instrumentType,
       description,

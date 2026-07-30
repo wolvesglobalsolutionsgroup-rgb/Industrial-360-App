@@ -1,30 +1,33 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, addDoc, updateDoc, doc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../firebase';
+import { handleFirestoreError, OperationType } from '../firebase';
 import { PackagePlus, Package, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
 import { Button, Card, CardContent, Input, Dialog } from '../components/ui';
+import { inventoryRepo } from '../lib/repositories';
+import { useProject } from '../ProjectContext';
 
 export default function Inventory() {
+  const { currentProject, currentOrganization } = useProject();
   const [items, setItems] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', unit: 'kg', quantity: '' });
 
+  const orgId = currentOrganization?.id || 'semax_pino';
+  const projectId = currentProject?.id || 'PROJ-DEFAULT';
+
   useEffect(() => {
-    const q = query(collection(db, 'inventory'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const inv = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const unsubscribe = inventoryRepo.subscribe(orgId, projectId, (inv) => {
       setItems(inv);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'inventory');
     });
     return () => unsubscribe();
-  }, []);
+  }, [orgId, projectId]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'inventory'), {
-        projectId: 'default-project',
+      await inventoryRepo.create(orgId, projectId, {
+        itemCode: `MAT-${Date.now().toString().slice(-4)}`,
         name: newItem.name,
         unit: newItem.unit,
         quantity: Number(newItem.quantity),
@@ -40,7 +43,7 @@ export default function Inventory() {
   const updateQuantity = async (itemId: string, currentQty: number, change: number) => {
     const newQty = Math.max(0, currentQty + change);
     try {
-      await updateDoc(doc(db, 'inventory', itemId), {
+      await inventoryRepo.update(orgId, projectId, itemId, {
         quantity: newQty,
         lastUpdated: new Date().toISOString()
       });

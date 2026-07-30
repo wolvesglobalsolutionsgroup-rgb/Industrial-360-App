@@ -18,6 +18,8 @@ import {
 } from '../components/ui';
 import StatCard from '../components/common/StatCard';
 import PageHeader from '../components/common/PageHeader';
+import { valuationsRepo, fieldReportsRepo } from '../lib/repositories';
+
 
 export interface SignatureInfo {
   signedBy: string;
@@ -92,17 +94,8 @@ export default function Valuations() {
 
     setIsLoading(true);
 
-    const isSingle = currentProject.id !== 'all';
-    const valPath = isSingle
-      ? `organizations/${orgId}/projects/${currentProject.id}/valuations`
-      : null;
-    const valQuery = valPath
-      ? query(collection(db, valPath))
-      : query(collectionGroup(db, 'valuations'), where('orgId', '==', orgId));
-
-    const unsubscribe = onSnapshot(valQuery, (snapshot) => {
-      const vals = snapshot.docs.map(docSnap => ({ id: docSnap.id, ...docSnap.data() })) as ValuationItem[];
-      setValuations(vals.sort((a, b) => b.number - a.number));
+    const unsubscribe = valuationsRepo.subscribe(orgId, currentProject.id, (vals) => {
+      setValuations((vals as unknown as ValuationItem[]).sort((a, b) => b.number - a.number));
       setIsLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'valuations');
@@ -110,17 +103,9 @@ export default function Valuations() {
     });
 
     // Fetch photos from field reports of this project
-    const repPath = isSingle
-      ? `organizations/${orgId}/projects/${currentProject.id}/field_reports`
-      : null;
-    const reportQuery = repPath
-      ? query(collection(db, repPath))
-      : query(collectionGroup(db, 'field_reports'), where('orgId', '==', orgId));
-
-    const unsubReports = onSnapshot(reportQuery, (snapshot) => {
+    const unsubReports = fieldReportsRepo.subscribe(orgId, currentProject.id, (reports) => {
       const photosList: { url: string; date?: string; note?: string }[] = [];
-      snapshot.docs.forEach(docSnap => {
-        const data = docSnap.data();
+      reports.forEach(data => {
         if (data.imagePreview) {
           photosList.push({
             url: data.imagePreview,
@@ -246,10 +231,8 @@ export default function Valuations() {
         }
       };
 
-      await addDoc(
-        collection(db, 'organizations', orgId, 'projects', currentProject.id, 'valuations'),
-        { ...newDocData, orgId, projectId: currentProject.id }
-      );
+      await valuationsRepo.create(orgId, currentProject.id, newDocData);
+
       
       setIsModalOpen(false);
       setNewValuation({
@@ -278,7 +261,6 @@ export default function Valuations() {
     setIsSubmitting(true);
     try {
       const targetOrgId = valuation.orgId || orgId;
-      const valRef = doc(db, 'organizations', targetOrgId, 'projects', valuation.projectId, 'valuations', valuation.id);
       let nextStatus: ValuationItem['status'] = valuation.status;
       const updatedSignatures = { ...(valuation.signatures || {}) };
 
@@ -305,7 +287,7 @@ export default function Valuations() {
         };
       }
 
-      await updateDoc(valRef, {
+      await valuationsRepo.update(targetOrgId, valuation.projectId, valuation.id, {
         status: nextStatus,
         signatures: updatedSignatures
       });

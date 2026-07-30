@@ -274,7 +274,7 @@ export default function AstForm({ onSuccess, onCancel }: AstFormProps) {
     }
 
     try {
-      const astCode = `AST-HOH02-${Math.floor(1000 + Math.random() * 9000)}`;
+      const astCode = `AST-HOH02-${Date.now().toString().slice(-5)}`;
       const astData: Omit<AstRecord, 'id'> = {
         code: astCode,
         title: title || 'Análisis de Riesgo para Trabajos de Integridad Mecánica',

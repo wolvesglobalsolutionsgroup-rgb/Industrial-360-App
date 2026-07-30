@@ -7,6 +7,9 @@ import {
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, updateDoc, doc, collectionGroup } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { sihoPtwRepo } from '../lib/repositories';
+import { generateRegulatoryCode } from '../lib/regulatoryIdsClient';
+
 import AstForm from '../components/siho/AstForm';
 
 interface GasReadings {
@@ -167,16 +170,7 @@ export default function SihoPtw() {
   useEffect(() => {
     if (!currentProject) return;
 
-    const isSingle = currentProject.id !== 'all';
-    const ptwPath = isSingle
-      ? `organizations/${orgId}/projects/${currentProject.id}/siho_ptw`
-      : null;
-    const q = ptwPath
-      ? query(collection(db, ptwPath))
-      : query(collectionGroup(db, 'siho_ptw'), where('orgId', '==', orgId));
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PTW));
+    const unsubscribe = sihoPtwRepo.subscribe(orgId, currentProject.id, (items: any) => {
       setPtwList(items);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'siho_ptw');
@@ -206,12 +200,12 @@ async function generateSha256Hash(dataString: string): Promise<string> {
     }
 
     try {
-      const ptwCode = `PTS-${newType.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const ptwCode = await generateRegulatoryCode(orgId, currentProject.id, `PTS-${newType.substring(0, 3).toUpperCase()}`);
       const signaturePayload = `${ptwCode}|${currentProject.id}|${newSupervisor || 'Ing. Manuel Silva'}|${validFrom}|${validTo}|H2S:${h2s}|LEL:${lel}|O2:${o2}|CO:${co}|VOC:${voc}|SO2:${so2}|${Date.now()}`;
       const digitalSignatureHash = await generateSha256Hash(signaturePayload);
 
-      const ptwData: Omit<PTW, 'id'> = {
-        projectId: currentProject.id,
+      const ptwData = {
+        ptwCode,
         code: ptwCode,
         type: newType,
         location: newLocation || 'Planta de Compresión H-2 / Módulo 4',
@@ -235,11 +229,9 @@ async function generateSha256Hash(dataString: string): Promise<string> {
         },
         eppList: selectedEpp,
         precautions: selectedPrecautions,
-        createdAt: serverTimestamp()
       };
 
-      const targetPath = `organizations/${orgId}/projects/${currentProject.id}/siho_ptw`;
-      await addDoc(collection(db, targetPath), { ...ptwData, orgId });
+      await sihoPtwRepo.create(orgId, currentProject.id, ptwData);
 
       setIsModalOpen(false);
       resetForm();
