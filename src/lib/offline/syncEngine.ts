@@ -11,6 +11,7 @@ import {
   clearLocalDrafts 
 } from './outbox';
 import { evaluateConflictPolicy, determineConflictStrategy } from './conflictPolicy';
+import { logger } from '../logger';
 
 export interface SyncStats {
   isOnline: boolean;
@@ -121,7 +122,7 @@ export async function flushOutbox(
         const idempotencySnap = await getDoc(idempotencyRef);
 
         if (idempotencySnap.exists()) {
-          console.log(`[Idempotency Engine] Operación ${item.operationId} ya procesada anteriormente. Omitiendo duplicado.`);
+          logger.info(`[Idempotency Engine] Operación ${item.operationId} ya procesada anteriormente. Omitiendo duplicado.`);
           await offlineDb.syncLog.add({
             operationId: item.operationId,
             action: item.operationType,
@@ -161,7 +162,7 @@ export async function flushOutbox(
 
         if (!conflictResult.canSync) {
           // BLOCKING conflict!
-          console.warn(`[SyncEngine] Conflict BLOQUEADO para operación ${item.operationId}: ${conflictResult.reason}`);
+          logger.warn(`[SyncEngine] Conflict BLOQUEADO para operación ${item.operationId}: ${conflictResult.reason}`);
           await offlineDb.outbox.update(item.id, {
             syncStatus: 'conflict_blocked',
             errorMessage: conflictResult.reason,
@@ -228,7 +229,7 @@ export async function flushOutbox(
         await removeOutboxItem(item.id);
         syncedCount++;
       } catch (err: any) {
-        console.error(`Error procesando outbox item ${item.operationId}:`, err);
+        logger.error(`Error procesando outbox item ${item.operationId}:`, err);
         failedCount++;
         await offlineDb.outbox.update(item.id, {
           syncStatus: 'failed',
@@ -338,7 +339,7 @@ export async function queueOfflineOperation(
   });
 
   if (isBrowserOnline()) {
-    flushOutbox().catch(console.error);
+    flushOutbox().catch(err => logger.error('Error auto-flushing outbox:', err));
   }
 
   return {
@@ -393,7 +394,7 @@ export async function saveReportOffline(reportData: Omit<PendingReport, 'id' | '
   });
 
   if (isBrowserOnline()) {
-    flushOutbox().catch(console.error);
+    flushOutbox().catch(err => logger.error('Error auto-flushing outbox on saveReportOffline:', err));
   }
 
   return tempId;
@@ -421,7 +422,7 @@ export async function saveValuationOffline(valuationData: Omit<PendingValuation,
   });
 
   if (isBrowserOnline()) {
-    flushOutbox().catch(console.error);
+    flushOutbox().catch(err => logger.error('Error auto-flushing outbox on saveValuationOffline:', err));
   }
 
   return tempId;
@@ -448,7 +449,7 @@ export async function saveRouteOffline(routeData: Omit<PendingRoute, 'id' | 'tem
   });
 
   if (isBrowserOnline()) {
-    flushOutbox().catch(console.error);
+    flushOutbox().catch(err => logger.error('Error auto-flushing outbox on saveRouteOffline:', err));
   }
 
   return tempId;
@@ -483,7 +484,7 @@ export function useOfflineStatus() {
         await clearLocalDrafts();
       }
     } catch (err) {
-      console.error('Error flushing offline outbox queue:', err);
+      logger.error('Error flushing offline outbox queue:', err);
     } finally {
       setIsSyncing(false);
     }
@@ -539,15 +540,15 @@ export function initOfflineAutoSync() {
   if (typeof window === 'undefined') return;
 
   window.addEventListener('online', () => {
-    console.log('[IC360 PWA] Reconexión detectada. Procesando cola outbox...');
-    flushOutbox().catch(console.error);
+    logger.info('[IC360 PWA] Reconexión detectada. Procesando cola outbox...');
+    flushOutbox().catch(err => logger.error('Error flushing outbox on reconnect:', err));
   });
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'IC360_TRIGGER_SYNC') {
-        console.log('[IC360 Service Worker] Mensaje de sincronización recibido.');
-        flushOutbox().catch(console.error);
+        logger.info('[IC360 Service Worker] Mensaje de sincronización recibido.');
+        flushOutbox().catch(err => logger.error('Error flushing outbox on SW message:', err));
       }
     });
   }

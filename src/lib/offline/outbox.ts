@@ -1,5 +1,6 @@
 import { offlineDb, OutboxItem, LocalDraft } from './dexieDb';
 import { determineConflictStrategy, ConflictStrategy } from './conflictPolicy';
+import { logger } from '../logger';
 
 /**
  * Generates RFC4122 compliant UUID v4 for operationId idempotency
@@ -104,7 +105,7 @@ export async function getPendingOutboxOperations(): Promise<OutboxItem[]> {
   try {
     return await offlineDb.outbox.where('syncStatus').equals('pending').or('syncStatus').equals('failed').toArray();
   } catch (err) {
-    console.warn('Error reading outbox from Dexie:', err);
+    logger.warn('Error reading outbox from Dexie:', err);
     return [];
   }
 }

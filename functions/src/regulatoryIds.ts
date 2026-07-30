@@ -1,5 +1,6 @@
 import * as functions from 'firebase-functions/v1';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { logger } from './logger';
 
 export const issueRegulatoryCode = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
   // (a) requireAuth
@@ -75,7 +76,7 @@ export const issueRegulatoryCode = functions.https.onCall(async (data: any, cont
       timestamp: FieldValue.serverTimestamp(),
     });
   } catch (auditErr) {
-    console.warn('Error al registrar audit log para código regulatorio:', auditErr);
+    logger.warn('Error al registrar audit log para código regulatorio:', auditErr);
   }
 
   // (d) Retorna código oficial

@@ -6,6 +6,7 @@ import * as crypto from 'crypto';
 import { handleGeminiProxy } from '../../src/lib/geminiServer';
 import { requireAuth } from './middleware/requireAuth';
 import { rateLimit } from './middleware/rateLimit';
+import { logger } from './logger';
 
 if (!getApps().length) {
   initializeApp();
@@ -57,10 +58,10 @@ export const callGeminiProxy = async (req: any, res: any) => {
   } catch (error: any) {
     const is429 = error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('Quota exceeded');
     if (is429) {
-      console.warn('Gemini Proxy Quota Limit Exceeded:', error?.message);
+      logger.warn('Gemini Proxy Quota Limit Exceeded:', error?.message);
       res.status(429).json({ error: error?.message || 'Quota exceeded for Gemini API.' });
     } else {
-      console.error('Gemini Proxy Error:', error);
+      logger.error('Gemini Proxy Error:', error);
       res.status(500).json({ error: error?.message || 'Error executing Gemini request on server.' });
     }
   }
@@ -444,7 +445,7 @@ export const getClientPortal = async (req: any, res: any) => {
         userAgent: req.headers['user-agent'] || 'unknown',
       });
     } catch (logErr) {
-      console.warn('Error registrando log de acceso:', logErr);
+      logger.warn('Error registrando log de acceso:', logErr);
     }
 
     // Retornar solo widgets publicados según visibilityMatrix
@@ -462,7 +463,7 @@ export const getClientPortal = async (req: any, res: any) => {
       }
     });
   } catch (err: any) {
-    console.error('Error en getClientPortal:', err);
+    logger.error('Error en getClientPortal:', err);
     res.status(500).json({ error: err?.message || 'Error al validar portal de cliente.' });
   }
 };
@@ -606,7 +607,7 @@ export const verifyDocument = async (req: any, res: any) => {
       metadata: record.metadata || {}
     });
   } catch (err: any) {
-    console.error('Error en verifyDocument:', err);
+    logger.error('Error en verifyDocument:', err);
     res.status(500).json({ error: err?.message || 'Error al verificar documento.' });
   }
 };

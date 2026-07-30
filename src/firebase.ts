@@ -10,6 +10,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useEffect, useState } from 'react';
 import firebaseConfig from '../firebase-applet-config.json';
 import { DEMO_AUTH_ENABLED } from './config';
+import { logger } from './lib/logger';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
@@ -30,7 +31,7 @@ export async function ensureUserClaimsAndRefreshToken(user: any) {
     await ensureFn();
     await user.getIdTokenResult(true);
   } catch (err: any) {
-    console.warn('Sincronización de Custom Claims (ensureOwnClaims):', err?.message || err);
+    logger.warn('Sincronización de Custom Claims (ensureOwnClaims):', err?.message || err);
     try {
       await user.getIdTokenResult(true);
     } catch {}
@@ -104,7 +105,7 @@ export const loginWithGoogle = async () => {
       await ensureUserClaimsAndRefreshToken(userCredential.user);
     }
   } catch (error: any) {
-    console.warn("Error signing in with Google", error);
+    logger.warn("Error signing in with Google", error);
     if (DEMO_AUTH_ENABLED) {
       setLocalUser(DEMO_USER_DEFAULT);
     } else {
@@ -121,7 +122,7 @@ export const logout = async () => {
     window.dispatchEvent(new CustomEvent('ic360_auth_change'));
     await signOut(auth);
   } catch (error) {
-    console.error("Error signing out", error);
+    logger.error("Error signing out", error);
   }
 };
 
@@ -152,7 +153,7 @@ export function useAppAuthState() {
             setLoading(false);
           }
         } catch (err: any) {
-          console.warn('Anonymous auth auto-signin notice:', err?.message || err);
+          logger.warn('Anonymous auth auto-signin notice:', err?.message || err);
           if (mounted) {
             const stored = getStoredUser();
             setUser(stored || DEMO_USER_DEFAULT);
@@ -232,6 +233,6 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path
   };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  logger.error('Firestore Error:', errInfo);
 }
 

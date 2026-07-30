@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { getAuth, DecodedIdToken } from 'firebase-admin/auth';
+import { logger } from '../logger';
 
 export interface AuthenticatedRequest extends Request {
   user?: DecodedIdToken;
@@ -44,7 +45,7 @@ export async function requireAuth(req: AuthenticatedRequest, res: Response, next
     req.user = decodedToken;
     next();
   } catch (error: any) {
-    console.warn('Error al verificar idToken en requireAuth:', error?.message || error);
+    logger.warn('Error al verificar idToken en requireAuth:', error?.message || error);
     res.status(401).json({
       error: 'No autorizado: Token de identificación inválido o revocado.',
       details: error?.message,

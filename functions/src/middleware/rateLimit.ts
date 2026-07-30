@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { AuthenticatedRequest } from './requireAuth';
+import { logger } from '../logger';
 
 export interface RateLimitOptions {
   operation: string;
@@ -100,7 +101,7 @@ export function rateLimit(options: RateLimitOptions) {
 
       next();
     } catch (error: any) {
-      console.error(`Error procesando rate limit para operacion '${operation}':`, error?.message || error);
+      logger.error(`Error procesando rate limit para operacion '${operation}':`, error?.message || error);
       res.status(500).json({
         error: 'Error interno en la verificación de límite de tasa de peticiones (rate limiting).',
       });
