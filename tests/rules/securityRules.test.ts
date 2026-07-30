@@ -1,0 +1,276 @@
+import { describe, it, beforeAll, afterAll, beforeEach } from 'vitest';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  collectionGroup,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore';
+import {
+  initTestEnv,
+  getTestEnv,
+  getAuthedDb,
+  getUnauthedDb,
+  assertAllowed,
+  assertDenied,
+} from './setup';
+
+describe('Firestore Zero-Trust Security Rules (Sprint IC360-S1-zero-trust)', () => {
+  beforeAll(async () => {
+    // Inicializar testEnv con el emulador local. Si no responde en 127.0.0.1:8080, falla ruidosamente.
+    const testEnv = await initTestEnv('ic360-zero-trust-test');
+
+    try {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const pingRef = doc(context.firestore(), '_emulator_health_check/ping');
+        await setDoc(pingRef, { ping: true, timestamp: Date.now() });
+      });
+    } catch (err) {
+      throw new Error(
+        `[CRITICAL ERROR] El emulador de Firestore no respondió en localhost:8080.\n` +
+        `La suite de pruebas ABORTA para evitar aprobaciones falsas positivas.\nError: ${err}`
+      );
+    }
+  });
+
+  afterAll(async () => {
+    const env = getTestEnv();
+    if (env) {
+      await env.cleanup();
+    }
+  });
+
+  beforeEach(async () => {
+    const env = getTestEnv();
+    if (env) {
+      await env.clearFirestore();
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // CASO 1: Usuario sin membership (sin custom claim orgId) no lee nada
+  // --------------------------------------------------------------------------
+  it('Caso 1: Usuario sin custom claim orgId o no autenticado NO puede leer ni escribir datos', async () => {
+    const env = getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'organizations/prointeca/projects/proj_1/tasks/task_1'), {
+        title: 'Inspección de tubería',
+        orgId: 'prointeca',
+        projectId: 'proj_1',
+      });
+    });
+
+    // 1a. Unauthed
+    const unauthedDb = getUnauthedDb();
+    await assertDenied(
+      getDoc(doc(unauthedDb, 'organizations/prointeca/projects/proj_1/tasks/task_1')),
+      'Usuario no autenticado no puede leer'
+    );
+
+    // 1b. Authed without claims
+    const noClaimDb = getAuthedDb('user_no_claim', {});
+    await assertDenied(
+      getDoc(doc(noClaimDb, 'organizations/prointeca/projects/proj_1/tasks/task_1')),
+      'Usuario sin claim orgId no puede leer'
+    );
+    await assertDenied(
+      setDoc(doc(noClaimDb, 'organizations/prointeca/projects/proj_1/tasks/task_2'), {
+        title: 'Intento hack',
+        orgId: 'prointeca',
+        projectId: 'proj_1',
+      }),
+      'Usuario sin claim orgId no puede escribir'
+    );
+  });
+
+  // --------------------------------------------------------------------------
+  // CASO 2: Aislamiento estricto multi-tenant (Org A vs Org B)
+  // --------------------------------------------------------------------------
+  it('Caso 2: Usuario de Org A (prointeca) NO puede leer ni escribir en Org B (semax_pino)', async () => {
+    const env = getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'organizations/prointeca/projects/proj_1/valuations/val_prointeca'), {
+        amount: 100000,
+        orgId: 'prointeca',
+        projectId: 'proj_1',
+      });
+    });
+
+    const semaxUserDb = getAuthedDb('user_semax_gerente', {
+      orgId: 'semax_pino',
+      role: 'gerente',
+    });
+
+    const prointecaValRef = doc(semaxUserDb, 'organizations/prointeca/projects/proj_1/valuations/val_prointeca');
+
+    // Lectura denegada
+    await assertDenied(
+      getDoc(prointecaValRef),
+      'Gerente de semax_pino NO debe leer valuaciones de prointeca'
+    );
+
+    // Escritura denegada
+    await assertDenied(
+      setDoc(prointecaValRef, {
+        amount: 999999,
+        orgId: 'prointeca',
+        projectId: 'proj_1',
+      }),
+      'Gerente de semax_pino NO debe escribir valuaciones de prointeca'
+    );
+  });
+
+  // --------------------------------------------------------------------------
+  // CASO 3: Control de roles - Rol 'campo' no puede aprobar ni borrar documentos
+  // --------------------------------------------------------------------------
+  it('Caso 3: Rol "campo" puede crear/editar borrador pero NO puede aprobar ni borrar documentos', async () => {
+    const env = getTestEnv();
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'organizations/prointeca/projects/proj_1/siho_ptw/ptw_1'), {
+        code: 'PTW-001',
+        status: 'borrador',
+        orgId: 'prointeca',
+        projectId: 'proj_1',
+        createdBy: 'user_campo_1',
+      });
+    });
+
+    const campoUserDb = getAuthedDb('user_campo_1', {
+      orgId: 'prointeca',
+      role: 'campo',
+    });
+
+    const ptwRef = doc(campoUserDb, 'organizations/prointeca/projects/proj_1/siho_ptw/ptw_1');
+
+    // 3a. Campo intenta aprobar permiso de trabajo -> DENEGADO
+    await assertDenied(
+      updateDoc(ptwRef, {
+        status: 'aprobado',
+      }),
+      'Rol campo no debe poder cambiar el estado a "aprobado"'
+    );
+
+    // 3b. Campo intenta borrar el documento -> DENEGADO
+    await assertDenied(
+      deleteDoc(ptwRef),
+      'Rol campo no debe poder borrar permisos de trabajo'
+    );
+
+    // 3c. Gerente sí puede borrar -> PERMITIDO
+    const gerenteUserDb = getAuthedDb('user_gerente_1', {
+      orgId: 'prointeca',
+      role: 'gerente',
+    });
+    const gerentePtwRef = doc(gerenteUserDb, 'organizations/prointeca/projects/proj_1/siho_ptw/ptw_1');
+    await assertAllowed(
+      deleteDoc(gerentePtwRef),
+      'Gerente sí puede eliminar documentos de su proyecto'
+    );
+  });
+
+  // --------------------------------------------------------------------------
+  // CASO 4: Intento de auto-escalación en memberships, counters y audit_logs
+  // --------------------------------------------------------------------------
+  it('Caso 4: Usuario NO puede escribir su propia membership, ni manipular counters o audit_logs desde cliente', async () => {
+    const userDb = getAuthedDb('user_prointeca_campo', {
+      orgId: 'prointeca',
+      role: 'campo',
+    });
+
+    // 4a. Intento de auto-asignarse rol gerente en membership -> DENEGADO
+    const membershipRef = doc(userDb, 'organizations/prointeca/memberships/user_prointeca_campo');
+    await assertDenied(
+      setDoc(membershipRef, {
+        role: 'gerente',
+        orgId: 'prointeca',
+      }),
+      'Escritura directa en memberships está prohibida desde el cliente'
+    );
+
+    // 4b. Intento de manipular counters -> DENEGADO
+    const counterRef = doc(userDb, 'organizations/prointeca/counters/valuations');
+    await assertDenied(
+      setDoc(counterRef, {
+        currentValuation: 999,
+      }),
+      'Escritura directa en counters está prohibida desde el cliente'
+    );
+
+    // 4c. Intento de falsificar audit_log -> DENEGADO
+    const auditRef = doc(userDb, 'organizations/prointeca/audit_logs/fake_log');
+    await assertDenied(
+      setDoc(auditRef, {
+        action: 'USER_ROLE_UPDATED',
+        fake: true,
+      }),
+      'Escritura directa en audit_logs está prohibida desde el cliente'
+    );
+  });
+
+  // --------------------------------------------------------------------------
+  // CASO 5: Pruebas de lectura y escritura en las 19 colecciones de la arquitectura
+  // --------------------------------------------------------------------------
+  it('Caso 5: Cobertura total de operaciones en las 19 colecciones multi-tenant', async () => {
+    const gerenteDb = getAuthedDb('user_gerente_test', {
+      orgId: 'prointeca',
+      role: 'gerente',
+    });
+
+    const collections = [
+      'tasks',
+      'expenses',
+      'valuations',
+      'siho_ptw',
+      'weld_joints',
+      'field_reports',
+      'documents',
+      'inventory',
+      'routes',
+      'engineering_calcs',
+      'client_portals',
+      'client_portal_access_logs',
+      'hot_tap_interventions',
+      'procurement',
+      'apus',
+      'quantity_takeoffs',
+      'workers',
+      'worker_attendance',
+      'settings',
+    ];
+
+    for (const colName of collections) {
+      const docRef = doc(gerenteDb, `organizations/prointeca/projects/proj_test/${colName}/doc_1`);
+
+      // 5a. Crear documento -> PERMITIDO
+      await assertAllowed(
+        setDoc(docRef, {
+          title: `Documento de prueba ${colName}`,
+          orgId: 'prointeca',
+          projectId: 'proj_test',
+          status: 'borrador',
+        }),
+        `Creación permitida para gerente en la colección ${colName}`
+      );
+
+      // 5b. Leer documento -> PERMITIDO
+      await assertAllowed(
+        getDoc(docRef),
+        `Lectura permitida para gerente en la colección ${colName}`
+      );
+
+      // 5c. CollectionGroup Query filtrada por orgId -> PERMITIDO
+      const cgQuery = query(
+        collectionGroup(gerenteDb, colName),
+        where('orgId', '==', 'prointeca')
+      );
+      await assertAllowed(
+        getDocs(cgQuery),
+        `Collection group query permitida en ${colName} con filtro orgId == prointeca`
+      );
+    }
+  });
+});

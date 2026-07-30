@@ -3,76 +3,205 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function signedIn() {
-      return true; // Allow access for authenticated, anonymous, and demo app users
+    // ==========================================
+    // HELPER FUNCTIONS (Strict Fallback = False)
+    // ==========================================
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // 1. User Profiles (/users/{userId})
+    function tokenOrgId() {
+      return isAuthenticated() && request.auth.token != null && 'orgId' in request.auth.token
+        ? request.auth.token.orgId
+        : '';
+    }
+
+    function tokenRole() {
+      return isAuthenticated() && request.auth.token != null && 'role' in request.auth.token
+        ? request.auth.token.role
+        : '';
+    }
+
+    function belongsToOrg(orgId) {
+      return isAuthenticated() && tokenOrgId() == orgId && tokenOrgId() != '';
+    }
+
+    function hasAnyRole(roles) {
+      return isAuthenticated() && tokenRole() in roles;
+    }
+
+    function isSuperAdmin() {
+      return hasAnyRole(['superadmin']);
+    }
+
+    function isGerente() {
+      return hasAnyRole(['superadmin', 'gerente']);
+    }
+
+    function isWritableRole() {
+      return hasAnyRole(['superadmin', 'gerente', 'supervisor', 'inspector', 'campo']);
+    }
+
+    // ==========================================
+    // 1. USER PROFILES
+    // ==========================================
     match /users/{userId} {
-      allow read, write: if signedIn();
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // 2. Multi-Tenancy Hierarchy (/organizations/{orgId})
+    // ==========================================
+    // 2. MULTI-TENANT ORGANIZATIONS HIERARCHY
+    // ==========================================
     match /organizations/{orgId} {
-      allow read, write: if signedIn();
+      allow read: if belongsToOrg(orgId);
+      allow write: if false;
 
-      match /{subcollection=**} {
-        allow read, write: if signedIn();
+      // Membership subcollection: client write strictly forbidden
+      match /memberships/{uid} {
+        allow read: if belongsToOrg(orgId) && (request.auth.uid == uid || isSuperAdmin());
+        allow write: if false; // Only Admin SDK / Cloud Functions
+      }
+
+      // Counters subcollection: client write/read strictly forbidden
+      match /counters/{id} {
+        allow read, write: if false; // Only Admin SDK
+      }
+
+      // Audit Logs subcollection: write strictly forbidden to client
+      match /audit_logs/{id} {
+        allow read: if belongsToOrg(orgId) && isGerente();
+        allow write: if false; // Only Cloud Functions
+      }
+
+      // Projects subcollection and 19 subcollections
+      match /projects/{projectId} {
+        allow read: if belongsToOrg(orgId);
+        allow create, update: if belongsToOrg(orgId) && isGerente() && request.resource.data.orgId == orgId;
+        allow delete: if belongsToOrg(orgId) && isSuperAdmin();
+
+        // Specific subcollections under project
+        match /{collectionName}/{docId} {
+          allow read: if belongsToOrg(orgId);
+
+          allow create: if belongsToOrg(orgId)
+            && isWritableRole()
+            && request.resource.data.orgId == orgId
+            && request.resource.data.projectId == projectId
+            // Rol 'campo' no puede crear elementos directamente aprobados o cerrados
+            && (
+              tokenRole() != 'campo' ||
+              !('status' in request.resource.data) ||
+              !(request.resource.data.status in ['aprobado', 'approved', 'cerrado', 'closed'])
+            );
+
+          allow update: if belongsToOrg(orgId)
+            && isWritableRole()
+            && request.resource.data.orgId == resource.data.orgId
+            && request.resource.data.projectId == resource.data.projectId
+            // Inmutabilidad de campos clave si existían
+            && (!('createdBy' in resource.data) || request.resource.data.createdBy == resource.data.createdBy)
+            && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
+            // Rol 'campo' no puede aprobar ni cerrar documentos
+            && (
+              tokenRole() != 'campo' ||
+              !('status' in request.resource.data) ||
+              request.resource.data.status == resource.data.status ||
+              !(request.resource.data.status in ['aprobado', 'approved', 'cerrado', 'closed'])
+            );
+
+          allow delete: if belongsToOrg(orgId)
+            && isGerente()
+            && tokenRole() != 'campo';
+        }
       }
     }
 
-    // 3. Direct Root Collections (Projects & operational items)
-    match /projects/{projId} {
-      allow read, write: if signedIn();
-      match /{subcollection=**} {
-        allow read, write: if signedIn();
-      }
+    // ==========================================
+    // 3. COLLECTION GROUP QUERIES (19 COLLECTIONS)
+    // ==========================================
+    match /{path=**}/tasks/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/expenses/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/valuations/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/siho_ptw/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/weld_joints/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/field_reports/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/documents/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/inventory/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/routes/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/engineering_calcs/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/client_portals/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/client_portal_access_logs/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/hot_tap_interventions/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/procurement/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/apus/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/quantity_takeoffs/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/workers/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/worker_attendance/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/settings/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
     }
 
-    match /settings/{id} { allow read, write: if signedIn(); }
-    match /tasks/{id} { allow read, write: if signedIn(); }
-    match /expenses/{id} { allow read, write: if signedIn(); }
-    match /valuations/{id} { allow read, write: if signedIn(); }
-    match /siho_ptw/{id} { allow read, write: if signedIn(); }
-    match /weld_joints/{id} { allow read, write: if signedIn(); }
-    match /field_reports/{id} { allow read, write: if signedIn(); }
-    match /documents/{id} { allow read, write: if signedIn(); }
-    match /inventory/{id} { allow read, write: if signedIn(); }
-    match /routes/{id} { allow read, write: if signedIn(); }
-    match /engineering_calcs/{id} { allow read, write: if signedIn(); }
-    match /client_portals/{id} { allow read, write: if signedIn(); }
-    match /hot_tap_interventions/{id} { allow read, write: if signedIn(); }
-    match /procurement/{id} { allow read, write: if signedIn(); }
-    match /apus/{id} { allow read, write: if signedIn(); }
-    match /quantity_takeoffs/{id} { allow read, write: if signedIn(); }
-    match /workers/{id} { allow read, write: if signedIn(); }
-    match /worker_attendance/{id} { allow read, write: if signedIn(); }
-
-    // 4. Collection Group Queries
-    match /{path=**}/settings/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/tasks/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/expenses/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/valuations/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/siho_ptw/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/weld_joints/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/field_reports/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/documents/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/inventory/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/routes/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/hot_tap_interventions/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/procurement/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/apus/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/quantity_takeoffs/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/client_portals/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/client_portal_access_logs/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/workers/{id} { allow read, write: if signedIn(); }
-    match /{path=**}/worker_attendance/{id} { allow read, write: if signedIn(); }
-
-    // 5. Default Catch-All
+    // ==========================================
+    // 4. FINAL CATCH-ALL DENY
+    // ==========================================
     match /{document=**} {
-      allow read, write: if signedIn();
+      allow read, write: if false;
     }
   }
 }
-
