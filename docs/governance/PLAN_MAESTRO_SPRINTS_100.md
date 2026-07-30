@@ -57,7 +57,7 @@
 | **S7** | Sanitización XSS + Error Boundaries + eliminación de mocks | P1 | S2 | ✅ **COMPLETADO EN MAIN** (`09152e4`) |
 | **S8** | Consolidador normativo (B31G/API 570/API 1163) + golden tests | P1 | S5 | ✅ **COMPLETADO EN MAIN** (`d02c5aa`) |
 | **S9** | Portal Cliente seguro (token hasheado) + sello documental SHA-256 | P1 | S3, S6 | ✅ **COMPLETADO EN MAIN** (`3bd1bb8`) |
-| **S10**| Motor offline unificado: outbox + idempotencia + conflictos | P1 | S6 | 🟡 **PENDIENTE EN GAIS** |
+| **S10**| Motor offline unificado: outbox + idempotencia + conflictos | P1 | S6 | ✅ **COMPLETADO EN MAIN** (`8316711`) |
 | **S11**| Observabilidad y datos sensibles (Sentry/logger) | P2 | S5 | 🟢 Listo para ejecutar |
 | **S12**| Rendimiento (code-splitting) y auditoría de dependencias (`xlsx`) | P2 | S11 | 🟢 Listo para ejecutar |
 | **S13**| **PILOTO PROINTECA END-TO-END (Propanoducto Cardón-Amuay)** | P0 comercial | S6, S8, S9, S10 | 🟢 Listo para ejecutar |
