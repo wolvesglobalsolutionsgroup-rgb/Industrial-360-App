@@ -7,8 +7,7 @@ import { db } from '../src/firebase';
  * /organizations/{orgId}/projects/{projId}/{subcollection}/{docId}
  */
 
-export async function migrateToMultitenant(orgId: string) {
-  if (!orgId) throw new Error('orgId es obligatorio para la migración.');
+export async function migrateToMultitenant(orgId: string = 'prointeca-demo') {
   console.log(`🚀 Iniciando migración multi-tenancy para Organización: ${orgId}...`);
 
   try {
@@ -16,7 +15,9 @@ export async function migrateToMultitenant(orgId: string) {
     const orgRef = doc(db, 'organizations', orgId);
     await setDoc(orgRef, {
       id: orgId,
-      name: 'Organización Migrada',
+      name: 'PROINTECA C.A.',
+      taxId: 'RIF J-30489210-4',
+      description: 'Empresa de Ingeniería Industrial y Proyectos de Ductos - Monagas, Venezuela',
       createdAt: new Date().toISOString()
     }, { merge: true });
 

@@ -22,7 +22,6 @@ export interface PendingReport {
   id?: number;
   operationId: string;
   tempId: string;
-  orgId: string;
   projectId: string;
   date: string;
   weather: string;
@@ -47,7 +46,6 @@ export interface PendingValuation {
   id?: number;
   operationId: string;
   tempId: string;
-  orgId: string;
   projectId: string;
   number: number;
   periodStart: string;
@@ -71,8 +69,7 @@ export interface PendingRoute {
   id?: number;
   operationId: string;
   tempId: string;
-  orgId: string;
-  projectId: string;
+  projectId?: string;
   name: string;
   distanceKm: number;
   path: { lat: number; lng: number; timestamp?: number; altitude?: number }[];

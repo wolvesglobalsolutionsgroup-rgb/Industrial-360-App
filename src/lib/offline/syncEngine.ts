@@ -91,8 +91,8 @@ async function notifySubscribers() {
  * Flush Outbox queue to Firestore with operationId Idempotency Check & Conflict Policies
  */
 export async function flushOutbox(
-  activeOrgId?: string,
-  activeProjectId?: string
+  activeOrgId: string = '',
+  activeProjectId: string = ''
 ): Promise<{ synced: number; failed: number; blocked: number; successCount: number; failCount: number }> {
   if (!isBrowserOnline() || isSyncingActive) {
     return { synced: 0, failed: 0, blocked: 0, successCount: 0, failCount: 0 };
@@ -323,28 +323,18 @@ async function syncLegacyDexieTables(activeOrgId: string, activeProjectId: strin
   }
 }
 
+// Backward Compatibility API for queueing
 export async function queueOfflineOperation(
   collectionName: string,
   operationType: 'create' | 'update' | 'delete',
   payload: Record<string, any>,
-  docId?: string,
-  orgId?: string,
-  projectId?: string
+  docId?: string
 ) {
-  const effectiveOrgId = orgId || payload.orgId;
-  const effectiveProjectId = projectId || payload.projectId;
-
-  if (!effectiveOrgId || !effectiveProjectId) {
-    throw new Error('Faltan parámetros requeridos: orgId y projectId son obligatorios para encolar operaciones offline.');
-  }
-
   const item = await queueOutboxOperation({
     collectionName,
     operationType,
     payload,
     docId,
-    orgId: effectiveOrgId,
-    projectId: effectiveProjectId,
     category: payload.category || undefined
   });
 
@@ -384,10 +374,6 @@ export const syncOfflineStoreToFirestore = flushOutbox;
 export const syncPendingRecords = flushOutbox;
 
 export async function saveReportOffline(reportData: Omit<PendingReport, 'id' | 'tempId' | 'syncStatus' | 'operationId'>): Promise<string> {
-  if (!reportData.orgId || !reportData.projectId) {
-    throw new Error('Faltan orgId o projectId obligatorios para guardar el reporte offline.');
-  }
-
   const tempId = `off_rep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const opId = generateOperationId();
 
@@ -402,8 +388,8 @@ export async function saveReportOffline(reportData: Omit<PendingReport, 'id' | '
     collectionName: 'field_reports',
     operationType: 'create',
     payload: { ...reportData, tempId },
-    orgId: reportData.orgId,
-    projectId: reportData.projectId,
+    orgId: (reportData as any).orgId || '',
+    projectId: reportData.projectId || '',
     category: 'report'
   });
 
@@ -415,10 +401,6 @@ export async function saveReportOffline(reportData: Omit<PendingReport, 'id' | '
 }
 
 export async function saveValuationOffline(valuationData: Omit<PendingValuation, 'id' | 'tempId' | 'syncStatus' | 'operationId'>): Promise<string> {
-  if (!valuationData.orgId || !valuationData.projectId) {
-    throw new Error('Faltan orgId o projectId obligatorios para guardar la valuación offline.');
-  }
-
   const tempId = `off_val_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const opId = generateOperationId();
 
@@ -433,8 +415,8 @@ export async function saveValuationOffline(valuationData: Omit<PendingValuation,
     collectionName: 'valuations',
     operationType: 'create',
     payload: { ...valuationData, tempId },
-    orgId: valuationData.orgId,
-    projectId: valuationData.projectId,
+    orgId: (valuationData as any).orgId || '',
+    projectId: valuationData.projectId || '',
     category: 'valuation',
     conflictStrategy: 'BLOCKING'
   });
@@ -447,10 +429,6 @@ export async function saveValuationOffline(valuationData: Omit<PendingValuation,
 }
 
 export async function saveRouteOffline(routeData: Omit<PendingRoute, 'id' | 'tempId' | 'syncStatus' | 'operationId'>): Promise<string> {
-  if (!routeData.orgId || !routeData.projectId) {
-    throw new Error('Faltan orgId o projectId obligatorios para guardar la ruta offline.');
-  }
-
   const tempId = `off_route_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const opId = generateOperationId();
 
@@ -465,8 +443,8 @@ export async function saveRouteOffline(routeData: Omit<PendingRoute, 'id' | 'tem
     collectionName: 'routes',
     operationType: 'create',
     payload: { ...routeData, tempId },
-    orgId: routeData.orgId,
-    projectId: routeData.projectId,
+    orgId: (routeData as any).orgId || '',
+    projectId: routeData.projectId || '',
     category: 'route'
   });
 

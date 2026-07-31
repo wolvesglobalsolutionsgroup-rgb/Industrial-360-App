@@ -12,7 +12,7 @@ export default function Inventory() {
   const [newItem, setNewItem] = useState({ name: '', unit: 'kg', quantity: '' });
 
   const orgId = currentOrganization?.id || '';
-  const projectId = currentProject?.id || 'PROJ-DEFAULT';
+  const projectId = currentProject?.id || '';
 
   useEffect(() => {
     const unsubscribe = inventoryRepo.subscribe(orgId, projectId, (inv) => {

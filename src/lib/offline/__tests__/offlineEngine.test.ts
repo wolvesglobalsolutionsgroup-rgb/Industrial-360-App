@@ -28,8 +28,8 @@ describe('Offline Queue & Idempotency System', () => {
       collectionName: 'field_reports',
       operationType: 'create',
       payload: { title: 'Reporte 1 - Inspección Macolla A' },
-      orgId: 'org_demo_test',
-      projectId: 'PROJ-001',
+      orgId: 'prointeca-demo',
+      projectId: 'PROJ-PILOT-PROINTECA',
       category: 'report'
     });
 
@@ -37,8 +37,8 @@ describe('Offline Queue & Idempotency System', () => {
       collectionName: 'field_reports',
       operationType: 'create',
       payload: { title: 'Reporte 2 - Inspección Macolla B' },
-      orgId: 'org_demo_test',
-      projectId: 'PROJ-001',
+      orgId: 'prointeca-demo',
+      projectId: 'PROJ-PILOT-PROINTECA',
       category: 'report'
     });
 
@@ -46,8 +46,8 @@ describe('Offline Queue & Idempotency System', () => {
       collectionName: 'field_reports',
       operationType: 'create',
       payload: { title: 'Reporte 3 - Inspección Macolla C' },
-      orgId: 'org_demo_test',
-      projectId: 'PROJ-001',
+      orgId: 'prointeca-demo',
+      projectId: 'PROJ-PILOT-PROINTECA',
       category: 'report'
     });
 

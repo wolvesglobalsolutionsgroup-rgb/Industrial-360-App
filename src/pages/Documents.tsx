@@ -98,7 +98,7 @@ export default function Documents() {
     if (window.confirm('¿Estás seguro de eliminar este documento del repositorio?')) {
       try {
         const orgId = currentOrganization?.id || '';
-        const projId = currentProject?.id || 'PROJ-DEFAULT';
+        const projId = currentProject?.id || '';
         await documentsRepo.delete(orgId, projId, id);
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `documents/${id}`);

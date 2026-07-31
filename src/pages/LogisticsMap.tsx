@@ -148,7 +148,7 @@ export default function LogisticsMap() {
         // Automatically save live route
         const autoName = `Recorrido GPS - ${new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`;
         const targetOrgId = currentOrganization?.id || '';
-        const targetProjId = currentProject?.id || 'PROJ-DEFAULT';
+        const targetProjId = currentProject?.id || '';
         routesRepo.create(targetOrgId, targetProjId, {
           name: autoName,
           distanceKm: Number(liveDistance.toFixed(3)),

@@ -38,9 +38,9 @@ export interface QueueParams {
   collectionName: string;
   operationType: 'create' | 'update' | 'delete';
   payload: Record<string, any>;
-  orgId: string;
-  projectId: string;
   docId?: string;
+  orgId?: string;
+  projectId?: string;
   category?: OutboxItem['category'];
   conflictStrategy?: ConflictStrategy;
 }
@@ -53,18 +53,14 @@ export async function queueOutboxOperation({
   operationType,
   payload,
   docId,
-  orgId,
-  projectId,
+  orgId = '',
+  projectId = '',
   category = 'general',
   conflictStrategy
 }: QueueParams): Promise<OutboxItem> {
+  const operationId = generateOperationId();
   const effectiveOrgId = payload.orgId || orgId;
   const effectiveProjectId = payload.projectId || projectId;
-
-  if (!effectiveOrgId || !effectiveProjectId) {
-    throw new Error('Faltan parámetros requeridos: orgId y projectId son obligatorios para encolar operaciones offline.');
-  }
-  const operationId = generateOperationId();
 
   const strategy = conflictStrategy || determineConflictStrategy(collectionName, category);
 

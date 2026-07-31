@@ -290,7 +290,7 @@ Responde de forma ejecutiva, concisa y profesional.`;
         alert("Guardado Offline: El reporte se sincronizará automáticamente al conectarse a la red.");
       } else {
         try {
-          await fieldReportsRepo.create(targetOrgId, currentProject?.id || 'PROJ-DEFAULT', reportData);
+          await fieldReportsRepo.create(targetOrgId, currentProject?.id || '', reportData);
         } catch (err) {
           console.warn("Fallo envio online, guardando en cola offline:", err);
           await queueOfflineOperation('field_reports', 'create', reportData);

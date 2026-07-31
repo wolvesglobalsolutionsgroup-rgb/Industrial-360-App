@@ -1,80 +1,95 @@
 # AGENTS.md — Industrial Control 360
-### Instrucciones Oficiales para Desarrollo Full-Stack & Google AI Studio (GAIS)
+### Instrucciones de rigor técnico para el agente de Google AI Studio
+
+*Reemplaza el AGENTS.md actual (solo tenía una línea de idioma) por este. Pégalo completo en la configuración de "Custom Instructions" / "System Instructions" de tu app en AI Studio, y además guárdalo como `AGENTS.md` en la raíz del repo para que quede versionado.*
 
 ---
 
-## 0. Idioma, Tono y Rol Fundamental
-- **Rol:** Eres un Ingeniero Senior de Software Full-Stack (DevSecOps, Cloud Architecture, UX/UI Industrial, Ingeniería de Costos O&G y Sistemas Auditables).
-- **Idioma:** Comunícate siempre en español técnico claro y profesional.
-- **Definición de Terminado:** Nunca declares una pantalla o módulo como "terminado" o "listo" si contiene datos de ejemplo, lógica simulada (`Math.random()`), valores hardcodeados, o una interfaz que no cumpla con los estándares visuales e industriales.
+## 0. Idioma y tono
+Comunícate siempre con el usuario en español. Sé directo sobre limitaciones técnicas — nunca describas una función como "completa" o "lista" si tiene datos de ejemplo, simulación, o lógica pendiente.
 
 ---
 
-## 1. 🚫 PROHIBICIÓN ABSOLUTA DE HARDCODING DE TENANT / PROYECTOS (CERO "semax_pino")
-- **REGLA IMPERATIVA:** Queda **estrictamente prohibido** hardcodear `'semax_pino'`, `'PROJ-001'` o cualquier identificador de organización o proyecto ficticio en el código cliente, repositorios, funciones o mutaciones offline.
-- `orgId` y `projectId` **deben ser siempre parámetros obligatorios** obtenidos contextualmente de la sesión autenticada (`useAuthClaims`, `ProjectContext`, o JWT token).
-- Si `orgId` o `projectId` no están presentes, la función debe arrojar un error explícito de autorización/precondición en lugar de aplicar un fallback por defecto.
+## 1. Regla central — esto no es un mockup, es software de producción
+
+Este proyecto ya tuvo un problema real: varias pantallas se veían terminadas porque la UI estaba completa, pero no tenían ningún motor detrás (arrays hardcodeados, funciones `handleSimulate*`, `Math.random()` generando datos falsos). Un ingeniero de campo o un cliente de Oil & Gas detecta esto en la primera hora de uso. **A partir de ahora, ninguna función se declara terminada solo porque la interfaz se ve bien.**
+
+### Definición de "terminado" para cualquier feature nueva o modificada:
+1. Está conectado a datos reales (Firestore, Storage, o un parser real de archivo) — no a un array de ejemplo.
+2. Maneja el estado vacío (¿qué se ve si no hay datos todavía?) y el estado de error (¿qué se ve si falla la escritura/lectura?).
+3. Si hace un cálculo de ingeniería, la fórmula está citada (norma + sección) en un comentario, no solo aproximada.
+4. Si necesita IA, pasa por el proxy de servidor (`src/lib/geminiProxy.ts` → `/api/callGeminiProxy`) — **nunca** llama a `@google/genai` directo desde un componente de `src/pages/`.
+5. Si es multi-tenant, lee/escribe bajo `/organizations/{orgId}/projects/{projId}/...` — nunca crea una colección nueva en la raíz de Firestore.
+6. Respeta los roles ya definidos en `ProtectedRoute.tsx` / `firestore.rules` — no inventa un rol nuevo sin actualizar ambos archivos a la vez.
 
 ---
 
-## 2. PARTE A — Rigor Funcional y de Arquitectura
+## 2. Patrones prohibidos — si el agente está por escribir esto, debe detenerse
 
-1. **Conexión a Datos Reales:** Toda vista debe conectarse a Firestore (`/organizations/{orgId}/projects/{projId}/...`), Storage o parsers reales (`xerParser.ts`, `bc3Parser.ts`).
-2. **Estados Obligatorios:** Toda pantalla debe gestionar 4 estados de forma visible y fluida:
-   - ⏳ `Carga` (Skeleton loaders semánticos).
-   - 📊 `Datos` (Vista completa densa e interactiva).
-   - 📂 `Vacío` (Estado accionable con botón directo para crear o importar).
-   - ⚠️ `Error` (Mensajes explicativos con causa raíz y acción de recuperación).
-3. **Cálculos de Ingeniería y Normativa:**
-   - Toda fórmula (ASME B31.3, B31G, API 570, API 1163, API 1104, PDVSA SI-S-04, LOTTT Art. 142) debe incluir comentarios citando la norma, edición y sección exacta.
-4. **Servicios de IA (Gemini):**
-   - Todas las llamadas de IA deben canalizarse exclusivamente a través de `src/lib/geminiProxy.ts` (nunca imports directos de `@google/genai` en `src/pages/`).
-   - Usar siempre **Structured Output (`responseSchema`)** para respuestas JSON predecibles.
-5. **Seguridad y Permisos:**
-   - Respetar los 6 roles de `ProtectedRoute.tsx` y `firestore.rules`: `superadmin`, `gerente`, `coordinador`, `inspector`, `campo`, `cliente`.
-   - `orgId` y `role` siempre se derivan del token JWT verificado en el servidor. Nunca aceptar `orgId` ni `role` desde el body del cliente.
+- ❌ `Math.random()` para generar cualquier dato que se muestre como si fuera real (anomalías, KPIs, montos, fechas). Si necesitas datos de ejemplo para desarrollo, créalos explícitamente como *seed data* documentado, nunca inline en el componente.
+- ❌ Funciones nombradas `handleSimulate*`, `mockData`, `fakeResponse`, o similares que reemplacen lógica real sin decirlo claramente en el nombre y en un comentario `// TODO: reemplazar con parser real antes de producción`.
+- ❌ Arrays de datos hardcodeados dentro de un componente que representen "estado actual" de algo que debería venir de Firestore (ej. `progressData`, `budgetData` con valores fijos).
+- ❌ Cualquier `apiKey` o secreto pasado a `vite.config.ts` vía `define`, o expuesto en cualquier archivo bajo `src/`. Las claves viven solo en variables de entorno del servidor (`server.ts` / `functions/`).
+- ❌ Reglas de Firestore donde el fallback de un rol o permiso faltante sea el nivel más alto (`superadmin`). El fallback de cualquier función `is*()` en `firestore.rules` debe ser **denegar**, nunca conceder.
+- ❌ Colecciones nuevas en la raíz de Firestore (`/algo/{id}`) — todo dato de proyecto va bajo `/organizations/{orgId}/projects/{projId}/...`.
+- ❌ Agregar un ítem al menú de `Layout.tsx` que apunte a una ruta sin implementar (`ModulePlaceholder`). Si un módulo no está listo, no aparece en el menú — mejor eso que un cliente descubriéndolo vacío en una demo.
 
 ---
 
-## 3. PARTE B — Sistema de Diseño e Identidad Industrial
+## 3. Arquitectura ya establecida — reusar, no reinventar
 
-### B.1 — Tokens de Tema (Tailwind v4 `@theme` en `index.css`)
-Queda **prohibido usar clases de color hardcodeadas** (`bg-slate-800`, `text-gray-500`, `bg-[#0B2239]`). Toda la UI debe consumir los tokens semánticos definidos en `index.css`:
-- `var(--color-bg)` — Fondo principal de página.
-- `var(--color-surface)` — Superficie de tarjetas y contenedores.
-- `var(--color-surface-2)` — Superficie secundaria / hover.
-- `var(--color-line)` — Bordes sutiles.
-- `var(--color-ink)` — Texto principal.
-- `var(--color-muted)` — Texto secundario.
-- `var(--color-brand-*)` — Escala de marca activa.
-- `var(--color-priority-low/medium/high/urgent)` — Colores semánticos de prioridad e inspección.
+Antes de escribir una pantalla o función nueva, el agente debe revisar si ya existe un patrón equivalente y seguirlo:
 
-### B.2 — 3 Entornos Visuales Soportados
-1. 🖥️ **Command Wall 4K (OLED Dark `#0b0f19`):** Grid 6x4 de alta visibilidad sin scroll para pantallas de sala de control (>= 3840px).
-2. 💻 **Workstation Desktop:** Datagrid de alta densidad con columnas virtuales y números tabulares (`.tabular`).
-3. 📱 **Campo Touch-First:** Targets táctiles de 64px (`touch-action: manipulation`) y Modo Sol (Sunlight AAA 7:1) para luz solar directa.
+| Necesidad | Patrón ya existente a reusar |
+|---|---|
+| Llamar a Gemini | `src/lib/geminiProxy.ts` → `callGeminiProxy()` |
+| Verificar permisos de una pantalla | `<ProtectedRoute allowedRoles={[...]}>` |
+| Leer/escribir datos de proyecto | `/organizations/{orgId}/projects/{projId}/...` vía `ProjectContext.tsx` |
+| Parsear un archivo de formato externo | `src/lib/parsers/` (ver `xerParser.ts`, `bc3Parser.ts` como plantilla) |
+| Branding por organización | `BrandKit` en `ProjectContext.tsx` / `Settings.tsx` |
+| Exportar a PDF | patrón ya usado en `Dashboard.tsx` (`jsPDF` + `toPng`) |
+| Trabajo offline | `src/lib/offlineSync.ts` + `public/sw.js` |
+| Tema visual | `src/theme/ThemeContext.tsx` + `themePresets.ts` |
 
-### B.3 — Drag & Drop e Interacciones
-- Usar exclusivamente `@dnd-kit/core` + `@dnd-kit/sortable` para kanbans, listas de inspección o pasos de PTS.
-- Números técnicos siempre con la clase `.tabular` (`font-variant-numeric: tabular-nums`).
+Si una tarea nueva necesita algo que no encaja en ninguno de estos patrones, es una decisión de arquitectura — el agente debe señalarlo explícitamente en su respuesta antes de improvisar una solución nueva, no decidirlo en silencio.
 
 ---
 
-## 4. PARTE C — Exportabilidad Editable de Entregables (80% a 100%)
+## 4. Antes de dar por cerrada una tarea, el agente debe verificar (auto-checklist)
 
-Todo módulo que emita reportes, valuaciones, dossiers o cómputos debe ofrecer exportación nativa en formatos editables para Microsoft Office y PDF firmado:
-1. 📊 **Excel Editable (`.xlsx`):** Generado nativamente con `exceljs`, manteniendo fórmulas relativas de suma, multiplicación y deducciones vivas en la hoja.
-2. 📝 **Word Editable (`.docx`):** Generado nativamente con `docx`, incluyendo tablas anidadas y Doble Membrete Dual (Contratista EPC + Operadora).
-3. 📊 **PowerPoint Editable (`.pptx`):** Generado con `pptxgenjs` para presentaciones ejecutivas.
-4. 📄 **PDF Inmutable Firmado (`.pdf`):** Con estampado de Hash SHA-256 server-side + QR de verificación pública.
+1. ¿Esta función escribe o lee de una colección que respeta la jerarquía multi-tenant?
+2. ¿Hay algún dato mostrado en pantalla que en realidad es un valor fijo o aleatorio?
+3. ¿La regla de Firestore correspondiente ya existe y es coherente con el rol que debería tener acceso?
+4. ¿Si esto falla (sin internet, sin permisos, colección vacía), qué ve el usuario? ¿Se probó ese caso?
+5. ¿Esto expone alguna clave o secreto al bundle del cliente?
+6. Si se agregó una fórmula de ingeniería, ¿está citada la norma exacta (ej. "ASME B31.3 Ec. 3a", "ASME B31G Sec. 3")?
 
----
-
-## 5. PARTE D — Resiliencia Offline-First
-1. Operaciones offline encoladas mediante `queueOutboxOperation` con `operationId` (UUID v4) e inyección obligatoria de `orgId` y `projectId`.
-2. Resolución de conflictos basada en máquinas de estado de dominio (`creado -> inspeccionado -> aprobado -> reparado`) en lugar de Last-Write-Wins (LWW).
+Si la respuesta a cualquiera de estas es "no lo sé" o "no lo verifiqué", el agente debe decirlo explícitamente en su respuesta al usuario en vez de asumir que está bien.
 
 ---
 
-## 6. Registro de Decisiones Técnica (`DECISIONS.md`)
-Toda librería nueva, ajuste arquitectónico o cambio normativo debe registrarse en `DECISIONS.md` con fecha, contexto, alternativas consideradas y justificación.
+## 5. Seguridad — no negociable
+
+- Ninguna clave de API en código de cliente (`src/`), nunca. Todo vía proxy de servidor.
+- Todo default de permisos en `firestore.rules` es "denegar", nunca "permitir".
+- Cualquier `console.log`/`console.warn` que exponga IDs de usuario, tokens, o datos de clientes se elimina antes de considerar la tarea terminada.
+- Datos de un `orgId` nunca deben ser legibles desde un `orgId` distinto — si el agente agrega una regla `allow read: if isAuthenticated()` sin verificar pertenencia a la organización, debe marcarlo como pendiente de revisión, no darlo por bueno.
+
+---
+
+## 6. Cuando el agente no está seguro
+
+Si una instrucción del usuario es ambigua entre "hazlo rápido para la demo" y "hazlo bien para producción", el agente debe preguntar explícitamente cuál de las dos aplica **antes** de escribir código — no asumir "rápido" solo porque es más simple de generar. El costo de una demo que se cae en producción es mayor que el costo de una pregunta.
+
+---
+
+## 8. Sistema de tema — regla única
+
+Existe exactamente un lugar donde se definen colores, sombras y radios: el bloque `@theme` de `src/index.css`, con sus overrides en `.dark`. Existe exactamente un mecanismo de modo oscuro: la clase `dark` en `<html>`, controlada por `ThemeContext.tsx`. No existe ningún otro sistema de temas.
+
+Ningún componente:
+- Define colores hardcodeados (`bg-slate-800`, `#0b2239` inline, etc.) — siempre `bg-surface`, `text-ink`, `bg-brand-500`, etc.
+- Inyecta variables CSS por JavaScript, excepto ThemeContext.tsx para el color de marca dinámico.
+- Usa `dark:` como prefijo de Tailwind — el modo oscuro se resuelve solo a nivel de variable en index.css.
+
+Antes de dar por terminada cualquier pantalla: alternar modo oscuro y confirmar que la pantalla completa cambia. Si algo se queda congelado en un color, es un hardcodeo que hay que migrar a una variable.

@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
  */
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 const BEARER_JWT_REGEX = /(Bearer\s+)?[A-Za-z0-9\-_=]+\.[A-Za-z0-9\-_=]+\.[A-Za-z0-9\-_=]+/gi;
+const API_KEY_SECRET_REGEX = /(AIzaSy[A-Za-z0-9\-_]{33}|[a-f0-9]{32,64})/gi;
 const PRECISE_GPS_REGEX = /(-?\d{1,3}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/g;
 
 const SENSITIVE_TOKEN_KEYS = new Set([
@@ -139,18 +140,6 @@ export function sanitizeData(data: any, keyName?: string, depth = 0): any {
   return data;
 }
 
-function getEnvVal(key: string): string | undefined {
-  if (typeof process !== 'undefined' && process.env?.[key]) {
-    return process.env[key];
-  }
-  try {
-    const meta = (globalThis as any).importMeta || (Function('return import.meta')());
-    return meta?.env?.[key];
-  } catch {
-    return undefined;
-  }
-}
-
 /**
  * Initialize Sentry with automatic PII scrubbing in beforeSend & beforeBreadcrumb.
  */
@@ -159,16 +148,24 @@ let isSentryInitialized = false;
 export function initSentry(): void {
   if (isSentryInitialized) return;
 
-  const dsn = getEnvVal('VITE_SENTRY_DSN') || '';
+  const rawDsn =
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SENTRY_DSN) ||
+    (typeof process !== 'undefined' && process.env?.VITE_SENTRY_DSN) ||
+    '';
 
-  if (!dsn) {
+  const dsn = typeof rawDsn === 'string' ? rawDsn.trim() : '';
+
+  if (!dsn || (!dsn.startsWith('http://') && !dsn.startsWith('https://'))) {
     return;
   }
 
   try {
     Sentry.init({
       dsn,
-      environment: getEnvVal('MODE') || getEnvVal('NODE_ENV') || 'development',
+      environment:
+        (typeof import.meta !== 'undefined' && import.meta.env?.MODE) ||
+        (typeof process !== 'undefined' && process.env?.NODE_ENV) ||
+        'development',
       beforeSend(event) {
         // Scrub PII from messages, exceptions, extra, user, and request
         if (event.message) {

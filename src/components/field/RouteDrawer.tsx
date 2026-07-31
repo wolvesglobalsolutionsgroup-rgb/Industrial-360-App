@@ -16,11 +16,9 @@ export interface RouteDrawerProps {
   onRouteSaved?: (route: { name: string; points: RoutePoint[]; distanceKm: number }) => void;
   activePoints?: RoutePoint[];
   onPointsChange?: (points: RoutePoint[]) => void;
-  orgId?: string;
-  projectId?: string;
 }
 
-export default function RouteDrawer({ onRouteSaved, activePoints, onPointsChange, orgId, projectId }: RouteDrawerProps) {
+export default function RouteDrawer({ onRouteSaved, activePoints, onPointsChange }: RouteDrawerProps) {
   const [points, setPoints] = useState<RoutePoint[]>(activePoints || []);
   const [routeName, setRouteName] = useState<string>('Ruta de Transporte / Trazado de Oleoducto');
   const [routeDesc, setRouteDesc] = useState<string>('Inspección de servidumbre de paso y accesos de maquinaria.');
@@ -109,8 +107,6 @@ export default function RouteDrawer({ onRouteSaved, activePoints, onPointsChange
         name: routeName,
         distanceKm,
         path: points,
-        orgId: orgId || 'prointeca-demo',
-        projectId: projectId || 'proj-main',
         startTime: Date.now(),
         endTime: Date.now(),
         createdAt: new Date().toISOString()

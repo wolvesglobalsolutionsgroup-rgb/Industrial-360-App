@@ -83,7 +83,7 @@ export const FALLBACK_DEMO_PROJECTS: Project[] = [
     orgId: 'prointeca'
   },
   {
-    id: 'PROJ-001',
+    id: 'PROJ-JUSEPIN',
     name: 'IPC Reemplazo Oleoducto 16" Jusepín - San Mateo',
     description: 'Reemplazo de 12.5 km de tubería API 5L Gr. X52 Sch 40, incluyendo cruces especiales y pruebas hidrostáticas.',
     budget: 1450000,

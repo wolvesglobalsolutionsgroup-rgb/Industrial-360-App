@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requireAuth = requireAuth;
 const auth_1 = require("firebase-admin/auth");
-const logger_1 = require("../logger");
 /**
  * Middleware para verificar la autenticación del ID Token mediante Firebase Admin SDK.
  * - Exige la cabecera Authorization: Bearer <idToken>
@@ -37,7 +36,7 @@ async function requireAuth(req, res, next) {
         next();
     }
     catch (error) {
-        logger_1.logger.warn('Error al verificar idToken en requireAuth:', error?.message || error);
+        console.warn('Error al verificar idToken en requireAuth:', error?.message || error);
         res.status(401).json({
             error: 'No autorizado: Token de identificación inválido o revocado.',
             details: error?.message,

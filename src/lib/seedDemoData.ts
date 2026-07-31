@@ -5,7 +5,7 @@ import { DEMO_AUTH_ENABLED } from '../config';
 export const FALLBACK_DEMO_TASKS = [
   {
     id: 'TASK-001',
-    projectId: 'PROJ-001',
+    projectId: 'PROJ-JUSEPIN',
     wbsCode: 'WBS-1.1',
     title: 'Movilización de Equipos y Preparación de Terreno (Frente Jusepín)',
     description: 'Acondicionamiento de patio de acopio, movilización de grúas, plantas de soldar y equipos pesados.',
@@ -28,7 +28,7 @@ export const FALLBACK_DEMO_TASKS = [
   },
   {
     id: 'TASK-002',
-    projectId: 'PROJ-001',
+    projectId: 'PROJ-JUSEPIN',
     wbsCode: 'WBS-1.2',
     title: 'Tendido y Cimentación de Zanja Tubería API 5L 16"',
     description: 'Excavación de zanja 1.50m de profundidad, conformado de cama de arena y alineación de tubos.',
@@ -51,7 +51,7 @@ export const FALLBACK_DEMO_TASKS = [
   },
   {
     id: 'TASK-003',
-    projectId: 'PROJ-001',
+    projectId: 'PROJ-JUSEPIN',
     wbsCode: 'WBS-1.3',
     title: 'Soldadura Proceso SMAW/GMAW Juntas de Campo (ASME B31.4)',
     description: 'Ejecución de soldadura de pase de raíz, relleno y presentación en tubería API 5L X52.',
@@ -73,7 +73,7 @@ export const FALLBACK_DEMO_TASKS = [
   },
   {
     id: 'TASK-004',
-    projectId: 'PROJ-001',
+    projectId: 'PROJ-JUSEPIN',
     wbsCode: 'WBS-1.4',
     title: 'Ensayos No Destructivos NDT (UT/Gammagrafía) al 100%',
     description: 'Evaluación radiográfica y ultrasonido industrial según norma API 1104 / ASME B31.4.',
@@ -92,7 +92,7 @@ export const FALLBACK_DEMO_TASKS = [
   },
   {
     id: 'TASK-005',
-    projectId: 'PROJ-001',
+    projectId: 'PROJ-JUSEPIN',
     wbsCode: 'WBS-1.5',
     title: 'Aplicación de Revestimiento Mantas Canusa y Protección Catódica',
     description: 'Chorreado de arena SSPC-SP10 y colocación de termocontraíbles anticorrosivos.',
@@ -214,7 +214,7 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
         createdAt: new Date().toISOString()
       },
       {
-        id: 'PROJ-001',
+        id: 'PROJ-JUSEPIN',
         name: 'IPC Reemplazo Oleoducto 16" Jusepín - San Mateo',
         description: 'Reemplazo de 12.5 km de tubería API 5L Gr. X52 Sch 40, incluyendo cruces especiales, válvulas de seccionamiento y pruebas hidrostáticas a 1480 PSI.',
         budget: 1450000,
@@ -402,7 +402,7 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
       },
       {
         id: 'W-001',
-        projectId: 'PROJ-001',
+        projectId: 'PROJ-JUSEPIN',
         jointNumber: 'J-001',
         lineCode: '16"-OL-JUS-01',
         welderId: 'CIV-1845236',
@@ -441,7 +441,7 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
       },
       {
         id: 'PTW-101',
-        projectId: 'PROJ-001',
+        projectId: 'PROJ-JUSEPIN',
         ptwNumber: 'PTW-2026-089',
         type: 'Trabajo en Caliente / Soldadura',
         location: 'Frente Canal de Riego Km 4+200',
@@ -483,7 +483,7 @@ export async function seedDemoData(force = false): Promise<{ success: boolean; m
       },
       {
         id: 'VAL-001',
-        projectId: 'PROJ-001',
+        projectId: 'PROJ-JUSEPIN',
         number: 1,
         valNumber: 'VAL-001',
         period: 'Quincena 1 - Enero 2026',
