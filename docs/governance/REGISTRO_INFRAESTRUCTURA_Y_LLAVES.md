@@ -33,6 +33,11 @@
 * **Propósito:** Envío de notificaciones operativas, alertas SIHO, solicitudes de firma y enlaces de acceso al Portal Cliente.
 * **Estado en Secret Manager:** Configurado para Cloud Functions.
 
+### C. GitHub Personal Access Token (PAT)
+* **Nombre de la Clave:** `GITHUB NO EXPIRATION KEY - AUGUST 2026`
+* **Permisos:** Full Access (repo, workflow, admin:org)
+* **Propósito:** Conexión MCP de GitHub para servicios de IA y herramientas de desarrollo.
+
 ---
 
 ## 🛠️ 3. ARQUITECTURA DE EXPORTACIÓN Y EDITABILIDAD DE ENTREGABLES
