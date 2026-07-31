@@ -55,6 +55,18 @@
  └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### Matriz de Hallazgos Históricos Resueltos (Auditorías #20/#21 → S0-S13):
+
+| # | Hallazgo Histórico Crítico (P0) | Solución Implementada en Código (`main`) | Commit / Sprint |
+|---|---|---|---|
+| **1** | **Base de Datos Pública (Zero-Trust Fallido):** `allow read, write: if true`. | `firestore.rules` endurecido en **19 colecciones**, fallback estricto `allow read, write: if false` y aislamiento multi-tenant por `orgId`. | `c2a9b4a` (S1) / `02500f3` (S1.5) |
+| **2** | **RBAC Falso en Cliente:** Selector `<select>` "Cambiar a Superadmin" en localStorage. | Migración 100% a **Custom Claims JWT** (`request.auth.token.role`). `useAuthClaims` hook y eliminación total del selector vulnerable. | `3b0a5b9` (S2) |
+| **3** | **APIs Backend Sin Autenticación ni Rate Limit:** Proxies abiertos. | Middleware `requireAuth` en Cloud Functions y `rateLimit` persistente por IP/UID (20 y 5 req/min). `storage.rules` multi-tenant. | `a09e722` (S3) |
+| **4** | **Vulnerabilidad XSS & IDs Regulatorios Simulados:** Inyección en HTML y `Math.random()`. | Sanitización con **DOMPurify**, ErrorBoundary y generación de IDs regulatorios atómicos server-side (`functions/src/regulatoryIds.ts`). | `09152e4` (S7) / `ed74a7d` (S6) |
+| **5** | **Auto-Escalación de Privilegios en `/users`:** Escritura libre de `role` desde cliente. | Restricción de `affectedKeys` en `/users/{userId}` y validación autoritativa de membresías en `ensureOwnClaims` mediante Admin SDK. | `02500f3` (S1.5) |
+
+---
+
 ### Matriz de Módulos Implementados (S0 → S13):
 
 * **S0 — Test Foundation:** Harness de pruebas para Firebase Emulator (`tests/rules/setup.ts`).
@@ -64,7 +76,7 @@
 * **S4 — Hardening Auth:** Gateo configurable del modo demo (`VITE_ENABLE_DEMO_AUTH`).
 * **S5 — CI/CD Pipeline:** Hardening de GitHub Actions con Gitleaks, `npm audit` y verificador `tsc`.
 * **S6 — Repositories & Regulatory IDs:** Patrón repositorio en 13 módulos e IDs regulatorios atómicos server-side (`functions/src/regulatoryIds.ts`).
-* **S7 — XSS & Error Boundary:** Integration de DOMPurify y pantalla de recuperación ante fallos de renderizado.
+* **S7 — XSS & Error Boundary:** Integración de DOMPurify y pantalla de recuperación ante fallos de renderizado.
 * **S8 — Engineering Engines:** Consolidador de fórmulas para ASME B31.3, ASME B31G, API 570, API 1163 y PDVSA 906.
 * **S9 — Secure Client Portal:** Portal público con token de 32 bytes hasheado en SHA-256 y sello documental backend.
 * **S10 — Offline Sync Outbox:** Motor IndexedDB (Dexie.js) con cola de mutaciones idempotentes e ids UUID v4.
