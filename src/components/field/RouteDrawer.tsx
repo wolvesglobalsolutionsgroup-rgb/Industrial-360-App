@@ -4,6 +4,7 @@ import { Route, MapPin, Trash2, Plus, Download, Save, Undo, Compass, ShieldCheck
 import { Button, Input } from '../ui';
 import { exportRouteToKML, downloadKMLFile } from '../../lib/kml/kmlExporter';
 import { saveRouteOffline } from '../../lib/offline/syncEngine';
+import { useRequiredProject } from '../../hooks/useRequiredProject';
 
 export interface RoutePoint {
   lat: number;
@@ -19,6 +20,7 @@ export interface RouteDrawerProps {
 }
 
 export default function RouteDrawer({ onRouteSaved, activePoints, onPointsChange }: RouteDrawerProps) {
+  const { orgId, projectId } = useRequiredProject();
   const [points, setPoints] = useState<RoutePoint[]>(activePoints || []);
   const [routeName, setRouteName] = useState<string>('Ruta de Transporte / Trazado de Oleoducto');
   const [routeDesc, setRouteDesc] = useState<string>('Inspección de servidumbre de paso y accesos de maquinaria.');
@@ -109,8 +111,10 @@ export default function RouteDrawer({ onRouteSaved, activePoints, onPointsChange
         path: points,
         startTime: Date.now(),
         endTime: Date.now(),
-        createdAt: new Date().toISOString()
-      });
+        createdAt: new Date().toISOString(),
+        orgId,
+        projectId
+      } as any);
 
       if (onRouteSaved) {
         onRouteSaved({ name: routeName, points, distanceKm });

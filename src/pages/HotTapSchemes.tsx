@@ -4,6 +4,7 @@ import {
   Download, Plus, Save, Activity, Info, ChevronRight, Layers, ArrowRight, Gauge, Thermometer
 } from 'lucide-react';
 import { useProject } from '../ProjectContext';
+import { useRequiredProject } from '../hooks/useRequiredProject';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, collectionGroup } from 'firebase/firestore';
 
@@ -74,8 +75,7 @@ export default function HotTapSchemes() {
     wpsProcedureApproved: true,
   });
 
-  const orgId = currentOrganization?.id || 'org-default';
-  const projId = currentProject?.id || 'proj-default';
+  const { orgId, projectId: projId } = useRequiredProject();
 
   // Load Saved Interventions from Firestore
   useEffect(() => {

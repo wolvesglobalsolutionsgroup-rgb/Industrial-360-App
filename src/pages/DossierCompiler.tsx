@@ -7,6 +7,7 @@ import {
 import { httpsCallable } from 'firebase/functions';
 import { functionsInstance } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { useRequiredProject } from '../hooks/useRequiredProject';
 import { compileProjectDossier } from '../lib/dossier/dossierCompiler';
 import { generatePdvsaCoverHtml } from '../lib/dossier/coverGenerator';
 import { DossierState, FasePDVSA, FASES_PDVSA_DESCRIPCION, DocumentoDossier } from '../lib/data/pdvsa/dossierTypes';
@@ -29,9 +30,8 @@ export default function DossierCompiler() {
   const [selectedDocForCover, setSelectedDocForCover] = useState<DocumentoDossier | null>(null);
   const [showCoverModal, setShowCoverModal] = useState(false);
 
-  const orgId = currentOrganization?.id || 'org-default';
-  const projId = currentProject?.id || 'proj-default';
-  const projName = currentProject?.name || 'Gasoducto 16" Anaco - PLC (PDVSA GAS)';
+  const { orgId, projectId: projId } = useRequiredProject();
+  const projName = currentProject?.name || 'Proyecto de Ingeniería';
 
   // Load and compile live dossier data from Firestore
   useEffect(() => {

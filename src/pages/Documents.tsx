@@ -5,11 +5,13 @@ import { db, storage, auth, handleFirestoreError, OperationType } from '../fireb
 import { FolderOpen, Upload, FileText, File, Image as ImageIcon, Trash2, Search, Filter, Loader2, Download as DownloadIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useProject } from '../ProjectContext';
+import { useRequiredProject } from '../hooks/useRequiredProject';
 import { documentsRepo } from '../lib/repositories';
 
 
 export default function Documents() {
-  const { currentProject, currentOrganization } = useProject();
+  const { currentProject } = useProject();
+  const { orgId, projectId } = useRequiredProject();
   const [documents, setDocuments] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -18,19 +20,13 @@ export default function Documents() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!currentProject) {
-      setDocuments([]);
-      return;
-    }
-
-    const orgId = currentOrganization?.id || '';
-    const unsubscribe = documentsRepo.subscribe(orgId, currentProject.id, (docs) => {
+    const unsubscribe = documentsRepo.subscribe(orgId, projectId, (docs) => {
       setDocuments(docs);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'documents');
     });
     return () => unsubscribe();
-  }, [currentProject, currentOrganization]);
+  }, [orgId, projectId]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -49,7 +45,7 @@ export default function Documents() {
       else if (nameLower.includes('contrato') || nameLower.includes('fianza') || nameLower.includes('legal')) category = 'Legal';
 
       const fileUuid = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
-      const storagePath = `organizations/${currentOrganization?.id || 'org-default'}/projects/${currentProject.id}/docs/${fileUuid}_${file.name}`;
+      const storagePath = `organizations/${orgId}/projects/${projectId}/docs/${fileUuid}_${file.name}`;
       const storageRef = ref(storage, storagePath);
 
       const uploadTask = uploadBytesResumable(storageRef, file);
@@ -69,7 +65,7 @@ export default function Documents() {
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-          await documentsRepo.create(currentOrganization?.id || '', currentProject.id, {
+          await documentsRepo.create(orgId, projectId, {
             title: file.name,
             name: file.name,
             size: file.size,
@@ -97,9 +93,7 @@ export default function Documents() {
   const handleDelete = async (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar este documento del repositorio?')) {
       try {
-        const orgId = currentOrganization?.id || '';
-        const projId = currentProject?.id || '';
-        await documentsRepo.delete(orgId, projId, id);
+        await documentsRepo.delete(orgId, projectId, id);
       } catch (err) {
         handleFirestoreError(err, OperationType.DELETE, `documents/${id}`);
       }

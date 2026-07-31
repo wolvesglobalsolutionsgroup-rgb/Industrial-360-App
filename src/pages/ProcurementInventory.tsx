@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { useRequiredProject } from '../hooks/useRequiredProject';
 import { 
   Package, 
   ShoppingCart, 
@@ -298,8 +299,7 @@ const INITIAL_DEMO_DISPATCHES: MaterialDispatch[] = [
 
 export default function ProcurementInventory() {
   const { currentOrganization, currentProject } = useProject();
-  const orgId = currentOrganization?.id || 'prointeca';
-  const projId = currentProject?.id || 'PROJ-CARDON-AMUAY';
+  const { orgId, projectId: projId } = useRequiredProject();
 
   const [activeTab, setActiveTab] = useState<'rfq' | 'po' | 'inventory' | 'traceability'>('inventory');
   
@@ -401,7 +401,7 @@ export default function ProcurementInventory() {
     e.preventDefault();
     const item: MaterialRFQ = {
       rfqCode: `RFQ-2026-00${rfqs.length + 1}`,
-      projectId: projId === 'all' ? 'PROJ-CARDON-AMUAY' : projId,
+      projectId: projId === 'all' ? (currentProject?.id || projId) : projId,
       orgId,
       wbsCode: newRfq.wbsCode,
       itemDescription: newRfq.itemDescription,
@@ -440,7 +440,7 @@ export default function ProcurementInventory() {
     const po: PurchaseOrder = {
       id: `po-${Date.now()}`,
       poCode: `OC-2026-0${pos.length + 90}`,
-      projectId: projId === 'all' ? 'PROJ-CARDON-AMUAY' : projId,
+      projectId: projId === 'all' ? (currentProject?.id || projId) : projId,
       orgId,
       rfqId: newPo.rfqId,
       supplierName: newPo.supplierName,
@@ -463,7 +463,7 @@ export default function ProcurementInventory() {
   // Handle Inventory Receipt (with Mandatory Heat Number MTR)
   const handleCreateReceipt = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetProject = projId === 'all' ? 'PROJ-CARDON-AMUAY' : projId;
+    const targetProject = projId === 'all' ? (currentProject?.id || projId) : projId;
     const invItem: InventoryItemMTR = {
       itemCode: newReceipt.itemCode,
       projectId: targetProject,
@@ -522,7 +522,7 @@ export default function ProcurementInventory() {
     const disp: MaterialDispatch = {
       id: `disp-${Date.now()}`,
       dispatchCode: `DESP-2026-0${dispatches.length + 17}`,
-      projectId: projId === 'all' ? 'PROJ-CARDON-AMUAY' : projId,
+      projectId: projId === 'all' ? (currentProject?.id || projId) : projId,
       orgId,
       inventoryItemId: item.id || '',
       heatNumber: item.heatNumber,

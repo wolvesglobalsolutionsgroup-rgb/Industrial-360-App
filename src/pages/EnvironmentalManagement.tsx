@@ -7,6 +7,7 @@ import {
 import { collection, onSnapshot, addDoc, serverTimestamp, query, orderBy } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { useRequiredProject } from '../hooks/useRequiredProject';
 import { generateRegulatoryCode } from '../lib/regulatoryIdsClient';
 
 import { queueOfflineOperation } from '../lib/offline/syncEngine';
@@ -148,8 +149,7 @@ const SAMPLE_INSPECTIONS: EquipmentInspection[] = [
 
 export default function EnvironmentalManagement() {
   const { currentProject, currentOrganization } = useProject();
-  const orgId = currentOrganization?.id || '';
-  const projId = currentProject?.id || '';
+  const { orgId, projectId: projId } = useRequiredProject();
 
   const [activeTab, setActiveTab] = useState<'pga' | 'rasda' | 'equipment'>('pga');
   const [aspects, setAspects] = useState<EnvironmentalAspect[]>(SAMPLE_PGA_ASPECTS);
