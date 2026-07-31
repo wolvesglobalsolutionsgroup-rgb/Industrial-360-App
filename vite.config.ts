@@ -28,4 +28,29 @@ export default defineConfig({
     // Do not modify - file watching is disabled to prevent flickering during agent edits.
     hmr: false,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('three') || id.includes('@react-three')) {
+              return '3d';
+            }
+            if (id.includes('leaflet') || id.includes('@turf') || id.includes('tokml')) {
+              return 'maps';
+            }
+            if (id.includes('recharts')) {
+              return 'charts';
+            }
+            if (id.includes('jspdf') || id.includes('html2canvas') || id.includes('html-to-image')) {
+              return 'pdf';
+            }
+            if (id.includes('exceljs')) {
+              return 'excel';
+            }
+          }
+        },
+      },
+    },
+  },
 });

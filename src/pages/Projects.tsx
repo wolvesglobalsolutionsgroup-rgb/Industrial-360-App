@@ -7,7 +7,7 @@ import { useProject } from '../ProjectContext';
 import { 
   Plus, Search, Building2, DollarSign, TrendingUp, Edit2, Trash2, CheckCircle2, FileSpreadsheet, Loader2, Calendar, Sparkles 
 } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { seedDemoData } from '../lib/seedDemoData';
 import { DEMO_AUTH_ENABLED } from '../config';
 import { PhaseManager } from '../components/projects/PhaseManager';
@@ -195,10 +195,37 @@ export default function Projects() {
     setIsImporting(true);
     try {
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(data);
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet) return;
+
+      const headerRow = worksheet.getRow(1);
+      const headers: string[] = [];
+      headerRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        headers[colNumber] = String(cell.value ?? '').trim();
+      });
+
+      const jsonData: Record<string, any>[] = [];
+      for (let rowNum = 2; rowNum <= worksheet.rowCount; rowNum++) {
+        const row = worksheet.getRow(rowNum);
+        const rowObj: Record<string, any> = {};
+        row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+          const header = headers[colNumber];
+          if (header) {
+            let val: any = cell.value;
+            if (val && typeof val === 'object' && 'result' in val) {
+              val = val.result;
+            } else if (val && typeof val === 'object' && 'text' in val) {
+              val = val.text;
+            }
+            rowObj[header] = val;
+          }
+        });
+        if (Object.keys(rowObj).length > 0) {
+          jsonData.push(rowObj);
+        }
+      }
 
       let importedCount = 0;
 

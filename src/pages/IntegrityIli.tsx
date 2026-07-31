@@ -12,7 +12,7 @@ import {
   ComposedChart, LineChart, Line, Scatter, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, ReferenceLine, Legend 
 } from 'recharts';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { ASMEB31GCalculator } from '../lib/norms/asme/asmeB31g';
 import { 
   API1163Evaluator, 
@@ -235,19 +235,45 @@ export default function IntegrityIli() {
     };
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const arrayBuffer = e.target?.result as ArrayBuffer;
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
 
         let bestAnomalies: Anomaly[] = [];
         let bestSheetName = '';
         let bestCols: Record<string, string> = {};
 
-        for (const sheetName of workbook.SheetNames) {
-          const sheet = workbook.Sheets[sheetName];
-          const jsonRows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-          if (jsonRows.length === 0) continue;
+        workbook.eachSheet((sheet) => {
+          const jsonRows: Record<string, any>[] = [];
+          const headerRow = sheet.getRow(1);
+          const headers: string[] = [];
+          headerRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+            headers[colNum] = String(cell.value ?? '').trim();
+          });
+
+          for (let rowNum = 2; rowNum <= sheet.rowCount; rowNum++) {
+            const row = sheet.getRow(rowNum);
+            const rowObj: Record<string, any> = {};
+            row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+              const h = headers[colNum];
+              if (h) {
+                let v: any = cell.value;
+                if (v && typeof v === 'object' && 'result' in v) {
+                  v = v.result;
+                } else if (v && typeof v === 'object' && 'text' in v) {
+                  v = v.text;
+                }
+                rowObj[h] = v;
+              }
+            });
+            if (Object.keys(rowObj).length > 0) {
+              jsonRows.push(rowObj);
+            }
+          }
+
+          if (jsonRows.length === 0) return;
 
           const sampleHeaders = Object.keys(jsonRows[0] || {});
           const cols = detectColumns(sampleHeaders);
@@ -293,11 +319,11 @@ export default function IntegrityIli() {
 
             if (sheetAnomalies.length > bestAnomalies.length) {
               bestAnomalies = sheetAnomalies;
-              bestSheetName = sheetName;
+              bestSheetName = sheet.name;
               bestCols = cols;
             }
           }
-        }
+        });
 
         if (bestAnomalies.length > 0) {
           bestAnomalies.sort((a, b) => b.depthPercent - a.depthPercent);
