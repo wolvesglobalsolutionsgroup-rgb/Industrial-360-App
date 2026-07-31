@@ -1,8 +1,8 @@
-# 🛡️ PLAN DEFINITIVO UNIFICADO — INDUSTRIAL CONTROL 360
-## Guía Canónica de Estabilización, Seguridad y Fase 2 (S14.2 a S22)
+# 🛡️ PLAN DEFINITIVO UNIFICADO — INDUSTRIAL CONTROL 360 (v1.1)
+## Guía Canónica de Estabilización, Seguridad, Preview/QA y Fase 2 (S14.2 a S22)
 ### Repositorio: `wolvesglobalsolutionsgroup-rgb/Industrial-360-App` — Fuente de verdad: `main`
 
-> **NOTA CANÓNICA:** Este es el plan definitivo y unificado para Industrial Control 360. Sustituye todos los documentos y prompts contradictorios previos. Primero se resuelven los bloqueantes de seguridad, aislamiento multi-tenant e idempotencia transaccional (Fundación Obligatoria S14.2 - S14.5); luego se ejecutan los sprints de producto (S15 - S22).
+> **NOTA CANÓNICA:** Este es el plan definitivo y unificado para Industrial Control 360. Sustituye todos los documentos y prompts contradictorios previos. Primero se resuelven los bloqueantes de seguridad, aislamiento multi-tenant e idempotencia transaccional (Fundación Obligatoria S14.2 - S14.5); luego se ejecuta el sprint habilitador **S14.6 (Founder Preview/QA Access)** para que el fundador disponga de acceso provisionado server-side y pipeline de Preview; posteriormente se ejecutan los sprints de producto (S15 - S22) sujetos a aprobación funcional del fundador.
 
 ---
 
@@ -13,8 +13,9 @@
 | **Fuente de Verdad** | Rama `main` identificada por SHA real del commit. |
 | **Desarrollo** | Exclusivamente en ramas `sprint/IC360-SXX-nombre`. Prohibido trabajo directo en `main`. |
 | **Preflight** | Verificar primero `git status --short`. Si hay cambios inesperados, detenerse. |
-| **Cierre de Sprint** | Tres capas obligatorias: (1) Auto-checklist GAIS, (2) Auditoría independiente, (3) Merge humano. |
+| **Cierre de Sprint** | Cuatro capas obligatorias: (1) Auto-checklist GAIS, (2) Auditoría independiente, (3) Gate Funcional del Fundador en Preview, (4) Merge humano. |
 | **Multi-tenant** | `orgId`, `projectId`, `membership` y `role` son obligatorios, sin fallback, validados server-side. |
+| **Acceso Fundador** | Provisionamiento server-side de membership en tenant QA/Preview. Sin bypasses en cliente. |
 | **Datos Regulatorios** | CCPP, LOTTT, BCV, IGTF, FCIU, Factor K y tarifas son datos versionados; el software no certifica validez legal. |
 | **Idempotencia Offline**| Requiere Cloud Function + transacción atómica Admin SDK; UUID cliente por sí solo no basta. |
 | **Documentos** | Sellos y QR se emiten server-side; QR no filtra tenant, proyecto, PII o rutas internas. |
@@ -31,9 +32,10 @@ flowchart LR
     A["GAIS: Rama de Sprint"] --> B["Auto-checklist + Evidencia"]
     B -->|Todo Sí| C["Auditor Independiente"]
     B -->|NO / Evidencia Faltante| A
-    C -->|APPROVE| D["Revisión Humana"]
+    C -->|APPROVE| D["Gate Funcional Fundador (Preview/QA)"]
     C -->|REQUEST CHANGES| A
-    D -->|Acepta PR| E["Merge Humano a main"]
+    D -->|APROBADO| E["Revisión y Merge Humano a main"]
+    D -->|RECHAZADO| A
 ```
 
 ### 📅 SECUENCIA DEFINITIVA DE SPRINTS
@@ -43,6 +45,7 @@ flowchart LR
 2. **S14.3 — Outbox e Idempotencia Transaccional:** 100 reintentos de una operación producen exactamente un solo efecto.
 3. **S14.4 — Portal Público y Sellos Seguros:** Token rotativo/revocable, rate limit y cero filtración de metadatos.
 4. **S14.5 — Supply Chain, CI y Release Gates:** Sin vulnerabilidades High/Critical y CI bloqueante.
+5. **S14.6 — Acceso del Fundador a Preview/QA y Catálogo de Validación:** Provisionamiento server-side de membership en tenant QA y pipeline Preview por PR.
 
 #### 🚀 FASE 2 (SPRINTS DE PRODUCTO)
 1. **S15 — APU Existente, BC3, Políticas Económicas y Reajustes:** Centralización de `calculateApuUnitCost` y Factor K.
@@ -315,6 +318,209 @@ Implementa:
 5. Configurar Renovate o Dependabot según sea compatible. No modificar dependencias mayores sin ADR y pruebas.
 
 No despliegues. PR sin merge.
+```
+
+---
+
+### 🎯 S14.6 — ACCESO DEL FUNDADOR A PREVIEW/QA Y CATÁLOGO DE VALIDACIÓN
+
+```text
+🎯 S14.6 — ACCESO DEL FUNDADOR A PREVIEW/QA Y CATÁLOGO DE VALIDACIÓN
+
+CONTEXTO
+La autenticación funciona, pero el fundador recibe la pantalla: “Asignación de Membresía Pendiente”. No implementes bypasses, localStorage, roles configurables en cliente, modo demo abierto, allowlists de emails en frontend ni permisos implícitos. El objetivo es que el fundador pueda entrar de forma autorizada a un tenant Preview/QA con datos estrictamente sintéticos, y pueda revisar cada PR antes de que sea aprobado o mergeado.
+
+══════════════════════════════════════════════════════════════
+PASO 0 — PREFLIGHT SEGURO
+══════════════════════════════════════════════════════════════
+1. Ejecuta: git status --short
+2. Si hay cambios inesperados:
+   - detente;
+   - no hagas checkout;
+   - no hagas pull;
+   - no modifiques archivos;
+   - reporta los cambios.
+3. Solo con árbol limpio:
+   git fetch origin --prune
+   git checkout main
+   git pull --ff-only origin main
+   git rev-parse --short HEAD
+   git checkout -b sprint/IC360-S14.6-founder-preview-qa
+4. Lee por completo:
+   - AGENTS.md;
+   - firestore.rules;
+   - storage.rules;
+   - Functions y ensureOwnClaims;
+   - memberships;
+   - useAuthClaims;
+   - ProjectContext;
+   - ProtectedRoute/Auth Gate;
+   - Firebase config;
+   - Vercel/Firebase Hosting/GitHub Actions existentes;
+   - scripts de seed;
+   - mecanismos de preview/deploy existentes.
+5. Antes de escribir código, reporta:
+   - SHA base;
+   - archivos reales de autorización;
+   - cómo se construyen claims actualmente;
+   - cómo se provisionan memberships hoy;
+   - plataforma actual de despliegue;
+   - si existe preview por PR;
+   - configuraciones externas faltantes;
+   - plan de migración, riesgo y rollback.
+
+══════════════════════════════════════════════════════════════
+REGLAS INMUTABLES
+══════════════════════════════════════════════════════════════
+- No cambiar directamente main.
+- No desplegar producción.
+- No crear bypass de autenticación/autorización.
+- No otorgar rol desde cliente, localStorage, query string o variables VITE.
+- No autorizar por email hardcodeado en frontend o Functions.
+- No usar una cuenta productiva para datos QA.
+- No copiar datos de producción hacia Preview.
+- No incluir secretos, tokens, enlaces firmados, API keys ni URLs con parámetros sensibles en Git, logs, tests, documentación o PR.
+- No mostrar datos sintéticos como métricas reales.
+- platformAdmin es una identidad independiente de superadmin de tenant.
+- Una membership tenant no debe conceder platformAdmin.
+- Toda operación administrativa debe ser server-side, auditada y reversible.
+- Si falta configuración de Firebase, Vercel o GitHub, documentar el faltante; no inventar IDs de proyecto, URLs, dominios, secretos o tokens.
+
+══════════════════════════════════════════════════════════════
+ENTREGA A — PROVISIONAMIENTO SEGURO DEL FUNDADOR EN QA
+══════════════════════════════════════════════════════════════
+Implementa o extiende un flujo administrativo server-side para provisionar una cuenta autenticada en un tenant QA/Preview.
+Requisitos:
+1. Tenant QA:
+   - organización Preview/QA claramente identificada;
+   - datos exclusivamente sintéticos;
+   - banner persistente: “PREVIEW / QA — Datos sintéticos — No usar para operación real”;
+   - sin acceso, referencias, claves ni rutas a producción.
+2. Membership:
+   - creada o actualizada solo por Cloud Function/Admin SDK;
+   - incluye orgId, rol, estado, createdBy, createdAt, source y audit metadata;
+   - exige que el actor sea platformAdmin autorizado o un proceso de bootstrap de una sola ejecución y controlled;
+   - evita autoescalamiento de privilegios;
+   - es reversible mediante revocación server-side.
+3. Claims:
+   - derive claims desde membership autoritativa;
+   - realiza refresh de token de forma controlada;
+   - no invalida sesiones innecesariamente;
+   - muestra un estado claro si el refresh aún no ocurrió;
+   - nunca usa documento editable por cliente como autoridad.
+4. Separación:
+   - QA/Preview debe tener Firebase project/config separado de producción cuando la infraestructura existente lo permita;
+   - variables públicas Vite no deben contener secretos;
+   - Functions, Firestore, Storage y Auth deben apuntar al entorno correcto;
+   - no permitir referencias cruzadas entre recursos QA y producción.
+5. Bootstrap:
+   - no hardcodear email ni UID;
+   - documentar un runbook seguro para que un platformAdmin provisionado indique el UID autenticado y el orgId QA mediante mecanismo autorizado;
+   - si se requiere configuración externa/manual, documentar exactamente el paso, quién lo ejecuta y cómo se audita.
+
+══════════════════════════════════════════════════════════════
+ENTREGA B — PREVIEW AUTOMÁTICO POR PR
+══════════════════════════════════════════════════════════════
+Implementa el pipeline solo hasta donde la configuración real lo permita.
+1. Cada PR elegible debe producir:
+   - build verificable;
+   - URL Preview efímera o entorno Preview identificado;
+   - SHA desplegado;
+   - estado del despliegue;
+   - enlace en el PR o comentario de CI.
+2. Preview usa exclusivamente:
+   - Firebase QA;
+   - datos QA sintéticos;
+   - secretos de CI/configuración externa, nunca versionados;
+   - configuración explícita por environment.
+3. Si Vercel/Firebase/GitHub no están configurados:
+   - no inventes dominio ni token;
+   - crea docs/runbooks/PREVIEW_SETUP.md;
+   - lista exactamente las variables, integración, permisos y acciones manuales requeridas;
+   - deja el workflow preparado, pero seguro e inactivo por defecto si faltan secrets.
+4. Impide que un Preview apunte accidentalmente a producción.
+
+══════════════════════════════════════════════════════════════
+ENTREGA C — CENTRO DE VALIDACIÓN DE PRODUCTO
+══════════════════════════════════════════════════════════════
+Crea una pantalla “Centro de Validación de Producto”, visible solo para platformAdmin dentro del entorno QA/Preview.
+Cada funcionalidad/sprint debe mostrar:
+- módulo;
+- sprint;
+- estado: EN_DESARROLLO / LISTO_QA / APROBADO / BLOQUEADO;
+- SHA y PR;
+- URL Preview, si existe;
+- entorno: QA / Preview;
+- pruebas ejecutadas y resultado;
+- riesgos abiertos;
+- fecha de actualización y responsable;
+- evidencia o enlace interno seguro, sin secretos ni URLs firmadas.
+
+Reglas:
+- El catálogo no altera autorizaciones.
+- No inventa estados, métricas, pruebas, URLs o resultados.
+- Un dato ausente debe mostrar “No disponible” o “Pendiente”.
+- La fuente debe ser un manifiesto versionado de release/QA o backend autorizado; no una lista hardcodeada en el componente.
+- No expone información de plataforma a usuarios tenant comunes.
+- No reescribe PlatformOwnerConsole si ya existe: extiende el sistema real encontrado en el repositorio.
+
+══════════════════════════════════════════════════════════════
+ENTREGA D — GATE DE APROBACIÓN VISUAL DEL FUNDADOR
+══════════════════════════════════════════════════════════════
+Documenta y, si la infraestructura real lo permite, aplica en CI:
+Un sprint no puede pasar a “LISTO PARA APROBACIÓN HUMANA” sin:
+- PR abierto;
+- SHA verificable;
+- Preview URL disponible o motivo explícito/documentado de indisponibilidad;
+- evidencia de auto-checklist;
+- resultados de pruebas;
+- validación funcional del fundador registrada como: PENDIENTE / APROBADA / RECHAZADA;
+- auditoría técnica independiente.
+
+La aprobación funcional del fundador:
+- no sustituye pruebas técnicas;
+- no permite saltar P0/P1;
+- no genera privilegios adicionales;
+- queda registrada con actor, hora y comentario opcional.
+
+══════════════════════════════════════════════════════════════
+PRUEBAS OBLIGATORIAS
+══════════════════════════════════════════════════════════════
+- fundador provisionado server-side entra al tenant QA;
+- usuario autenticado sin membership queda bloqueado;
+- usuario tenant no obtiene platformAdmin;
+- platformAdmin no aparece por documento editable de cliente;
+- Preview no lee/escribe producción;
+- datos sintéticos aparecen solo en QA/Preview;
+- no hay bypass en localStorage, query params, VITE variables ni Rules;
+- revocación de membership elimina acceso tras refresh controlado;
+- catálogo no se muestra a usuarios tenant;
+- URL/estado ausente se presenta como “No disponible”;
+- tests Firebase Emulator, Functions y E2E aplicables;
+- npm ci;
+- npm run lint;
+- npx tsc --noEmit;
+- npm run test:all;
+- npm run build;
+- npm audit --omit=dev --audit-level=high;
+- npm run audit:no-hardcoded-tenant, solo si el script existe.
+
+══════════════════════════════════════════════════════════════
+ENTREGA FINAL
+══════════════════════════════════════════════════════════════
+No hagas merge ni deploy de producción. Entrega:
+- SHA inicial/final;
+- rama y PR recomendado;
+- archivos modificados;
+- ADR de Preview/QA;
+- runbook: “Cómo el fundador abre y valida una funcionalidad en Preview”;
+- runbook de provisionamiento/revocación QA;
+- configuración externa pendiente, si aplica;
+- resultados reales de pruebas;
+- rollback;
+- riesgos abiertos;
+- Auto-checklist canónico completo;
+- URL Preview real, o explicación verificable de por qué aún no puede existir.
 ```
 
 ---
@@ -747,6 +953,7 @@ RESULTADO:
 | **S14.3 / S21** | ¿100 reintentos de la misma `operationId` generaron exactamente un efecto remoto? |
 | **S14.4** | ¿Token ausente, inválido, vencido y revocado fue rechazado sin filtrar datos? |
 | **S14.5** | ¿CI bloquea PR ante secreto, hardcode, vulnerabilidad High/Critical, fallo de tipos o tests? |
+| **S14.6** | ¿El fundador provisionado server-side entra al tenant QA y ve el catálogo/Preview sin bypass en cliente? |
 | **S15** | ¿Una tasa o policy vencida bloquea el cálculo sin inventar reemplazo? |
 | **S16** | ¿QR evita PII, expira, se revoca y no duplica asistencia/HHT? |
 | **S17** | ¿CHO/CHP están separados y mantenimiento viene de policy versionada? |
@@ -795,7 +1002,22 @@ No apruebes si existe P0/P1, evidencia faltante, fallo de CI o condición que af
 
 ---
 
-## 👤 CAPA 3 — DECISIÓN Y MERGE HUMANO (FREDDY)
+## 👁️ CAPA 3 — GATE FUNCIONAL DEL FUNDADOR (PREVIEW / QA)
+
+Para todo PR de producto (a partir de S14.6):
+
+```text
+GATE FUNCIONAL DEL FUNDADOR
+1. Existe URL Preview asociada al SHA del PR.
+2. El fundador puede autenticarse en el entorno QA/Preview con membership server-side activa.
+3. El catálogo de QA muestra alcance, pruebas, riesgos y estado real.
+4. El fundador marca la validación como APROBADA o RECHAZADA.
+5. Si está RECHAZADA, o no existe Preview sin excepción documentada, no hay merge.
+```
+
+---
+
+## 👤 CAPA 4 — DECISIÓN Y MERGE HUMANO (FREDDY)
 
 Antes de hacer merge a `main`, confirma las 7 preguntas:
 
@@ -803,7 +1025,7 @@ Antes de hacer merge a `main`, confirma las 7 preguntas:
 2. ¿Todos los comandos exigidos están verdes con evidencia real?
 3. ¿Existe algún NO, NO APLICA, riesgo abierto o prueba omitida?
 4. ¿El auditor emitió `APPROVE` y no existen P0/P1?
-5. ¿Migración y rollback son entendibles y realizables?
+5. ¿El fundador ha probado en Preview/QA y marcado la validación como APROBADA?
 6. ¿El PR no contiene secretos, hardcodes, enlaces firmados ni cambios ajenos?
 7. ¿`main` permanece intacta y el merge será realizado por un humano?
 
@@ -815,7 +1037,9 @@ Antes de hacer merge a `main`, confirma las 7 preguntas:
 |---|---|
 | Auto-checklist completo, todo "Sí" y evidencia verde | Enviar a auditoría independiente |
 | Auto-checklist con "No" o evidencia insuficiente | Corregir; no auditar ni mergear |
-| Auditoría `APPROVE` | Revisión humana y merge humano |
+| Auditoría `APPROVE` | Enviar a Gate Funcional del Fundador en Preview/QA |
+| Gate Funcional `APROBADA` | Revisión humana y merge humano a `main` |
+| Gate Funcional `RECHAZADA` | Devolver a GAIS; no merge |
 | `APPROVE WITH CONDITIONS` | Corregir antes de merge, salvo P3 documental aceptado |
 | `REQUEST CHANGES` | Devolver a GAIS; no merge |
 | P0/P1, prueba omitida, evidencia falsa o secreto | Sprint bloqueado |
