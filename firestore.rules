@@ -78,6 +78,23 @@ service cloud.firestore {
         allow write: if false; // Only Cloud Functions
       }
 
+      // Sellos de verificación documental: escritura prohibida al cliente
+      match /document_verifications/{id} {
+        allow read: if belongsToOrg(orgId);
+        allow write: if false; // Solo Admin SDK (sealDocument)
+      }
+
+      // Portales de clientes: escritura prohibida al cliente
+      match /client_portals/{id} {
+        allow read: if belongsToOrg(orgId);
+        allow write: if false; // Solo Admin SDK (createClientPortal)
+      }
+
+      match /client_portal_access_logs/{id} {
+        allow read: if belongsToOrg(orgId) && isGerente();
+        allow write: if false;
+      }
+
       // Projects subcollection and 19 subcollections
       match /projects/{projectId} {
         allow read: if belongsToOrg(orgId);
@@ -149,6 +166,10 @@ service cloud.firestore {
       allow write: if false;
     }
     match /{path=**}/documents/{id} {
+      allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
+      allow write: if false;
+    }
+    match /{path=**}/document_verifications/{id} {
       allow read: if isAuthenticated() && resource.data.orgId == tokenOrgId();
       allow write: if false;
     }

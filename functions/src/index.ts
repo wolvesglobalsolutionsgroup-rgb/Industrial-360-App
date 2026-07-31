@@ -1,11 +1,12 @@
 import * as functions from 'firebase-functions/v1';
 import { initializeApp, getApps } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, FieldPath } from 'firebase-admin/firestore';
 import * as crypto from 'crypto';
 import { handleGeminiProxy } from '../../src/lib/geminiServer';
 import { requireAuth } from './middleware/requireAuth';
 import { rateLimit } from './middleware/rateLimit';
+import { authorizeServerSideRequest } from './middleware/authorizer';
 import { logger } from './logger';
 
 if (!getApps().length) {
@@ -14,6 +15,7 @@ if (!getApps().length) {
 
 export { requireAuth } from './middleware/requireAuth';
 export { rateLimit, checkRateLimit } from './middleware/rateLimit';
+export { authorizeServerSideRequest } from './middleware/authorizer';
 
 // HTTPS Cloud Function endpoint export style (Firebase Functions compatible)
 export const callGeminiProxy = async (req: any, res: any) => {
@@ -143,17 +145,6 @@ export const sendEmail = async (req: any, res: any) => {
  * Exige autenticación y que el solicitante sea 'superadmin' o 'gerente' de la orgId objetivo.
  */
 export const setUserCustomClaims = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'El usuario debe estar autenticado para realizar esta acción.'
-    );
-  }
-
-  const callerUid = context.auth.uid;
-  const callerRole = context.auth.token?.role;
-  const callerOrgId = context.auth.token?.orgId;
-
   const { targetUid, role, orgId } = data || {};
 
   if (!targetUid || !role || !orgId) {
@@ -163,20 +154,17 @@ export const setUserCustomClaims = functions.https.onCall(async (data: any, cont
     );
   }
 
-  const isSuperadmin = callerRole === 'superadmin';
-  const isGerenteOfOrg = callerRole === 'gerente' && callerOrgId === orgId;
+  // Autorización server-side reusable (S14.2)
+  const authRes = await authorizeServerSideRequest(context.auth, {
+    orgId,
+    allowedRoles: ['superadmin', 'gerente'],
+  });
 
-  if (!isSuperadmin && !isGerenteOfOrg) {
-    throw new functions.https.HttpsError(
-      'permission-denied',
-      'No tiene permisos suficientes para modificar roles en esta organización.'
-    );
-  }
-
+  const callerUid = authRes.uid;
   const authAdmin = getAuth();
   const dbAdmin = getFirestore();
 
-  // 1. Asignar Custom Claims (SIN 'status')
+  // 1. Asignar Custom Claims
   await authAdmin.setCustomUserClaims(targetUid, { role, orgId });
 
   // 2. Revocar tokens de refresco
@@ -208,14 +196,14 @@ export const setUserCustomClaims = functions.https.onCall(async (data: any, cont
 });
 
 /**
- * Callable Cloud Function para asegurar que el usuario tenga Custom Claims asignados a partir de su documento en /users/{uid}.
- * (a) Exige context.auth
- * (b) Lee /users/{context.auth.uid} del PROPIO usuario
- * (c) Fija claims {orgId, role} en Auth
- * (d) NUNCA acepta role/orgId desde el payload del cliente
- * (e) Llama admin.auth().revokeRefreshTokens(uid)
+ * Callable Cloud Function para asegurar que el usuario tenga Custom Claims asignados
+ * a partir de su membresía autoritativa en /organizations/{orgId}/memberships/{uid}.
+ * (S14.2):
+ * - NUNCA lee datos del cliente o de documentos editables por usuario (/users/{uid}).
+ * - Ausencia de membresía retorna estado explícito ('failed-precondition', 'NO_MEMBERSHIP').
+ * - Solo revoca refresh tokens si los claims cambian.
  */
-export const ensureOwnClaims = functions.https.onCall(async (_data: any, context: functions.https.CallableContext) => {
+export const ensureOwnClaims = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
   if (!context.auth) {
     throw new functions.https.HttpsError(
       'unauthenticated',
@@ -227,63 +215,91 @@ export const ensureOwnClaims = functions.https.onCall(async (_data: any, context
   const dbAdmin = getFirestore();
   const authAdmin = getAuth();
 
-  const userDocSnap = await dbAdmin.collection('users').doc(uid).get();
+  const requestedOrgId = data?.orgId;
+  let membershipSnap: any = null;
+  let targetOrgId = '';
 
-  if (!userDocSnap.exists) {
-    throw new functions.https.HttpsError(
-      'not-found',
-      `No se encontró el documento de usuario en /users/${uid}`
-    );
+  if (requestedOrgId && typeof requestedOrgId === 'string' && requestedOrgId.trim()) {
+    const docRef = dbAdmin.doc(`organizations/${requestedOrgId.trim()}/memberships/${uid}`);
+    const snap = await docRef.get();
+    if (snap.exists) {
+      membershipSnap = snap;
+      targetOrgId = requestedOrgId.trim();
+    }
   }
 
-  const userData = userDocSnap.data() || {};
-  const orgId = userData.orgId;
-  const requestedRole = userData.role;
-
-  if (!orgId || !requestedRole) {
-    throw new functions.https.HttpsError(
-      'failed-precondition',
-      'El documento de usuario no posee orgId o role válidos.'
-    );
-  }
-
-  let finalRole = requestedRole;
-
-  // Validación autoritativa para roles elevados ('superadmin', 'gerente'):
-  // Se debe verificar la existencia y estado de la membership autoritativa
-  // en /organizations/{orgId}/memberships/{uid} (solo escribible por Admin SDK)
-  if (requestedRole === 'superadmin' || requestedRole === 'gerente') {
-    const membershipSnap = await dbAdmin
-      .collection(`organizations/${orgId}/memberships`)
-      .doc(uid)
+  if (!membershipSnap) {
+    const docQuerySnap = await dbAdmin
+      .collectionGroup('memberships')
+      .where(FieldPath.documentId(), '==', uid)
+      .limit(1)
       .get();
 
-    if (!membershipSnap.exists) {
-      finalRole = 'campo';
+    if (!docQuerySnap.empty) {
+      membershipSnap = docQuerySnap.docs[0];
+      targetOrgId = membershipSnap.data().orgId || membershipSnap.ref.parent?.parent?.id;
     } else {
-      const membershipData = membershipSnap.data() || {};
-      if (
-        membershipData.status &&
-        membershipData.status !== 'approved' &&
-        membershipData.status !== 'aprobado' &&
-        membershipData.status !== 'active'
-      ) {
-        finalRole = 'campo';
+      const fieldQuerySnap = await dbAdmin
+        .collectionGroup('memberships')
+        .where('uid', '==', uid)
+        .limit(1)
+        .get();
+
+      if (!fieldQuerySnap.empty) {
+        membershipSnap = fieldQuerySnap.docs[0];
+        targetOrgId = membershipSnap.data().orgId || membershipSnap.ref.parent?.parent?.id;
       }
     }
   }
 
-  // Asignar Custom Claims autoritativos
-  await authAdmin.setCustomUserClaims(uid, { orgId, role: finalRole });
+  if (!membershipSnap || !membershipSnap.exists) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'NO_MEMBERSHIP: No se encontró una membresía activa asignada para este usuario.'
+    );
+  }
 
-  // Revocar tokens de refresco para forzar actualización de ID token
-  await authAdmin.revokeRefreshTokens(uid);
+  const membershipData = membershipSnap.data() || {};
+  const status = (membershipData.status as string) || 'active';
+  const activeStatuses = ['approved', 'aprobado', 'active'];
+
+  if (!activeStatuses.includes(status.toLowerCase())) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      `MEMBERSHIP_INACTIVE: La membresía del usuario se encuentra en estado '${status}'.`
+    );
+  }
+
+  const authoritativeRole = membershipData.role || 'campo';
+  const authoritativeOrgId = membershipData.orgId || targetOrgId;
+
+  if (!authoritativeOrgId || !authoritativeRole) {
+    throw new functions.https.HttpsError(
+      'failed-precondition',
+      'INVALID_MEMBERSHIP_DATA: La membresía autoritativa no posee un orgId o role válidos.'
+    );
+  }
+
+  const currentClaims = context.auth.token || {};
+  const claimsAlreadyMatch =
+    currentClaims.role === authoritativeRole &&
+    currentClaims.orgId === authoritativeOrgId;
+
+  if (!claimsAlreadyMatch) {
+    await authAdmin.setCustomUserClaims(uid, {
+      orgId: authoritativeOrgId,
+      role: authoritativeRole,
+    });
+
+    await authAdmin.revokeRefreshTokens(uid);
+  }
 
   return {
     success: true,
-    orgId,
-    role: finalRole,
-    message: `Claims asegurados exitosamente para ${uid}: orgId=${orgId}, role=${finalRole}`,
+    orgId: authoritativeOrgId,
+    role: authoritativeRole,
+    claimsUpdated: !claimsAlreadyMatch,
+    message: `Claims asegurados exitosamente para ${uid}: orgId=${authoritativeOrgId}, role=${authoritativeRole}`,
   };
 });
 
@@ -297,14 +313,6 @@ export { issueRegulatoryCode } from './regulatoryIds';
  * - Retorna el token en texto plano UNA SOLA VEZ al llamador
  */
 export const createClientPortal = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'El usuario debe estar autenticado para crear o configurar un portal de cliente.'
-    );
-  }
-
-  const callerUid = context.auth.uid;
   const { 
     id, name, clientName, orgId, linkedProjectIds, branding, visibilityMatrix, expiresAtOption, isRevoked 
   } = data || {};
@@ -316,6 +324,13 @@ export const createClientPortal = functions.https.onCall(async (data: any, conte
     );
   }
 
+  // Autorización server-side reusable (S14.2)
+  const authRes = await authorizeServerSideRequest(context.auth, {
+    orgId,
+    allowedRoles: ['superadmin', 'gerente'],
+  });
+
+  const callerUid = authRes.uid;
   const dbAdmin = getFirestore();
   const portalId = id || `portal_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
@@ -502,14 +517,6 @@ export const getClientPortal = async (req: any, res: any) => {
  * - Escribe en colección append-only
  */
 export const sealDocument = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'Se requiere autenticación para sellar documentos.'
-    );
-  }
-
-  const callerUid = context.auth.uid;
   const { docId, orgId, projId, pdfBytesBase64, version, metadata } = data || {};
 
   if (!docId || !orgId) {
@@ -518,6 +525,16 @@ export const sealDocument = functions.https.onCall(async (data: any, context: fu
       'Faltan parámetros requeridos: docId y orgId.'
     );
   }
+
+  // Autorización server-side reusable (S14.2)
+  const authRes = await authorizeServerSideRequest(context.auth, {
+    orgId,
+    projectId: projId,
+    requireProject: Boolean(projId),
+    allowedRoles: ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'],
+  });
+
+  const callerUid = authRes.uid;
 
   // 1. Calcular Hash SHA-256 Server-Side
   let sha256 = '';

@@ -1,0 +1,197 @@
+import { CallableContext, HttpsError } from 'firebase-functions/v1/https';
+import { getFirestore } from 'firebase-admin/firestore';
+import { DecodedIdToken } from 'firebase-admin/auth';
+import { logger } from '../logger';
+
+export interface AuthorizeOptions {
+  /**
+   * Identificador único de la organización.
+   */
+  orgId: string;
+  /**
+   * Identificador opcional o requerido del proyecto.
+   */
+  projectId?: string;
+  /**
+   * Indica si projectId es obligatorio para la operación.
+   * Por defecto true si se provee projectId.
+   */
+  requireProject?: boolean;
+  /**
+   * Lista de roles permitidos para ejecutar la función.
+   */
+  allowedRoles?: string[];
+  /**
+   * Parámetros opcionales provenientes de la ruta para validar inconsistencias.
+   */
+  routeOrgId?: string;
+  routeProjectId?: string;
+}
+
+export interface AuthorizeResult {
+  uid: string;
+  email?: string;
+  orgId: string;
+  projectId?: string;
+  role: string;
+  membershipStatus: string;
+  decodedToken: DecodedIdToken;
+}
+
+/**
+ * Autorizador Server-Side Reusable para Cloud Functions e Integraciones (Sprint 14.2)
+ *
+ * Aplica reglas estrictas de seguridad multi-tenant:
+ * 1. Exige usuario autenticado.
+ * 2. Valida presencia de orgId (y projectId si requireProject = true).
+ * 3. Rechaza inconsistencias entre claims JWT, cuerpo de la petición y ruta HTTP.
+ * 4. Consulta membership activa autoritativa en /organizations/{orgId}/memberships/{uid}.
+ * 5. Valida roles permitidos.
+ * 6. Verifique que el proyecto exista y pertenezca a la organización.
+ */
+export async function authorizeServerSideRequest(
+  authContext: CallableContext['auth'] | DecodedIdToken | undefined,
+  options: AuthorizeOptions
+): Promise<AuthorizeResult> {
+  // 1. Exigir autenticación
+  if (!authContext) {
+    throw new HttpsError(
+      'unauthenticated',
+      'Acceso denegado: Se requiere un usuario autenticado para realizar esta acción.'
+    );
+  }
+
+  const uid = typeof authContext.uid === 'string' ? authContext.uid : (authContext as DecodedIdToken).uid;
+  const decodedToken: DecodedIdToken = 'token' in authContext && authContext.token
+    ? (authContext.token as DecodedIdToken)
+    : (authContext as DecodedIdToken);
+
+  const tokenRole = (decodedToken.role as string) || '';
+  const tokenOrgId = (decodedToken.orgId as string) || '';
+  const email = decodedToken.email;
+
+  const { orgId, projectId, allowedRoles, requireProject, routeOrgId, routeProjectId } = options;
+
+  // 2. Parámetros obligatorios orgId y projectId
+  if (!orgId || typeof orgId !== 'string' || !orgId.trim()) {
+    throw new HttpsError(
+      'invalid-argument',
+      'Parámetro requerido: orgId es obligatorio y debe ser una cadena válida.'
+    );
+  }
+
+  const cleanOrgId = orgId.trim();
+
+  const isProjectRequired = requireProject ?? Boolean(projectId);
+  if (isProjectRequired) {
+    if (!projectId || typeof projectId !== 'string' || !projectId.trim()) {
+      throw new HttpsError(
+        'invalid-argument',
+        'Parámetro requerido: projectId es obligatorio para esta operación.'
+      );
+    }
+  }
+
+  const cleanProjectId = projectId?.trim();
+
+  // 3. Rechazar inconsistencias entre claims, cuerpo y ruta
+  if (routeOrgId && routeOrgId.trim() !== cleanOrgId) {
+    throw new HttpsError(
+      'permission-denied',
+      `Inconsistencia de seguridad: orgId en ruta ('${routeOrgId}') no coincide con el cuerpo ('${cleanOrgId}').`
+    );
+  }
+
+  if (routeProjectId && cleanProjectId && routeProjectId.trim() !== cleanProjectId) {
+    throw new HttpsError(
+      'permission-denied',
+      `Inconsistencia de seguridad: projectId en ruta ('${routeProjectId}') no coincide con el cuerpo ('${cleanProjectId}').`
+    );
+  }
+
+  const isSuperadminClaim = tokenRole === 'superadmin';
+  if (tokenOrgId && !isSuperadminClaim && tokenOrgId !== cleanOrgId) {
+    throw new HttpsError(
+      'permission-denied',
+      `Acceso denegado: El usuario pertenece a la organización '${tokenOrgId}', pero solicitó operar en '${cleanOrgId}'.`
+    );
+  }
+
+  // 4. Consultar membership activa autoritativa
+  const dbAdmin = getFirestore();
+  const membershipRef = dbAdmin.doc(`organizations/${cleanOrgId}/memberships/${uid}`);
+  const membershipSnap = await membershipRef.get();
+
+  let effectiveRole = tokenRole;
+  let membershipStatus = 'active';
+
+  if (!membershipSnap.exists) {
+    if (isSuperadminClaim) {
+      effectiveRole = 'superadmin';
+      membershipStatus = 'active';
+    } else {
+      throw new HttpsError(
+        'permission-denied',
+        `Membresía no encontrada: El usuario '${uid}' no posee registro de membresía en '/organizations/${cleanOrgId}/memberships/${uid}'.`
+      );
+    }
+  } else {
+    const membershipData = membershipSnap.data() || {};
+    const status = (membershipData.status as string) || 'active';
+    const activeStatuses = ['approved', 'aprobado', 'active'];
+
+    if (!activeStatuses.includes(status.toLowerCase())) {
+      throw new HttpsError(
+        'permission-denied',
+        `Membresía inactiva: El estado de su membresía en '${cleanOrgId}' es '${status}'.`
+      );
+    }
+
+    effectiveRole = (membershipData.role as string) || tokenRole || 'campo';
+    membershipStatus = status;
+  }
+
+  // 5. Validar roles permitidos
+  if (allowedRoles && allowedRoles.length > 0) {
+    const isAllowed = allowedRoles.includes(effectiveRole) || effectiveRole === 'superadmin';
+    if (!isAllowed) {
+      throw new HttpsError(
+        'permission-denied',
+        `Permisos insuficientes: El rol '${effectiveRole}' no está autorizado para esta operación.`
+      );
+    }
+  }
+
+  // 6. Verificar que el proyecto exista y pertenezca a la organización
+  if (cleanProjectId) {
+    const projectRef = dbAdmin.doc(`organizations/${cleanOrgId}/projects/${cleanProjectId}`);
+    const projectSnap = await projectRef.get();
+
+    if (!projectSnap.exists) {
+      throw new HttpsError(
+        'not-found',
+        `Proyecto no encontrado: El proyecto '${cleanProjectId}' no existe o no pertenece a la organización '${cleanOrgId}'.`
+      );
+    }
+
+    const projectData = projectSnap.data();
+    if (projectData?.orgId && projectData.orgId !== cleanOrgId) {
+      throw new HttpsError(
+        'permission-denied',
+        `Inconsistencia de proyecto: El proyecto '${cleanProjectId}' no pertenece a la organización '${cleanOrgId}'.`
+      );
+    }
+  }
+
+  logger.info(`Autorización server-side exitosa: uid=${uid}, orgId=${cleanOrgId}, projId=${cleanProjectId || 'N/A'}, role=${effectiveRole}`);
+
+  return {
+    uid,
+    email,
+    orgId: cleanOrgId,
+    projectId: cleanProjectId,
+    role: effectiveRole,
+    membershipStatus,
+    decodedToken,
+  };
+}

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkRateLimit = checkRateLimit;
 exports.rateLimit = rateLimit;
 const firestore_1 = require("firebase-admin/firestore");
+const logger_1 = require("../logger");
 /**
  * Función atómica para verificar y registrar el rate limiting en la colección Firestore /rate_limits/{uid}_{operation}_{windowKey}.
  * Utiliza transacciones de Firestore para garantizar coherencia en concurrencia.
@@ -72,7 +73,7 @@ function rateLimit(options) {
             next();
         }
         catch (error) {
-            console.error(`Error procesando rate limit para operacion '${operation}':`, error?.message || error);
+            logger_1.logger.error(`Error procesando rate limit para operacion '${operation}':`, error?.message || error);
             res.status(500).json({
                 error: 'Error interno en la verificación de límite de tasa de peticiones (rate limiting).',
             });

@@ -1,44 +1,30 @@
 import * as functions from 'firebase-functions/v1';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { logger } from './logger';
+import { authorizeServerSideRequest } from './middleware/authorizer';
 
 export const issueRegulatoryCode = functions.https.onCall(async (data: any, context: functions.https.CallableContext) => {
-  // (a) requireAuth
-  if (!context.auth) {
-    throw new functions.https.HttpsError(
-      'unauthenticated',
-      'El usuario debe estar autenticado para solicitar un código regulatorio.'
-    );
-  }
-
   const { orgId, projectId, series } = data || {};
-  if (!orgId || !projectId || !series) {
+  if (!series) {
     throw new functions.https.HttpsError(
       'invalid-argument',
-      'Faltan parámetros requeridos: orgId, projectId, series.'
+      'Falta parámetro requerido: series.'
     );
   }
 
-  const callerUid = context.auth.uid;
-  const callerRole = context.auth.token?.role || '';
-  const callerOrgId = context.auth.token?.orgId || '';
+  // Autorización server-side reusable (S14.2)
+  const authRes = await authorizeServerSideRequest(context.auth, {
+    orgId,
+    projectId,
+    requireProject: true,
+    allowedRoles: ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'],
+  });
 
-  // (b) Valida rol
-  const allowedRoles = ['superadmin', 'gerente', 'supervisor', 'inspector', 'campo'];
-  const hasValidRole = allowedRoles.includes(callerRole);
-  const belongsToOrg = callerRole === 'superadmin' || callerOrgId === orgId;
-
-  if (!hasValidRole || !belongsToOrg) {
-    throw new functions.https.HttpsError(
-      'permission-denied',
-      'No posee permisos suficientes en la organización para generar códigos regulatorios.'
-    );
-  }
-
+  const callerUid = authRes.uid;
   const dbAdmin = getFirestore();
   const year = new Date().getFullYear();
   const seriesUpper = String(series).trim().toUpperCase();
-  const counterDocRef = dbAdmin.doc(`organizations/${orgId}/counters/${seriesUpper}-${year}`);
+  const counterDocRef = dbAdmin.doc(`organizations/${authRes.orgId}/counters/${seriesUpper}-${year}`);
 
   // (c) runTransaction en admin SDK sobre /organizations/{orgId}/counters/{series}-{year}
   let nextCount = 1;
