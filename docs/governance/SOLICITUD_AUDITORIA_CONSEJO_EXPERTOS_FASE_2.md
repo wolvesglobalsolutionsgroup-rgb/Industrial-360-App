@@ -33,10 +33,12 @@
 
 ### A. Principios Inmutables del Proyecto
 1. **"No es generar, es CONSTRUIR":** Industrial Control 360 no es una demo ni una plantilla descartable. Se está construyendo un **Sistema Operativo Industrial de alto nivel** diseñado para mantenerse vigente por 50 años o más en Oil & Gas, refinación, petroquímica y obras EPC.
-2. **GitHub como Única Fuente de la Verdad:** La rama `main` en GitHub es la referencia autoritativa de código. Google AI Studio (GAIS) se utiliza como el entorno de máxima velocidad de generación debido a la gratuidad e hiper-eficiencia en el uso de tokens.
-3. **Estrategia Financiera B2B (Stack Gratuito hasta 10 Clientes):** Toda la arquitectura está diseñada sobre el Tier Gratuito y Pay-as-you-go optimizado de Firebase, Vercel y GitHub Actions. Cero costos fijos de infraestructura hasta haber cerrado los primeros 10 clientes corporativos.
-4. **UX/UI World-Class & Friendly:** La aplicación debe ser sumamente amigable, limpia, ultra-organizada y fluida, compitiendo con los estándares de diseño de los mejores software corporativos del mundo.
-5. **Rigor Normativo Multi-Operador:** Cumplimiento estricto de PDVSA (SI-S-04), Chevron (CES/CHESM), Repsol (EHS/NORMA), ENI (STEA) y normativas internacionales (ASME B31.3, B31G, API 570, API 1163, COVENIN 2000, CCPP Petrolero LOTTT).
+2. **Proyecto Google Dedicado (`Proyecto I-360 App` - #820771818710):** Desvinculación de entornos globales/personales. Claves API exclusivas `Gemini I-360 App` y `RESEND I-360 App`.
+3. **GitHub como Única Fuente de la Verdad:** La rama `main` en GitHub es la referencia autoritativa de código. Google AI Studio (GAIS) se utiliza como el entorno de máxima velocidad de generación debido a la gratuidad e hiper-eficiencia en el uso de tokens.
+4. **Estrategia Financiera B2B (Stack Gratuito hasta 10 Clientes):** Toda la arquitectura está diseñada sobre el Tier Gratuito y Pay-as-you-go optimizado de Firebase, Vercel y GitHub Actions. Cero costos fijos de infraestructura y sin dominio propio pagado por ahora hasta haber cerrado los primeros 10 clientes corporativos.
+5. **Editabilidad Total de Entregables (.docx, .xlsx, .pptx):** Todos los documentos generados por la app deben poder exportarse a formatos editables en Word (`docx`), Excel (`exceljs`) y PowerPoint (`pptxgenjs`) para que el cliente pueda ajustar del 80% al 100% final.
+6. **UX/UI World-Class & Friendly:** La aplicación debe ser sumamente amigable, limpia, ultra-organizada y fluida, compitiendo con los estándares de diseño de los mejores software corporativos del mundo.
+7. **Rigor Normativo Multi-Operador:** Cumplimiento estricto de PDVSA (SI-S-04), Chevron (CES/CHESM), Repsol (EHS/NORMA), ENI (STEA) y normativas internacionales (ASME B31.3, B31G, API 570, API 1163, COVENIN 2000, CCPP Petrolero LOTTT).
 
 ---
 
