@@ -238,17 +238,43 @@ export const ensureOwnClaims = functions.https.onCall(async (_data: any, context
 
   const userData = userDocSnap.data() || {};
   const orgId = userData.orgId;
-  const role = userData.role;
+  const requestedRole = userData.role;
 
-  if (!orgId || !role) {
+  if (!orgId || !requestedRole) {
     throw new functions.https.HttpsError(
       'failed-precondition',
       'El documento de usuario no posee orgId o role válidos.'
     );
   }
 
-  // Asignar Custom Claims
-  await authAdmin.setCustomUserClaims(uid, { orgId, role });
+  let finalRole = requestedRole;
+
+  // Validación autoritativa para roles elevados ('superadmin', 'gerente'):
+  // Se debe verificar la existencia y estado de la membership autoritativa
+  // en /organizations/{orgId}/memberships/{uid} (solo escribible por Admin SDK)
+  if (requestedRole === 'superadmin' || requestedRole === 'gerente') {
+    const membershipSnap = await dbAdmin
+      .collection(`organizations/${orgId}/memberships`)
+      .doc(uid)
+      .get();
+
+    if (!membershipSnap.exists) {
+      finalRole = 'campo';
+    } else {
+      const membershipData = membershipSnap.data() || {};
+      if (
+        membershipData.status &&
+        membershipData.status !== 'approved' &&
+        membershipData.status !== 'aprobado' &&
+        membershipData.status !== 'active'
+      ) {
+        finalRole = 'campo';
+      }
+    }
+  }
+
+  // Asignar Custom Claims autoritativos
+  await authAdmin.setCustomUserClaims(uid, { orgId, role: finalRole });
 
   // Revocar tokens de refresco para forzar actualización de ID token
   await authAdmin.revokeRefreshTokens(uid);
@@ -256,8 +282,8 @@ export const ensureOwnClaims = functions.https.onCall(async (_data: any, context
   return {
     success: true,
     orgId,
-    role,
-    message: `Claims asegurados exitosamente para ${uid}: orgId=${orgId}, role=${role}`,
+    role: finalRole,
+    message: `Claims asegurados exitosamente para ${uid}: orgId=${orgId}, role=${finalRole}`,
   };
 });
 

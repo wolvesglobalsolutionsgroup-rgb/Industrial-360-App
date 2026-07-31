@@ -280,4 +280,51 @@ describe('Firestore Zero-Trust Security Rules (Sprint IC360-S1-zero-trust)', () 
       );
     }
   });
+
+  // --------------------------------------------------------------------------
+  // CASO 6: Bloqueo de auto-escalación de privilegios en /users/{userId} (Hardening)
+  // --------------------------------------------------------------------------
+  it('Caso 6: Usuario NO puede auto-escalar rol ni modificar campos sensibles en /users/{uid}', async () => {
+    const env = getTestEnv();
+    if (!env) return;
+
+    await env.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'users/user_campo_999'), {
+        displayName: 'Usuario Campo 999',
+        role: 'campo',
+        orgId: 'prointeca',
+      });
+    });
+
+    const userDb = getAuthedDb('user_campo_999', {
+      orgId: 'prointeca',
+      role: 'campo',
+    });
+
+    const userRef = doc(userDb, 'users/user_campo_999');
+
+    // 6a. Intento de update de su propio /users/{uid} enviando { role: 'superadmin' } -> DENEGADO
+    await assertDenied(
+      updateDoc(userRef, {
+        role: 'superadmin',
+      }),
+      'Usuario no debe poder auto-asignarse el rol superadmin'
+    );
+
+    // 6b. Intento de modificar orgId o claims -> DENEGADO
+    await assertDenied(
+      updateDoc(userRef, {
+        orgId: 'org_infiltrada',
+      }),
+      'Usuario no debe poder modificar su orgId'
+    );
+
+    // 6c. Modificación de campo no sensible (ej. displayName) -> PERMITIDO
+    await assertAllowed(
+      updateDoc(userRef, {
+        displayName: 'Nombre Modificado Legalmente',
+      }),
+      'Usuario sí debe poder actualizar campos no sensibles'
+    );
+  });
 });
