@@ -323,18 +323,28 @@ async function syncLegacyDexieTables(activeOrgId: string, activeProjectId: strin
   }
 }
 
-// Backward Compatibility API for queueing
 export async function queueOfflineOperation(
   collectionName: string,
   operationType: 'create' | 'update' | 'delete',
   payload: Record<string, any>,
-  docId?: string
+  docId?: string,
+  orgId?: string,
+  projectId?: string
 ) {
+  const effectiveOrgId = orgId || payload.orgId;
+  const effectiveProjectId = projectId || payload.projectId;
+
+  if (!effectiveOrgId || !effectiveProjectId) {
+    throw new Error('Faltan parámetros requeridos: orgId y projectId son obligatorios para encolar operaciones offline.');
+  }
+
   const item = await queueOutboxOperation({
     collectionName,
     operationType,
     payload,
     docId,
+    orgId: effectiveOrgId,
+    projectId: effectiveProjectId,
     category: payload.category || undefined
   });
 

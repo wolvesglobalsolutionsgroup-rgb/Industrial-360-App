@@ -107,7 +107,7 @@ export const sendEmail = async (req: any, res: any) => {
   if (res.headersSent) return;
 
   try {
-    const { to, subject, html, event, portalLink } = req.body || {};
+    const { to, subject, html, portalLink } = req.body || {};
 
     if (!to || (!html && !subject)) {
       res.status(400).json({ error: 'Faltan parámetros requeridos: to, subject, html' });
@@ -126,11 +126,8 @@ export const sendEmail = async (req: any, res: any) => {
       });
       res.status(200).json({ success: true, data: emailResult });
     } else {
-      res.status(200).json({
-        success: true,
-        simulated: true,
-        message: 'Notificación registrada exitosamente (simulado sin RESEND_API_KEY).',
-        details: { to, subject, event }
+      res.status(503).json({
+        error: 'Servicio de correo electrónico no disponible (falta RESEND_API_KEY en Secret Manager).'
       });
     }
   } catch (err: any) {
@@ -305,6 +302,9 @@ export const createClientPortal = functions.https.onCall(async (data: any, conte
   }
 
   const callerUid = context.auth.uid;
+  const callerOrgId = context.auth.token?.orgId;
+  const callerRole = context.auth.token?.role;
+
   const { 
     id, name, clientName, orgId, linkedProjectIds, branding, visibilityMatrix, expiresAtOption, isRevoked 
   } = data || {};
@@ -313,6 +313,13 @@ export const createClientPortal = functions.https.onCall(async (data: any, conte
     throw new functions.https.HttpsError(
       'invalid-argument',
       'Faltan parámetros obligatorios: name u orgId.'
+    );
+  }
+
+  if (callerRole !== 'superadmin' && callerOrgId !== orgId) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'No tiene autorización para crear un portal de cliente en esta organización.'
     );
   }
 
@@ -448,9 +455,13 @@ export const getClientPortal = async (req: any, res: any) => {
       return;
     }
 
-    // Comparar SHA-256 hash del token recibido
+    // Comparar SHA-256 hash del token recibido en tiempo constante
     const computedHash = crypto.createHash('sha256').update(String(token)).digest('hex');
-    const isValidToken = computedHash === portalData.tokenHash || portalData.accessToken === token;
+    const targetHash = String(portalData.tokenHash || '');
+
+    const bufA = Buffer.from(computedHash, 'hex');
+    const bufB = Buffer.from(targetHash, 'hex');
+    const isValidToken = bufA.length === bufB.length && bufB.length > 0 && crypto.timingSafeEqual(bufA, bufB);
 
     if (!isValidToken) {
       res.status(401).json({ error: 'Acceso Denegado: Token de seguridad no válido.' });
@@ -460,7 +471,12 @@ export const getClientPortal = async (req: any, res: any) => {
     // Registrar Audit Log Server-Side
     const rawIp = req.headers['x-forwarded-for'] || req.ip || 'unknown';
     const ip = typeof rawIp === 'string' ? rawIp.split(',')[0].trim() : String(rawIp);
-    const orgId = portalData.orgId || 'semax_pino';
+    const orgId = portalData.orgId;
+
+    if (!orgId) {
+      res.status(400).json({ error: 'Acceso Denegado: Configuración de portal inválida.' });
+      return;
+    }
 
     try {
       await dbAdmin.collection(`organizations/${orgId}/client_portal_access_logs`).add({
@@ -510,12 +526,22 @@ export const sealDocument = functions.https.onCall(async (data: any, context: fu
   }
 
   const callerUid = context.auth.uid;
+  const callerOrgId = context.auth.token?.orgId;
+  const callerRole = context.auth.token?.role;
+
   const { docId, orgId, projId, pdfBytesBase64, version, metadata } = data || {};
 
   if (!docId || !orgId) {
     throw new functions.https.HttpsError(
       'invalid-argument',
       'Faltan parámetros requeridos: docId y orgId.'
+    );
+  }
+
+  if (callerRole !== 'superadmin' && callerOrgId !== orgId) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'No tiene autorización para sellar documentos en esta organización.'
     );
   }
 
