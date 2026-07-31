@@ -5,6 +5,9 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  test: {
+    exclude: ['**/node_modules/**', '**/dist/**', '**/functions/lib/**', '**/cypress/**'],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

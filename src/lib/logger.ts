@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
  */
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi;
 const BEARER_JWT_REGEX = /(Bearer\s+)?[A-Za-z0-9\-_=]+\.[A-Za-z0-9\-_=]+\.[A-Za-z0-9\-_=]+/gi;
-const API_KEY_SECRET_REGEX = /(AIzaSy[A-Za-z0-9\-_]{33}|[a-f0-9]{32,64})/gi;
+export const API_KEY_SECRET_REGEX = /(AIzaSy[A-Za-z0-9\-_]{33}|[a-f0-9]{32,64})/gi;
 const PRECISE_GPS_REGEX = /(-?\d{1,3}\.\d{3,})\s*,\s*(-?\d{1,3}\.\d{3,})/g;
 
 const SENSITIVE_TOKEN_KEYS = new Set([
@@ -148,10 +148,17 @@ let isSentryInitialized = false;
 export function initSentry(): void {
   if (isSentryInitialized) return;
 
-  const rawDsn =
-    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SENTRY_DSN) ||
-    (typeof process !== 'undefined' && process.env?.VITE_SENTRY_DSN) ||
-    '';
+  let rawDsn = '';
+  let envMode = 'development';
+
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      rawDsn = process.env.VITE_SENTRY_DSN || '';
+      envMode = process.env.NODE_ENV || 'development';
+    }
+  } catch (_e) {
+    // Ignore env error
+  }
 
   const dsn = typeof rawDsn === 'string' ? rawDsn.trim() : '';
 
@@ -162,10 +169,7 @@ export function initSentry(): void {
   try {
     Sentry.init({
       dsn,
-      environment:
-        (typeof import.meta !== 'undefined' && import.meta.env?.MODE) ||
-        (typeof process !== 'undefined' && process.env?.NODE_ENV) ||
-        'development',
+      environment: envMode,
       beforeSend(event) {
         // Scrub PII from messages, exceptions, extra, user, and request
         if (event.message) {

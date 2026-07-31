@@ -297,6 +297,18 @@ const INITIAL_DEMO_DISPATCHES: MaterialDispatch[] = [
   }
 ];
 
+const getDemoRfqs = (targetOrgId: string, targetProjId: string): MaterialRFQ[] =>
+  INITIAL_DEMO_RFQS.map(item => ({ ...item, orgId: targetOrgId, projectId: targetProjId }));
+
+const getDemoPos = (targetOrgId: string, targetProjId: string): PurchaseOrder[] =>
+  INITIAL_DEMO_POS.map(item => ({ ...item, orgId: targetOrgId, projectId: targetProjId }));
+
+const getDemoInventory = (targetOrgId: string, targetProjId: string): InventoryItemMTR[] =>
+  INITIAL_DEMO_INVENTORY.map(item => ({ ...item, orgId: targetOrgId, projectId: targetProjId }));
+
+const getDemoDispatches = (targetOrgId: string, targetProjId: string): MaterialDispatch[] =>
+  INITIAL_DEMO_DISPATCHES.map(item => ({ ...item, orgId: targetOrgId, projectId: targetProjId }));
+
 export default function ProcurementInventory() {
   const { currentOrganization, currentProject } = useProject();
   const { orgId, projectId: projId } = useRequiredProject();
@@ -369,10 +381,10 @@ export default function ProcurementInventory() {
     const unsubRfq = onSnapshot(rfqQ, (snap) => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as MaterialRFQ));
       const filtered = projId === 'all' ? all : all.filter(r => r.projectId === projId);
-      setRfqs(filtered.length > 0 ? filtered : INITIAL_DEMO_RFQS);
+      setRfqs(filtered.length > 0 ? filtered : getDemoRfqs(orgId, projId));
     }, (err) => {
       handleFirestoreError(err, OperationType.GET, 'procurement');
-      setRfqs(INITIAL_DEMO_RFQS);
+      setRfqs(getDemoRfqs(orgId, projId));
     });
 
     // 2. Inventory / Materials
@@ -380,15 +392,15 @@ export default function ProcurementInventory() {
     const unsubInv = onSnapshot(invQ, (snap) => {
       const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as InventoryItemMTR));
       const filtered = projId === 'all' ? all : all.filter(i => i.projectId === projId);
-      setInventoryItems(filtered.length > 0 ? filtered : INITIAL_DEMO_INVENTORY);
+      setInventoryItems(filtered.length > 0 ? filtered : getDemoInventory(orgId, projId));
     }, (err) => {
       handleFirestoreError(err, OperationType.GET, 'inventory');
-      setInventoryItems(INITIAL_DEMO_INVENTORY);
+      setInventoryItems(getDemoInventory(orgId, projId));
     });
 
     // POs and Dispatches fallback to state initialized with demo items if not present
-    setPos(INITIAL_DEMO_POS);
-    setDispatches(INITIAL_DEMO_DISPATCHES);
+    setPos(getDemoPos(orgId, projId));
+    setDispatches(getDemoDispatches(orgId, projId));
 
     return () => {
       unsubRfq();
