@@ -4,10 +4,12 @@ import {
   LayoutDashboard, HardHat, ClipboardList, Package, Receipt, 
   MessageSquare, Mic, Box, LogOut, Calculator, Settings as SettingsIcon,
   CircleDollarSign, Clock, PackageSearch, ShieldCheck, FileArchive, 
-  Database, Plug, Network, BrainCircuit, Briefcase, X, MapPin, Truck, ArrowLeftRight, Globe
+  Database, Plug, Network, BrainCircuit, Briefcase, X, MapPin, Truck, ArrowLeftRight, Globe,
+  FlaskConical
 } from 'lucide-react';
 import { logout, useAppAuthState } from '../firebase';
 import { useProject } from '../ProjectContext';
+import { useAuthClaims } from '../hooks/useAuthClaims';
 import { ROLE_LABELS } from './ProtectedRoute';
 import TopContextBar from './TopContextBar';
 
@@ -61,6 +63,14 @@ export default function Layout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const { currentOrganization, userRole } = useProject();
+  const { orgId: claimOrgId } = useAuthClaims();
+
+  const activeOrgId = currentOrganization?.id || claimOrgId || '';
+  const isQaTenant =
+    activeOrgId === 'prointeca-demo' ||
+    activeOrgId === 'qa-preview-tenant' ||
+    activeOrgId.startsWith('qa-') ||
+    activeOrgId.endsWith('-demo');
 
   // Handle window resize to detect mobile view
   useEffect(() => {
@@ -207,6 +217,14 @@ export default function Layout() {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 bg-transparent relative h-full overflow-hidden">
+        {/* Banner de Entorno QA / Preview con Datos Sintéticos */}
+        {isQaTenant && (
+          <div className="bg-amber-500 text-slate-950 font-bold px-4 py-1.5 text-xs text-center flex items-center justify-center gap-2 shadow-sm border-b border-amber-600 z-50 shrink-0">
+            <FlaskConical size={15} className="animate-pulse shrink-0 text-slate-950" />
+            <span>PREVIEW / QA — Datos sintéticos — No usar para operación real</span>
+          </div>
+        )}
+
         {/* Top Context Bar */}
         <header className="glass sticky top-0 z-20 border-b border-line">
           <TopContextBar 
