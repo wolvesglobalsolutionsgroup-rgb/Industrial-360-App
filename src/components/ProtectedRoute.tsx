@@ -31,24 +31,65 @@ export default function ProtectedRoute({ children, allowedRoles, moduleName = 'e
       setIsProvisioning(true);
       setProvisionError(null);
 
-      const provisionFn = httpsCallable<{ targetOrgId: string; role: string; action: string }, any>(
-        functionsInstance,
-        'provisionFounderQaAccess'
-      );
+      let success = false;
+      let errorMsg = '';
 
-      const res = await provisionFn({
-        targetOrgId: 'prointeca-demo',
-        role: 'gerente',
-        action: 'provision',
-      });
+      // 1. Intentar vía Cloud Function httpsCallable
+      try {
+        const provisionFn = httpsCallable<{ targetOrgId: string; role: string; action: string }, any>(
+          functionsInstance,
+          'provisionFounderQaAccess'
+        );
 
-      if (res.data?.success) {
+        const res = await provisionFn({
+          targetOrgId: 'prointeca-demo',
+          role: 'gerente',
+          action: 'provision',
+        });
+
+        if (res.data?.success) {
+          success = true;
+        } else {
+          errorMsg = res.data?.message || '';
+        }
+      } catch (callErr: any) {
+        console.warn('httpsCallable falló, intentando endpoint directo /api/provision-qa-access:', callErr?.message || callErr);
+      }
+
+      // 2. Si no fue exitoso, intentar vía API Endpoint /api/provision-qa-access en Express
+      if (!success) {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+          throw new Error('Usuario no autenticado en Firebase.');
+        }
+
+        const idToken = await currentUser.getIdToken();
+        const apiRes = await fetch('/api/provision-qa-access', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            targetOrgId: 'prointeca-demo',
+            role: 'gerente',
+            action: 'provision',
+          }),
+        });
+
+        const data = await apiRes.json();
+        if (apiRes.ok && data.success) {
+          success = true;
+        } else {
+          throw new Error(data.error || errorMsg || 'Error al provisionar acceso QA.');
+        }
+      }
+
+      if (success) {
         if (auth.currentUser) {
           await auth.currentUser.getIdToken(true);
         }
         window.location.reload();
-      } else {
-        setProvisionError(res.data?.message || 'Error al provisionar acceso QA.');
       }
     } catch (err: any) {
       setProvisionError(err?.message || 'Error de comunicación con el servidor de autorización.');
