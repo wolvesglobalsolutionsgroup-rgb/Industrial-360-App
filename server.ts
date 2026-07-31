@@ -86,12 +86,6 @@ async function startServer() {
     }
   });
 
-  // QA Provisioner Endpoint for Founder/Evaluator Access
-  app.post('/api/provision-qa-access', async (req, res) => {
-    const { handleProvisionQaAccess } = await import('./src/lib/serverQaProvisioner');
-    await handleProvisionQaAccess(req, res);
-  });
-
   // Client Portal & Document Verification Endpoints
   app.all('/api/get-client-portal', async (req, res) => {
     const { getClientPortal } = await import('./functions/src/index');
