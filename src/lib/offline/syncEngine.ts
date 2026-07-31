@@ -91,8 +91,8 @@ async function notifySubscribers() {
  * Flush Outbox queue to Firestore with operationId Idempotency Check & Conflict Policies
  */
 export async function flushOutbox(
-  activeOrgId: string = 'semax_pino',
-  activeProjectId: string = 'PROJ-001'
+  activeOrgId?: string,
+  activeProjectId?: string
 ): Promise<{ synced: number; failed: number; blocked: number; successCount: number; failCount: number }> {
   if (!isBrowserOnline() || isSyncingActive) {
     return { synced: 0, failed: 0, blocked: 0, successCount: 0, failCount: 0 };
@@ -384,6 +384,10 @@ export const syncOfflineStoreToFirestore = flushOutbox;
 export const syncPendingRecords = flushOutbox;
 
 export async function saveReportOffline(reportData: Omit<PendingReport, 'id' | 'tempId' | 'syncStatus' | 'operationId'>): Promise<string> {
+  if (!reportData.orgId || !reportData.projectId) {
+    throw new Error('Faltan orgId o projectId obligatorios para guardar el reporte offline.');
+  }
+
   const tempId = `off_rep_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const opId = generateOperationId();
 
@@ -398,8 +402,8 @@ export async function saveReportOffline(reportData: Omit<PendingReport, 'id' | '
     collectionName: 'field_reports',
     operationType: 'create',
     payload: { ...reportData, tempId },
-    orgId: reportData.projectId ? 'semax_pino' : 'semax_pino',
-    projectId: reportData.projectId || 'PROJ-001',
+    orgId: reportData.orgId,
+    projectId: reportData.projectId,
     category: 'report'
   });
 
@@ -411,6 +415,10 @@ export async function saveReportOffline(reportData: Omit<PendingReport, 'id' | '
 }
 
 export async function saveValuationOffline(valuationData: Omit<PendingValuation, 'id' | 'tempId' | 'syncStatus' | 'operationId'>): Promise<string> {
+  if (!valuationData.orgId || !valuationData.projectId) {
+    throw new Error('Faltan orgId o projectId obligatorios para guardar la valuación offline.');
+  }
+
   const tempId = `off_val_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const opId = generateOperationId();
 
@@ -425,8 +433,8 @@ export async function saveValuationOffline(valuationData: Omit<PendingValuation,
     collectionName: 'valuations',
     operationType: 'create',
     payload: { ...valuationData, tempId },
-    orgId: 'semax_pino',
-    projectId: valuationData.projectId || 'PROJ-001',
+    orgId: valuationData.orgId,
+    projectId: valuationData.projectId,
     category: 'valuation',
     conflictStrategy: 'BLOCKING'
   });
@@ -439,6 +447,10 @@ export async function saveValuationOffline(valuationData: Omit<PendingValuation,
 }
 
 export async function saveRouteOffline(routeData: Omit<PendingRoute, 'id' | 'tempId' | 'syncStatus' | 'operationId'>): Promise<string> {
+  if (!routeData.orgId || !routeData.projectId) {
+    throw new Error('Faltan orgId o projectId obligatorios para guardar la ruta offline.');
+  }
+
   const tempId = `off_route_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const opId = generateOperationId();
 
@@ -453,8 +465,8 @@ export async function saveRouteOffline(routeData: Omit<PendingRoute, 'id' | 'tem
     collectionName: 'routes',
     operationType: 'create',
     payload: { ...routeData, tempId },
-    orgId: 'semax_pino',
-    projectId: routeData.projectId || 'PROJ-001',
+    orgId: routeData.orgId,
+    projectId: routeData.projectId,
     category: 'route'
   });
 

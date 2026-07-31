@@ -321,7 +321,7 @@ export default function QaQcWelding() {
   // Selected joint for NDT report preview
   const [selectedJointForReport, setSelectedJointForReport] = useState<WeldJoint | null>(null);
 
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
 
   useEffect(() => {
     if (!currentProject) return;

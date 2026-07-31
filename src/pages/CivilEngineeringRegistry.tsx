@@ -127,7 +127,7 @@ const SAMPLE_CIVIL_RECORDS: CivilTestRecord[] = [
 
 export default function CivilEngineeringRegistry() {
   const { currentProject, currentOrganization, brandKit } = useProject();
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
 
   const [records, setRecords] = useState<CivilTestRecord[]>(SAMPLE_CIVIL_RECORDS);
   const [selectedRecord, setSelectedRecord] = useState<CivilTestRecord | null>(SAMPLE_CIVIL_RECORDS[0]);

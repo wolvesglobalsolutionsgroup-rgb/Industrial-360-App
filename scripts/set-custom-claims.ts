@@ -52,11 +52,11 @@ export async function setCustomUserClaims(uid: string, claims: CustomClaimsInput
 
 // Ejecución directa vía CLI
 const args = process.argv.slice(2);
-if (args.length >= 1) {
+if (args.length >= 3) {
   const [uid, role, orgId] = args;
   const claims: CustomClaimsInput = {
     role: (role as CustomClaimsInput['role']) || 'gerente',
-    orgId: orgId || 'semax_pino',
+    orgId: orgId,
   };
 
   setCustomUserClaims(uid, claims)
@@ -68,5 +68,5 @@ if (args.length >= 1) {
 } else {
   console.log('ℹ️ Script de Custom User Claims para Industrial Control 360.');
   console.log('Ejemplo de uso:');
-  console.log('  npx tsx scripts/set-custom-claims.ts "USER_UID" "gerente" "semax_pino"');
+  console.log('  npx tsx scripts/set-custom-claims.ts "USER_UID" "gerente" "org_demo"');
 }

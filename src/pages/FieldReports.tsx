@@ -98,7 +98,7 @@ export default function FieldReports() {
     setIsLoadingReports(true);
 
     const isSingle = currentProject.id !== 'all';
-    const orgId = currentOrganization?.id || 'semax_pino';
+    const orgId = currentOrganization?.id || '';
     
     // Fetch WBS tasks for AI correlation via Repo
     const unsubTasks = tasksRepo.subscribe(orgId, currentProject.id, (taskList) => {
@@ -284,7 +284,7 @@ Responde de forma ejecutiva, concisa y profesional.`;
     };
 
     try {
-      const targetOrgId = currentOrganization?.id || 'semax_pino';
+      const targetOrgId = currentOrganization?.id || '';
       if (!navigator.onLine) {
         await queueOfflineOperation('field_reports', 'create', reportData);
         alert("Guardado Offline: El reporte se sincronizará automáticamente al conectarse a la red.");

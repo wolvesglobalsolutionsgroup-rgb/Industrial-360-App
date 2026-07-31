@@ -57,7 +57,7 @@ export const EXPENSE_CATEGORIES = [
 
 export default function Expenses() {
   const { currentProject, currentOrganization } = useProject();
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
   const targetProjectId = currentProject && currentProject.id !== 'all' ? currentProject.id : 'proj-01';
 
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);

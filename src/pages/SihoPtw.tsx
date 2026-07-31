@@ -165,7 +165,7 @@ export default function SihoPtw() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const { currentOrganization } = useProject();
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
 
   useEffect(() => {
     if (!currentProject) return;

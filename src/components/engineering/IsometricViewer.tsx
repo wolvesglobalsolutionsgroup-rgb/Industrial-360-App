@@ -21,7 +21,7 @@ interface IsometricViewerProps {
 
 export default function IsometricViewer({ onJointSelect, selectedJointId, className = '' }: IsometricViewerProps) {
   const { currentProject, currentOrganization } = useProject();
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
   const projId = currentProject?.id || 'all';
 
   // State

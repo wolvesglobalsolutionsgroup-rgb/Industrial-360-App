@@ -11,7 +11,7 @@ export default function Inventory() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newItem, setNewItem] = useState({ name: '', unit: 'kg', quantity: '' });
 
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
   const projectId = currentProject?.id || 'PROJ-DEFAULT';
 
   useEffect(() => {

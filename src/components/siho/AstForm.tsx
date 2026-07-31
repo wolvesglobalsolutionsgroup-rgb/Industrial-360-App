@@ -110,7 +110,7 @@ interface AstFormProps {
 
 export default function AstForm({ onSuccess, onCancel }: AstFormProps) {
   const { currentProject, currentOrganization } = useProject();
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
 
   // Paso 1: Datos de Identificación
   const [title, setTitle] = useState('');

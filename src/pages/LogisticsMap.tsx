@@ -78,7 +78,7 @@ export default function LogisticsMap() {
   useEffect(() => {
     setIsLoadingData(true);
     const projId = currentProject?.id || 'all';
-    const orgId = currentOrganization?.id || 'semax_pino';
+    const orgId = currentOrganization?.id || '';
 
     // Query field reports via Repo
     const unsubReports = fieldReportsRepo.subscribe(orgId, projId, (reportsData) => {
@@ -147,7 +147,7 @@ export default function LogisticsMap() {
       if (livePath.length >= 2) {
         // Automatically save live route
         const autoName = `Recorrido GPS - ${new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })}`;
-        const targetOrgId = currentOrganization?.id || 'semax_pino';
+        const targetOrgId = currentOrganization?.id || '';
         const targetProjId = currentProject?.id || 'PROJ-DEFAULT';
         routesRepo.create(targetOrgId, targetProjId, {
           name: autoName,

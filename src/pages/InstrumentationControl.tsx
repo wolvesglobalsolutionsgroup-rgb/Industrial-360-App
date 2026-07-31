@@ -123,7 +123,7 @@ const SAMPLE_LOOPS: InstrumentLoop[] = [
 
 export default function InstrumentationControl() {
   const { currentProject, currentOrganization, brandKit } = useProject();
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
   const projId = currentProject?.id || 'all';
 
   const [loops, setLoops] = useState<InstrumentLoop[]>(SAMPLE_LOOPS);

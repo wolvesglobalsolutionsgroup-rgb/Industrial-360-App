@@ -89,7 +89,7 @@ describe('Firestore Zero-Trust Security Rules (Sprint IC360-S1-zero-trust)', () 
   // --------------------------------------------------------------------------
   // CASO 2: Aislamiento estricto multi-tenant (Org A vs Org B)
   // --------------------------------------------------------------------------
-  it('Caso 2: Usuario de Org A (prointeca) NO puede leer ni escribir en Org B (semax_pino)', async () => {
+  it('Caso 2: Usuario de Org A (prointeca) NO puede leer ni escribir en Org B (org_b)', async () => {
     const env = getTestEnv();
     if (!env) return;
     await env.withSecurityRulesDisabled(async (context) => {
@@ -101,8 +101,8 @@ describe('Firestore Zero-Trust Security Rules (Sprint IC360-S1-zero-trust)', () 
       });
     });
 
-    const semaxUserDb = getAuthedDb('user_semax_gerente', {
-      orgId: 'semax_pino',
+    const semaxUserDb = getAuthedDb('user_orgb_gerente', {
+      orgId: 'org_b',
       role: 'gerente',
     });
 
@@ -111,7 +111,7 @@ describe('Firestore Zero-Trust Security Rules (Sprint IC360-S1-zero-trust)', () 
     // Lectura denegada
     await assertDenied(
       getDoc(prointecaValRef),
-      'Gerente de semax_pino NO debe leer valuaciones de prointeca'
+      'Gerente de org_b NO debe leer valuaciones de prointeca'
     );
 
     // Escritura denegada
@@ -121,7 +121,7 @@ describe('Firestore Zero-Trust Security Rules (Sprint IC360-S1-zero-trust)', () 
         orgId: 'prointeca',
         projectId: 'proj_1',
       }),
-      'Gerente de semax_pino NO debe escribir valuaciones de prointeca'
+      'Gerente de org_b NO debe escribir valuaciones de prointeca'
     );
   });
 

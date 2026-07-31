@@ -105,7 +105,7 @@ const SAMPLE_WORKERS: FieldWorker[] = [
 
 export default function WorkerQrRegistry() {
   const { currentProject, currentOrganization, brandKit } = useProject();
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
   const projId = currentProject?.id || 'all';
 
   const [workers, setWorkers] = useState<FieldWorker[]>(SAMPLE_WORKERS);

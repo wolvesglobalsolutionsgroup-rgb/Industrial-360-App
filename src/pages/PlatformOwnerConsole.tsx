@@ -57,8 +57,8 @@ const INITIAL_TENANTS: TenantSummary[] = [
     status: 'Activo'
   },
   {
-    id: 'semax_pino',
-    name: 'Consorcio O&G Campo Sur (SEMAX-PINO)',
+    id: 'petrocedeno',
+    name: 'Empresa Mixta Petrocedeño S.A.',
     taxId: 'RIF J-40891234-1',
     plan: 'Enterprise O&G',
     activeProjectsCount: 2,
@@ -88,7 +88,7 @@ const INITIAL_AUDIT_LOGS: SecurityAuditLog[] = [
   {
     id: 'audit_101',
     timestamp: new Date().toISOString(),
-    tenantId: 'semax_pino',
+    tenantId: 'petrocedeno',
     actorEmail: 'gerencia@consorcioog.com',
     action: 'Emisión de Permiso PTW-2026-0891 con override de firmeza',
     module: 'Permisos PTW',
@@ -118,7 +118,7 @@ const INITIAL_AUDIT_LOGS: SecurityAuditLog[] = [
   {
     id: 'audit_104',
     timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    tenantId: 'semax_pino',
+    tenantId: 'petrocedeno',
     actorEmail: 'desconocido@190.200.1.1',
     action: 'Intento fallido de escalamiento de rol a superadmin',
     module: 'Auth Shield',

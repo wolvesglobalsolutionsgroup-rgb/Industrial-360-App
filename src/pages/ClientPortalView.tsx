@@ -87,7 +87,7 @@ export default function ClientPortalView() {
     if (!portal || !portal.linkedProjectIds || portal.linkedProjectIds.length === 0) return;
 
     const projIds = portal.linkedProjectIds;
-    const portalOrgId = portal.orgId || 'semax_pino';
+    const portalOrgId = portal.orgId || '';
 
     // Tasks Subscription via Repo
     const unsubTasks = tasksRepo.subscribe(portalOrgId, 'all', (all) => {

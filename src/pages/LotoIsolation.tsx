@@ -102,7 +102,7 @@ const SAMPLE_LOTO_POINTS: LotoPoint[] = [
 
 export default function LotoIsolation() {
   const { currentProject, currentOrganization, brandKit } = useProject();
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
   const projId = currentProject?.id || 'all';
 
   const [lotoPoints, setLotoPoints] = useState<LotoPoint[]>(SAMPLE_LOTO_POINTS);

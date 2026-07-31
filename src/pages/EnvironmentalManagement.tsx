@@ -148,7 +148,7 @@ const SAMPLE_INSPECTIONS: EquipmentInspection[] = [
 
 export default function EnvironmentalManagement() {
   const { currentProject, currentOrganization } = useProject();
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
   const projId = currentProject?.id || 'PROJ-001';
 
   const [activeTab, setActiveTab] = useState<'pga' | 'rasda' | 'equipment'>('pga');

@@ -23,7 +23,7 @@ export default function Documents() {
       return;
     }
 
-    const orgId = currentOrganization?.id || 'semax_pino';
+    const orgId = currentOrganization?.id || '';
     const unsubscribe = documentsRepo.subscribe(orgId, currentProject.id, (docs) => {
       setDocuments(docs);
     }, (error) => {
@@ -69,7 +69,7 @@ export default function Documents() {
         async () => {
           const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
 
-          await documentsRepo.create(currentOrganization?.id || 'semax_pino', currentProject.id, {
+          await documentsRepo.create(currentOrganization?.id || '', currentProject.id, {
             title: file.name,
             name: file.name,
             size: file.size,
@@ -97,7 +97,7 @@ export default function Documents() {
   const handleDelete = async (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar este documento del repositorio?')) {
       try {
-        const orgId = currentOrganization?.id || 'semax_pino';
+        const orgId = currentOrganization?.id || '';
         const projId = currentProject?.id || 'PROJ-DEFAULT';
         await documentsRepo.delete(orgId, projId, id);
       } catch (err) {

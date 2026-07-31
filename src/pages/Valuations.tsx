@@ -82,7 +82,7 @@ export default function Valuations() {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [availablePhotos, setAvailablePhotos] = useState<{ url: string; date?: string; note?: string }[]>([]);
 
-  const orgId = currentOrganization?.id || 'semax_pino';
+  const orgId = currentOrganization?.id || '';
 
   useEffect(() => {
     if (!currentProject) {

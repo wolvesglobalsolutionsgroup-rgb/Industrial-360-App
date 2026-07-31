@@ -6,8 +6,11 @@ import { functionsInstance } from '../firebase';
  * Si falla o está offline, retorna un código determinista formateado sin Math.random().
  */
 export async function generateRegulatoryCode(orgId: string, projectId: string, series: string): Promise<string> {
-  const cleanOrg = orgId || 'semax_pino';
-  const cleanProj = projectId || 'PROJ-DEFAULT';
+  if (!orgId || !projectId) {
+    throw new Error('[RegulatoryIDs] orgId y projectId son obligatorios.');
+  }
+  const cleanOrg = orgId.trim();
+  const cleanProj = projectId.trim();
   const seriesUpper = series.trim().toUpperCase();
 
   try {

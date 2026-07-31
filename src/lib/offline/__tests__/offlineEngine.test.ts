@@ -28,7 +28,7 @@ describe('Offline Queue & Idempotency System', () => {
       collectionName: 'field_reports',
       operationType: 'create',
       payload: { title: 'Reporte 1 - Inspección Macolla A' },
-      orgId: 'semax_pino',
+      orgId: 'org_demo_test',
       projectId: 'PROJ-001',
       category: 'report'
     });
@@ -37,7 +37,7 @@ describe('Offline Queue & Idempotency System', () => {
       collectionName: 'field_reports',
       operationType: 'create',
       payload: { title: 'Reporte 2 - Inspección Macolla B' },
-      orgId: 'semax_pino',
+      orgId: 'org_demo_test',
       projectId: 'PROJ-001',
       category: 'report'
     });
@@ -46,7 +46,7 @@ describe('Offline Queue & Idempotency System', () => {
       collectionName: 'field_reports',
       operationType: 'create',
       payload: { title: 'Reporte 3 - Inspección Macolla C' },
-      orgId: 'semax_pino',
+      orgId: 'org_demo_test',
       projectId: 'PROJ-001',
       category: 'report'
     });
