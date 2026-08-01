@@ -67,19 +67,21 @@ Actúa como equipo coordinado:
 - Industrial UX Engineer
 - Especialista del dominio del sprint
 
-PASO 0 — PREFLIGHT SEGURO
-Ejecuta primero: git status --short
-Si el árbol contiene cambios inesperados:
+PASO 0 — PREFLIGHT Y SINCRONIZACIÓN SEGURO
+Ejecuta primero la alineación por terminal con el remoto oficial:
+git remote remove origin 2>/dev/null
+git remote add origin https://github.com/wolvesglobalsolutionsgroup-rgb/Industrial-360-App.git
+git fetch origin --prune
+git checkout main
+git reset --hard origin/main
+git status --short
+
+Si el árbol aún contiene cambios locales inesperados no commiteados:
 - detente inmediatamente;
-- no hagas checkout;
-- no hagas pull;
 - no modifiques archivos;
 - reporta los cambios encontrados.
 
-Solo con árbol limpio, ejecuta:
-git fetch origin --prune
-git checkout main
-git pull --ff-only origin main
+Solo con árbol 100% limpio y sincronizado con origin/main, ejecuta:
 git rev-parse --short HEAD
 git checkout -b sprint/IC360-S<NUMERO>-<nombre>
 git status --short
