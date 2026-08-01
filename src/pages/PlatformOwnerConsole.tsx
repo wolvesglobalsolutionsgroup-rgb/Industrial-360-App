@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functionsInstance } from '../firebase';
 import { 
   Crown, ShieldCheck, Server, Database, Activity, ToggleLeft, ToggleRight, 
   Users, Building2, HardDrive, DollarSign, Key, AlertTriangle, Search, 
-  TrendingUp, Lock, RefreshCw, Cpu, Layers, Radio, Globe, ShieldAlert
+  TrendingUp, Lock, RefreshCw, Cpu, Layers, Radio, Globe, ShieldAlert, UserCheck, UserX
 } from 'lucide-react';
 import { useProject } from '../ProjectContext';
 
@@ -132,7 +133,60 @@ export default function PlatformOwnerConsole() {
 
   const [tenants, setTenants] = useState<TenantSummary[]>(INITIAL_TENANTS);
   const [auditLogs, setAuditLogs] = useState<SecurityAuditLog[]>(INITIAL_AUDIT_LOGS);
-  const [activeTab, setActiveTab] = useState<'tenants' | 'quotas' | 'flags' | 'security'>('tenants');
+  const [activeTab, setActiveTab] = useState<'tenants' | 'quotas' | 'flags' | 'security' | 'qa_provisioning'>('tenants');
+
+  // QA Provisioning form state
+  const [qaUid, setQaUid] = useState('');
+  const [qaOrgId, setQaOrgId] = useState('');
+  const [qaRole, setQaRole] = useState<'gerente' | 'supervisor' | 'inspector' | 'campo' | 'cliente_readonly'>('gerente');
+  const [qaReason, setQaReason] = useState('');
+  const [qaLoading, setQaLoading] = useState(false);
+  const [qaResult, setQaResult] = useState<string | null>(null);
+  const [qaError, setQaError] = useState<string | null>(null);
+
+  const handleProvisionQa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setQaLoading(true);
+    setQaResult(null);
+    setQaError(null);
+    try {
+      const provisionFn = httpsCallable<any, any>(functionsInstance, 'provisionQaMembership');
+      const res = await provisionFn({
+        targetUid: qaUid,
+        targetOrgId: qaOrgId,
+        requestedRole: qaRole,
+        reason: qaReason,
+      });
+      setQaResult(res.data?.message || 'Provisión completada exitosamente.');
+    } catch (err: any) {
+      setQaError(err?.message || 'Error al aprovisionar membresía QA.');
+    } finally {
+      setQaLoading(false);
+    }
+  };
+
+  const handleRevokeQa = async () => {
+    if (!qaUid || !qaOrgId || !qaReason) {
+      setQaError('UID, Org ID y Razón son requeridos para revocar.');
+      return;
+    }
+    setQaLoading(true);
+    setQaResult(null);
+    setQaError(null);
+    try {
+      const revokeFn = httpsCallable<any, any>(functionsInstance, 'revokeQaMembership');
+      const res = await revokeFn({
+        targetUid: qaUid,
+        targetOrgId: qaOrgId,
+        reason: qaReason,
+      });
+      setQaResult(res.data?.message || 'Revocación completada exitosamente.');
+    } catch (err: any) {
+      setQaError(err?.message || 'Error al revocar membresía QA.');
+    } finally {
+      setQaLoading(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchRealOrganizations() {
@@ -306,6 +360,17 @@ export default function PlatformOwnerConsole() {
           }`}
         >
           <ShieldAlert className="w-4 h-4" /> Auditoría de Seguridad ({auditLogs.length})
+        </button>
+
+        <button 
+          onClick={() => setActiveTab('qa_provisioning')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all ${
+            activeTab === 'qa_provisioning' 
+              ? 'bg-brand-500 text-white shadow-soft' 
+              : 'text-muted hover:text-ink hover:bg-surface-2'
+          }`}
+        >
+          <UserCheck className="w-4 h-4" /> Aprovisionamiento QA Preview
         </button>
       </div>
 
@@ -504,6 +569,111 @@ export default function PlatformOwnerConsole() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* TAB 5: QA PROVISIONING */}
+      {activeTab === 'qa_provisioning' && (
+        <div className="p-6 rounded-2xl bg-surface border border-line shadow-card space-y-6">
+          <div className="pb-4 border-b border-line">
+            <h2 className="text-lg font-bold text-ink flex items-center gap-2">
+              <UserCheck className="w-5 h-5 text-brand-500" /> Aprovisionamiento de Membresías QA Preview (S14.2A)
+            </h2>
+            <p className="text-xs text-muted">
+              Gestión server-side autorizada para el acceso de fundadores y QA a tenants con datos sintéticos (<code>environment === 'qa'</code>).
+              Requiere custom claim <code>platformAdmin === true</code>.
+            </p>
+          </div>
+
+          <form onSubmit={handleProvisionQa} className="space-y-4 max-w-2xl">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1">Target UID del Usuario</label>
+                <input 
+                  type="text" 
+                  value={qaUid}
+                  onChange={e => setQaUid(e.target.value)}
+                  placeholder="ej. founder_uid_123"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-ink focus:outline-none focus:border-brand-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1">Target QA Org ID (Tenant)</label>
+                <input 
+                  type="text" 
+                  value={qaOrgId}
+                  onChange={e => setQaOrgId(e.target.value)}
+                  placeholder="ej. prointeca_qa"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-ink focus:outline-none focus:border-brand-500"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1">Rol Solicitado</label>
+                <select 
+                  value={qaRole}
+                  onChange={e => setQaRole(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-ink focus:outline-none focus:border-brand-500"
+                >
+                  <option value="gerente">gerente</option>
+                  <option value="supervisor">supervisor</option>
+                  <option value="inspector">inspector</option>
+                  <option value="campo">campo</option>
+                  <option value="cliente_readonly">cliente_readonly</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1">Justificación Auditoría</label>
+                <input 
+                  type="text" 
+                  value={qaReason}
+                  onChange={e => setQaReason(e.target.value)}
+                  placeholder="ej. Revisión de prototipo S14.2A con datos sintéticos"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-2 border border-line text-xs text-ink focus:outline-none focus:border-brand-500"
+                  required
+                />
+              </div>
+            </div>
+
+            {qaResult && (
+              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 text-xs font-semibold">
+                {qaResult}
+              </div>
+            )}
+
+            {qaError && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold">
+                {qaError}
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="submit"
+                disabled={qaLoading}
+                className="px-4 py-2.5 rounded-xl bg-brand-500 text-white font-bold text-xs shadow-soft hover:bg-brand-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <UserCheck className="w-4 h-4" />
+                {qaLoading ? 'Aprovisionando...' : 'Aprovisionar Acceso QA'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleRevokeQa}
+                disabled={qaLoading}
+                className="px-4 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 font-bold text-xs hover:bg-red-500/20 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                <UserX className="w-4 h-4" />
+                {qaLoading ? 'Revocando...' : 'Revocar Acceso QA'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>
