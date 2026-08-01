@@ -1,0 +1,520 @@
+import { IsometricDrawing } from './isometricTypes';
+
+export const SAMPLE_ISOMETRICS: IsometricDrawing[] = [
+  {
+    id: 'iso-104',
+    number: 'ISO-PDVSA-104',
+    title: 'Línea de Transferencia de Crudo 12"-HC (Anaco - Puerto La Cruz)',
+    lineTag: '12"-HC-AN-PLC-001',
+    projectCode: 'PRJ-PDVSA-2026-08',
+    revision: 'Rev. 0',
+    date: '2026-07-15',
+    fluidSystem: 'Crudo Pesado 16° API (Manzanares / Hamaca)',
+    designPressurePsi: 740,
+    designTempC: 85,
+    spools: [
+      {
+        id: 'spl-01',
+        tag: 'SPL-104-01',
+        description: 'Spool de Succión 12" WN Flange + Codo 90° LR API 5L X52',
+        weightKg: 340,
+        joints: ['J-01', 'J-02', 'J-03']
+      },
+      {
+        id: 'spl-02',
+        tag: 'SPL-104-02',
+        description: 'Carrete Recto 12" t=12.7mm con Tramo Descendente',
+        weightKg: 520,
+        joints: ['J-04', 'J-05', 'J-06']
+      },
+      {
+        id: 'spl-03',
+        tag: 'SPL-104-03',
+        description: 'Spool de Descarga con Válvula de Comporta y Brida Terminal',
+        weightKg: 480,
+        joints: ['J-07', 'J-08']
+      }
+    ],
+    bom: [
+      { itemNo: 1, qty: 1, description: 'Brida WN 12" Class 300 RF', nominalSize: '12"', materialSpec: 'ASTM A105', heatNumber: 'HN-A105-8841' },
+      { itemNo: 2, qty: 12.5, description: 'Tubería Tubería Sin Costura 12" Sch 80', nominalSize: '12"', materialSpec: 'API 5L PSL2 X52', heatNumber: 'MTR-API-99482-B' },
+      { itemNo: 3, qty: 2, description: 'Codo 90° LR 12" Sch 80', nominalSize: '12"', materialSpec: 'ASTM A234 Gr WPB', heatNumber: 'HN-WPB-7740' },
+      { itemNo: 4, qty: 1, description: 'Válvula de Compuerta 12" Class 300 RF OS&Y', nominalSize: '12"', materialSpec: 'ASTM A216 Gr WCB', heatNumber: 'HN-WCB-9921' }
+    ],
+    joints: [
+      {
+        id: 'j-104-01',
+        tag: 'J-01',
+        x: 140,
+        y: 430,
+        spoolTag: 'SPL-104-01',
+        type: 'BUTT',
+        pipeSize: '12"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L PSL2 X52',
+        heatNumber: 'MTR-API-99482-B',
+        wpsCode: 'WPS-PDVSA-01',
+        welderStamp: 'W-402',
+        welderName: 'José Pérez',
+        weldDate: '2026-07-18',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-081',
+        inspectorName: 'Ing. Marcos Silva (ASNT Level II RT/UT)',
+        dicondeSampleId: 'dcm-1'
+      },
+      {
+        id: 'j-104-02',
+        tag: 'J-02',
+        x: 290,
+        y: 330,
+        spoolTag: 'SPL-104-01',
+        type: 'BUTT',
+        pipeSize: '12"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L PSL2 X52',
+        heatNumber: 'MTR-API-99482-B',
+        wpsCode: 'WPS-PDVSA-01',
+        welderStamp: 'W-402',
+        welderName: 'José Pérez',
+        weldDate: '2026-07-19',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-082',
+        inspectorName: 'Ing. Marcos Silva (ASNT Level II RT/UT)',
+        dicondeSampleId: 'dcm-1'
+      },
+      {
+        id: 'j-104-03',
+        tag: 'J-03',
+        x: 420,
+        y: 330,
+        spoolTag: 'SPL-104-01',
+        type: 'BUTT',
+        pipeSize: '12"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L PSL2 X52',
+        heatNumber: 'MTR-API-99482-B',
+        wpsCode: 'WPS-PDVSA-01',
+        welderStamp: 'W-309',
+        welderName: 'Manuel Rivas',
+        weldDate: '2026-07-20',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'UT/PAUT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-PAUT-2026-014',
+        inspectorName: 'Carlos Mendoza (ASNT Level III)'
+      },
+      {
+        id: 'j-104-04',
+        tag: 'J-04',
+        x: 520,
+        y: 330,
+        spoolTag: 'SPL-104-02',
+        type: 'BUTT',
+        pipeSize: '12"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L PSL2 X52',
+        heatNumber: 'MTR-API-99482-B',
+        wpsCode: 'WPS-PDVSA-01',
+        welderStamp: 'W-309',
+        welderName: 'Manuel Rivas',
+        weldDate: '2026-07-21',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-085',
+        inspectorName: 'Ing. Marcos Silva (ASNT Level II)'
+      },
+      {
+        id: 'j-104-05',
+        tag: 'J-05',
+        x: 520,
+        y: 240,
+        spoolTag: 'SPL-104-02',
+        type: 'BUTT',
+        pipeSize: '12"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L PSL2 X52',
+        heatNumber: 'MTR-API-99482-B',
+        wpsCode: 'WPS-PDVSA-01',
+        welderStamp: 'W-402',
+        welderName: 'José Pérez',
+        weldDate: '2026-07-22',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-088',
+        inspectorName: 'Ing. Marcos Silva (ASNT Level II)'
+      },
+      {
+        id: 'j-104-06',
+        tag: 'J-06',
+        x: 520,
+        y: 150,
+        spoolTag: 'SPL-104-02',
+        type: 'BUTT',
+        pipeSize: '12"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L PSL2 X52',
+        heatNumber: 'MTR-API-99482-B',
+        wpsCode: 'WPS-PDVSA-01',
+        welderStamp: 'W-402',
+        welderName: 'José Pérez',
+        weldDate: '2026-07-23',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-090',
+        inspectorName: 'Ing. Marcos Silva (ASNT Level II)'
+      },
+      {
+        id: 'j-104-07',
+        tag: 'J-07',
+        x: 630,
+        y: 150,
+        spoolTag: 'SPL-104-03',
+        type: 'BUTT',
+        pipeSize: '12"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L PSL2 X52',
+        heatNumber: 'HN-A105-8841',
+        wpsCode: 'WPS-PDVSA-01',
+        welderStamp: 'W-309',
+        welderName: 'Manuel Rivas',
+        weldDate: '2026-07-24',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-092',
+        inspectorName: 'Ing. Marcos Silva (ASNT Level II)'
+      },
+      {
+        id: 'j-104-08',
+        tag: 'J-08',
+        x: 730,
+        y: 150,
+        spoolTag: 'SPL-104-03',
+        type: 'BUTT',
+        pipeSize: '12"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L PSL2 X52',
+        heatNumber: 'HN-A105-8841',
+        wpsCode: 'WPS-PDVSA-01',
+        welderStamp: 'W-309',
+        welderName: 'Manuel Rivas',
+        weldDate: '2026-07-25',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-095',
+        inspectorName: 'Ing. Marcos Silva (ASNT Level II)'
+      }
+    ],
+    svgPaths: {
+      geometry: [
+        // Pipe 1: Iso 30 deg up right
+        { d: 'M 100 460 L 290 330', strokeWidth: 8, stroke: '#3b82f6', type: 'pipe', label: '12" Sch 80' },
+        // Elbow 1
+        { d: 'M 280 337 Q 290 330 300 330', strokeWidth: 10, stroke: '#1d4ed8', type: 'elbow' },
+        // Pipe 2: Horizontal right
+        { d: 'M 290 330 L 520 330', strokeWidth: 8, stroke: '#3b82f6', type: 'pipe' },
+        // Elbow 2
+        { d: 'M 510 330 Q 520 330 520 320', strokeWidth: 10, stroke: '#1d4ed8', type: 'elbow' },
+        // Pipe 3: Vertical up
+        { d: 'M 520 330 L 520 150', strokeWidth: 8, stroke: '#3b82f6', type: 'pipe' },
+        // Elbow 3
+        { d: 'M 520 160 Q 520 150 530 150', strokeWidth: 10, stroke: '#1d4ed8', type: 'elbow' },
+        // Pipe 4: Horizontal right
+        { d: 'M 520 150 L 750 150', strokeWidth: 8, stroke: '#3b82f6', type: 'pipe' },
+        // Flange 1 at start
+        { d: 'M 95 445 L 110 470', strokeWidth: 12, stroke: '#0284c7', type: 'flange' },
+        // Valve at end
+        { d: 'M 600 135 L 620 165 M 620 135 L 600 165 M 610 150 L 610 120 M 595 120 L 625 120', strokeWidth: 3, stroke: '#d97706', type: 'valve' },
+        // Flange 2 at end
+        { d: 'M 740 135 L 740 165', strokeWidth: 12, stroke: '#0284c7', type: 'flange' }
+      ],
+      dimensions: [
+        { x1: 100, y1: 475, x2: 290, y2: 345, label: 'L = 3,450 mm', offsetY: 15 },
+        { x1: 290, y1: 350, x2: 520, y2: 350, label: 'L = 4,200 mm', offsetY: 20 },
+        { x1: 540, y1: 330, x2: 540, y2: 150, label: 'EL +104.25m (H = 2,800 mm)', offsetX: 25 },
+        { x1: 520, y1: 130, x2: 750, y2: 130, label: 'L = 3,100 mm', offsetY: -15 }
+      ]
+    }
+  },
+  {
+    id: 'iso-201',
+    number: 'ISO-PDVSA-201',
+    title: 'Línea de Inyección de Agua de Formación 8"-WT (Estación San Tomé)',
+    lineTag: '8"-WT-ST-EF-004',
+    projectCode: 'PRJ-PDVSA-2026-08',
+    revision: 'Rev. 1',
+    date: '2026-07-22',
+    fluidSystem: 'Agua de Formación / Salmuera (Presión Alta)',
+    designPressurePsi: 1480,
+    designTempC: 45,
+    spools: [
+      {
+        id: 'spl-201-01',
+        tag: 'SPL-201-01',
+        description: 'Spool Entrada Manifold 8" Sch 120 ASTM A106 Gr B',
+        weightKg: 280,
+        joints: ['J-01', 'J-02']
+      },
+      {
+        id: 'spl-201-02',
+        tag: 'SPL-201-02',
+        description: 'Carrete Conexión Válvula de Check',
+        weightKg: 310,
+        joints: ['J-03', 'J-04']
+      }
+    ],
+    bom: [
+      { itemNo: 1, qty: 1, description: 'Brida WN 8" Class 600 RTJ', nominalSize: '8"', materialSpec: 'ASTM A105N', heatNumber: 'HN-A105N-331' },
+      { itemNo: 2, qty: 8.0, description: 'Tubería Tubería Sin Costura 8" Sch 120', nominalSize: '8"', materialSpec: 'ASTM A106 Gr B', heatNumber: 'MTR-A106B-662' },
+      { itemNo: 3, qty: 2, description: 'Codo 90° LR 8" Sch 120', nominalSize: '8"', materialSpec: 'ASTM A234 WPB', heatNumber: 'HN-WPB-112' }
+    ],
+    joints: [
+      {
+        id: 'j-201-01',
+        tag: 'J-01',
+        x: 180,
+        y: 400,
+        spoolTag: 'SPL-201-01',
+        type: 'BUTT',
+        pipeSize: '8"',
+        wallThicknessMm: 18.2,
+        material: 'ASTM A106 Gr B',
+        heatNumber: 'MTR-A106B-662',
+        wpsCode: 'WPS-PDVSA-02',
+        welderStamp: 'W-402',
+        welderName: 'José Pérez',
+        weldDate: '2026-07-22',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-102',
+        inspectorName: 'Ing. Marcos Silva'
+      },
+      {
+        id: 'j-201-02',
+        tag: 'J-02',
+        x: 350,
+        y: 280,
+        spoolTag: 'SPL-201-01',
+        type: 'BUTT',
+        pipeSize: '8"',
+        wallThicknessMm: 18.2,
+        material: 'ASTM A106 Gr B',
+        heatNumber: 'MTR-A106B-662',
+        wpsCode: 'WPS-PDVSA-02',
+        welderStamp: 'W-402',
+        welderName: 'José Pérez',
+        weldDate: '2026-07-23',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-104',
+        inspectorName: 'Ing. Marcos Silva'
+      },
+      {
+        id: 'j-201-03',
+        tag: 'J-03',
+        x: 500,
+        y: 280,
+        spoolTag: 'SPL-201-02',
+        type: 'BUTT',
+        pipeSize: '8"',
+        wallThicknessMm: 18.2,
+        material: 'ASTM A106 Gr B',
+        heatNumber: 'MTR-A106B-662',
+        wpsCode: 'WPS-PDVSA-02',
+        welderStamp: 'W-309',
+        welderName: 'Manuel Rivas',
+        weldDate: '2026-07-24',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'UT/PAUT',
+        ndtStatus: 'Pendiente',
+        inspectorName: 'Carlos Mendoza'
+      },
+      {
+        id: 'j-201-04',
+        tag: 'J-04',
+        x: 650,
+        y: 280,
+        spoolTag: 'SPL-201-02',
+        type: 'BUTT',
+        pipeSize: '8"',
+        wallThicknessMm: 18.2,
+        material: 'ASTM A106 Gr B',
+        heatNumber: 'MTR-A106B-662',
+        wpsCode: 'WPS-PDVSA-02',
+        welderStamp: 'W-309',
+        welderName: 'Manuel Rivas',
+        weldDate: '2026-07-25',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Pendiente',
+        ndtMethod: 'RT',
+        ndtStatus: 'SinSoldar'
+      }
+    ],
+    svgPaths: {
+      geometry: [
+        { d: 'M 120 440 L 350 280', strokeWidth: 7, stroke: '#0284c7', type: 'pipe' },
+        { d: 'M 350 280 L 700 280', strokeWidth: 7, stroke: '#0284c7', type: 'pipe' },
+        { d: 'M 115 425 L 130 455', strokeWidth: 10, stroke: '#0369a1', type: 'flange' }
+      ],
+      dimensions: [
+        { x1: 120, y1: 450, x2: 350, y2: 295, label: 'L = 2,800 mm' },
+        { x1: 350, y1: 300, x2: 700, y2: 300, label: 'L = 4,500 mm' }
+      ]
+    }
+  },
+  {
+    id: 'iso-305',
+    number: 'ISO-PDVSA-305',
+    title: 'Manifold Colector de Gas 16"-MP (Complejo Jusepín)',
+    lineTag: '16"-MP-JUS-2026',
+    projectCode: 'PRJ-PDVSA-2026-08',
+    revision: 'Rev. 0',
+    date: '2026-07-10',
+    fluidSystem: 'Gas Natural Amargo H2S 1500 ppm',
+    designPressurePsi: 1180,
+    designTempC: 70,
+    spools: [
+      {
+        id: 'spl-305-01',
+        tag: 'SPL-305-01',
+        description: 'Colector Principal 16" API 5L X65 NACE MR0175',
+        weightKg: 890,
+        joints: ['J-01', 'J-02', 'J-03']
+      },
+      {
+        id: 'spl-305-02',
+        tag: 'SPL-305-02',
+        description: 'Ramal Derivación 10" con Weldolet',
+        weightKg: 410,
+        joints: ['J-04', 'J-05']
+      }
+    ],
+    bom: [
+      { itemNo: 1, qty: 1, description: 'Brida WN 16" Class 600 RF NACE', nominalSize: '16"', materialSpec: 'ASTM A105N NACE', heatNumber: 'HN-A105N-991' },
+      { itemNo: 2, qty: 15.0, description: 'Tubería API 5L PSL2 X65N t=15.9mm', nominalSize: '16"', materialSpec: 'API 5L X65N', heatNumber: 'MTR-X65-771' }
+    ],
+    joints: [
+      {
+        id: 'j-305-01',
+        tag: 'J-01',
+        x: 160,
+        y: 350,
+        spoolTag: 'SPL-305-01',
+        type: 'BUTT',
+        pipeSize: '16"',
+        wallThicknessMm: 15.9,
+        material: 'API 5L X65N NACE',
+        heatNumber: 'MTR-X65-771',
+        wpsCode: 'WPS-PDVSA-02',
+        welderStamp: 'W-108',
+        welderName: 'Carlos Mendoza',
+        weldDate: '2026-07-11',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-060',
+        inspectorName: 'Ing. Marcos Silva'
+      },
+      {
+        id: 'j-305-02',
+        tag: 'J-02',
+        x: 380,
+        y: 350,
+        spoolTag: 'SPL-305-01',
+        type: 'BRANCH',
+        pipeSize: '16" x 10"',
+        wallThicknessMm: 15.9,
+        material: 'API 5L X65N NACE',
+        heatNumber: 'MTR-X65-771',
+        wpsCode: 'WPS-PDVSA-02',
+        welderStamp: 'W-108',
+        welderName: 'Carlos Mendoza',
+        weldDate: '2026-07-12',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Rechazado',
+        defectType: 'Falta de Penetración (LOP 14mm)',
+        defectSizeMm: 14,
+        ndtReportNo: 'REP-RT-2026-062',
+        inspectorName: 'Ing. Marcos Silva',
+        dicondeSampleId: 'dcm-2'
+      },
+      {
+        id: 'j-305-03',
+        tag: 'J-03',
+        x: 580,
+        y: 350,
+        spoolTag: 'SPL-305-01',
+        type: 'BUTT',
+        pipeSize: '16"',
+        wallThicknessMm: 15.9,
+        material: 'API 5L X65N NACE',
+        heatNumber: 'MTR-X65-771',
+        wpsCode: 'WPS-PDVSA-02',
+        welderStamp: 'W-402',
+        welderName: 'José Pérez',
+        weldDate: '2026-07-13',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'RT',
+        ndtStatus: 'Aprobado',
+        ndtReportNo: 'REP-RT-2026-065',
+        inspectorName: 'Ing. Marcos Silva'
+      },
+      {
+        id: 'j-305-04',
+        tag: 'J-04',
+        x: 380,
+        y: 220,
+        spoolTag: 'SPL-305-02',
+        type: 'BUTT',
+        pipeSize: '10"',
+        wallThicknessMm: 12.7,
+        material: 'API 5L X65N',
+        heatNumber: 'MTR-X65-771',
+        wpsCode: 'WPS-PDVSA-02',
+        welderStamp: 'W-309',
+        welderName: 'Manuel Rivas',
+        weldDate: '2026-07-14',
+        fitupStatus: 'Aprobado',
+        vtStatus: 'Aprobado',
+        ndtMethod: 'UT/PAUT',
+        ndtStatus: 'Pendiente',
+        inspectorName: 'Carlos Mendoza'
+      }
+    ],
+    svgPaths: {
+      geometry: [
+        { d: 'M 100 350 L 680 350', strokeWidth: 10, stroke: '#10b981', type: 'pipe' },
+        { d: 'M 380 350 L 380 160', strokeWidth: 8, stroke: '#10b981', type: 'pipe' }
+      ],
+      dimensions: [
+        { x1: 100, y1: 370, x2: 680, y2: 370, label: 'Colector L = 6,800 mm' },
+        { x1: 400, y1: 350, x2: 400, y2: 160, label: 'Ramal H = 2,200 mm' }
+      ]
+    }
+  }
+];
