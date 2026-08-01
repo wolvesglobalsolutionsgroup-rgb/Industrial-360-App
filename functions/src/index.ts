@@ -655,4 +655,263 @@ export const verifyDocument = async (req: any, res: any) => {
   }
 };
 
+/**
+ * S14.2A - Provisionamiento seguro de membresía QA
+ * Exige: context.auth.token.platformAdmin === true (Admin de plataforma).
+ * Valida que targetOrgId tenga environment === 'qa'.
+ * Valida rol en allow-list: gerente, supervisor, inspector, campo, cliente_readonly.
+ * Rechaza platformAdmin como rol de tenant.
+ * Operación idempotente.
+ */
+export const provisionQaMembership = functions.https.onCall(
+  async (data: any, context: functions.https.CallableContext) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'El usuario debe estar autenticado.'
+      );
+    }
+
+    const isPlatformAdmin = context.auth.token?.platformAdmin === true;
+    if (!isPlatformAdmin) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Acceso denegado: Se requiere autoridad de plataforma (platformAdmin === true).'
+      );
+    }
+
+    const targetUid = typeof data?.targetUid === 'string' ? data.targetUid.trim() : '';
+    const targetOrgId = typeof data?.targetOrgId === 'string' ? data.targetOrgId.trim() : '';
+    const requestedRole = typeof data?.requestedRole === 'string' ? data.requestedRole.trim() : '';
+    const reason = typeof data?.reason === 'string' ? data.reason.trim() : '';
+
+    if (!targetUid || !targetOrgId || !requestedRole || !reason) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Parámetros requeridos: targetUid, targetOrgId, requestedRole, reason (no vacíos).'
+      );
+    }
+
+    const QA_ALLOWED_ROLES = ['gerente', 'supervisor', 'inspector', 'campo', 'cliente_readonly'];
+    if (!QA_ALLOWED_ROLES.includes(requestedRole)) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        `Rol solicitado no permitido para QA Preview. Roles permitidos: ${QA_ALLOWED_ROLES.join(', ')}.`
+      );
+    }
+
+    const dbAdmin = getFirestore();
+    const authAdmin = getAuth();
+
+    const orgRef = dbAdmin.doc(`organizations/${targetOrgId}`);
+    const orgSnap = await orgRef.get();
+
+    if (!orgSnap.exists) {
+      throw new functions.https.HttpsError(
+        'not-found',
+        `Organización no encontrada: '${targetOrgId}'.`
+      );
+    }
+
+    const orgData = orgSnap.data() || {};
+    if (orgData.environment !== 'qa') {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        `Acceso denegado: La organización '${targetOrgId}' no es un entorno QA autorizado (environment !== 'qa').`
+      );
+    }
+
+    const membershipRef = dbAdmin.doc(`organizations/${targetOrgId}/memberships/${targetUid}`);
+    const membershipSnap = await membershipRef.get();
+
+    if (membershipSnap.exists) {
+      const existing = membershipSnap.data() || {};
+      if (existing.status === 'active' && existing.role === requestedRole) {
+        return {
+          success: true,
+          status: 'alreadyProvisioned',
+          targetUid,
+          targetOrgId,
+          role: requestedRole,
+          message: `La membresía QA para '${targetUid}' en '${targetOrgId}' ya se encuentra activa con el rol '${requestedRole}'.`,
+        };
+      }
+    }
+
+    const callerUid = context.auth.uid;
+    const timestamp = FieldValue.serverTimestamp();
+
+    const batch = dbAdmin.batch();
+
+    batch.set(
+      membershipRef,
+      {
+        uid: targetUid,
+        orgId: targetOrgId,
+        role: requestedRole,
+        status: 'active',
+        updatedAt: timestamp,
+        provisionedBy: callerUid,
+        reason,
+      },
+      { merge: true }
+    );
+
+    const auditRef = dbAdmin.collection(`organizations/${targetOrgId}/audit_logs`).doc();
+    batch.set(auditRef, {
+      action: 'QA_MEMBERSHIP_PROVISIONED',
+      callerUid,
+      targetUid,
+      targetOrgId,
+      role: requestedRole,
+      reason,
+      timestamp,
+      status: 'SUCCESS',
+    });
+
+    await batch.commit();
+
+    await authAdmin.setCustomUserClaims(targetUid, {
+      orgId: targetOrgId,
+      role: requestedRole,
+    });
+    await authAdmin.revokeRefreshTokens(targetUid);
+
+    logger.info(
+      `Membresía QA aprovisionada exitosamente: targetUid=${targetUid}, targetOrgId=${targetOrgId}, role=${requestedRole}, actor=${callerUid}`
+    );
+
+    return {
+      success: true,
+      status: 'provisioned',
+      targetUid,
+      targetOrgId,
+      role: requestedRole,
+      message: `Membresía QA aprovisionada exitosamente para ${targetUid} en ${targetOrgId} con rol ${requestedRole}.`,
+    };
+  }
+);
+
+/**
+ * S14.2A - Revocación segura de membresía QA
+ * Exige: context.auth.token.platformAdmin === true.
+ * Valida tenant QA (environment === 'qa'), revoca membresía, limpia claims de tenant QA y revoca refresh tokens.
+ * Operación idempotente.
+ */
+export const revokeQaMembership = functions.https.onCall(
+  async (data: any, context: functions.https.CallableContext) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'El usuario debe estar autenticado.'
+      );
+    }
+
+    const isPlatformAdmin = context.auth.token?.platformAdmin === true;
+    if (!isPlatformAdmin) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Acceso denegado: Se requiere autoridad de plataforma (platformAdmin === true).'
+      );
+    }
+
+    const targetUid = typeof data?.targetUid === 'string' ? data.targetUid.trim() : '';
+    const targetOrgId = typeof data?.targetOrgId === 'string' ? data.targetOrgId.trim() : '';
+    const reason = typeof data?.reason === 'string' ? data.reason.trim() : '';
+
+    if (!targetUid || !targetOrgId || !reason) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Parámetros requeridos: targetUid, targetOrgId, reason (no vacíos).'
+      );
+    }
+
+    const dbAdmin = getFirestore();
+    const authAdmin = getAuth();
+
+    const orgRef = dbAdmin.doc(`organizations/${targetOrgId}`);
+    const orgSnap = await orgRef.get();
+
+    if (!orgSnap.exists) {
+      throw new functions.https.HttpsError(
+        'not-found',
+        `Organización no encontrada: '${targetOrgId}'.`
+      );
+    }
+
+    const orgData = orgSnap.data() || {};
+    if (orgData.environment !== 'qa') {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        `Acceso denegado: La organización '${targetOrgId}' no es un entorno QA autorizado (environment !== 'qa').`
+      );
+    }
+
+    const membershipRef = dbAdmin.doc(`organizations/${targetOrgId}/memberships/${targetUid}`);
+    const membershipSnap = await membershipRef.get();
+
+    if (!membershipSnap.exists || membershipSnap.data()?.status === 'revoked') {
+      return {
+        success: true,
+        status: 'alreadyRevoked',
+        targetUid,
+        targetOrgId,
+        message: `La membresía QA para '${targetUid}' en '${targetOrgId}' ya se encontraba revocada o no existe.`,
+      };
+    }
+
+    const callerUid = context.auth.uid;
+    const timestamp = FieldValue.serverTimestamp();
+
+    const batch = dbAdmin.batch();
+    batch.update(membershipRef, {
+      status: 'revoked',
+      updatedAt: timestamp,
+      revokedBy: callerUid,
+      reason,
+    });
+
+    const auditRef = dbAdmin.collection(`organizations/${targetOrgId}/audit_logs`).doc();
+    batch.set(auditRef, {
+      action: 'QA_MEMBERSHIP_REVOKED',
+      callerUid,
+      targetUid,
+      targetOrgId,
+      reason,
+      timestamp,
+      status: 'SUCCESS',
+    });
+
+    await batch.commit();
+
+    try {
+      const targetUser = await authAdmin.getUser(targetUid);
+      const currentClaims = targetUser.customClaims || {};
+      if (currentClaims.orgId === targetOrgId) {
+        const newClaims: Record<string, any> = {};
+        if (currentClaims.platformAdmin) {
+          newClaims.platformAdmin = true;
+        }
+        await authAdmin.setCustomUserClaims(targetUid, newClaims);
+      }
+    } catch (err) {
+      logger.warn(`No se pudieron actualizar los claims de ${targetUid} durante revocación:`, err);
+    }
+
+    await authAdmin.revokeRefreshTokens(targetUid);
+
+    logger.info(
+      `Membresía QA revocada exitosamente: targetUid=${targetUid}, targetOrgId=${targetOrgId}, actor=${callerUid}`
+    );
+
+    return {
+      success: true,
+      status: 'revoked',
+      targetUid,
+      targetOrgId,
+      message: `Membresía QA revocada exitosamente para ${targetUid} en ${targetOrgId}.`,
+    };
+  }
+);
+
 

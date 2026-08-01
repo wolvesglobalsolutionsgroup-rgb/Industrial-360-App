@@ -15,6 +15,7 @@ export interface Organization {
   taxId?: string;
   logoUrl?: string;
   description?: string;
+  environment?: 'qa' | 'production';
 }
 
 export interface BrandKit {
@@ -186,25 +187,34 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Fetch brandKit from Firestore
+  // Fetch brandKit and org metadata from Firestore
   useEffect(() => {
-    const fetchBrand = async () => {
+    const fetchOrgMetadata = async () => {
       try {
         let snap = await getDoc(doc(db, 'organizations', currentOrganization.id));
         if (!snap.exists()) {
           snap = await getDoc(doc(db, 'organizations', 'default'));
         }
         if (snap.exists()) {
-          const data = snap.data() as BrandKit;
-          const merged = { ...defaultBrandKit, ...data };
+          const rawData = snap.data();
+          const env = (rawData?.environment === 'qa' ? 'qa' : 'production') as 'qa' | 'production';
+          setCurrentOrganization(prev => ({
+            ...prev,
+            environment: env,
+            name: rawData?.name || prev.name,
+            taxId: rawData?.taxId || prev.taxId,
+          }));
+
+          const brandData = rawData as BrandKit;
+          const merged = { ...defaultBrandKit, ...brandData };
           setBrandKitState(merged);
           localStorage.setItem('ic360_brandKit', JSON.stringify(merged));
         }
       } catch (err) {
-        console.warn('Using local fallback for brandKit:', err);
+        console.warn('Using local fallback for brandKit/org:', err);
       }
     };
-    fetchBrand();
+    fetchOrgMetadata();
   }, [currentOrganization.id]);
 
   const hasAttemptedSeedRef = useRef(false);
